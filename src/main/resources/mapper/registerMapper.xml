@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yiweilai.DreamArchive.mapper.registerMapper">
+
+    <!-- 注册用户 -->
+
+    <insert id="newUser" parameterType="com.yiweilai.DreamArchive.DTO.User">
+        INSERT INTO dream(id,username,password,email)
+        VALUES (#{id}, #{time}, #{username}, #{password}, #{email})
+    </insert>
+
+
+    <!-- 根据 ID 查询梦境 -->
+    <select id="selectDreamByID"  resultType="com.yiweilai.DreamArchive.DTO.User">
+        SELECT * FROM dream where id = #{id}
+    </select>
+
+</mapper>
