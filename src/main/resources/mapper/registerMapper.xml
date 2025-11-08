@@ -6,8 +6,8 @@
     <!-- 注册用户 -->
 
     <insert id="newUser" parameterType="com.yiweilai.DreamArchive.DTO.User">
-        INSERT INTO dream(id,username,password,email)
-        VALUES (#{id}, #{time}, #{username}, #{password}, #{email})
+        INSERT INTO user(id,username,password,email)
+        VALUES (#{id}, #{username}, #{password}, #{email})
     </insert>
 
 

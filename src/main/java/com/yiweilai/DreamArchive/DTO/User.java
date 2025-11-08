@@ -50,7 +50,7 @@ public class User {
 
     /**
      * 获取
-     * @return password
+     * @return passwordEncrypt
      */
     public String getPassword() {
         return password;
@@ -81,6 +81,6 @@ public class User {
     }
 
     public String toString() {
-        return "User{id = " + id + ", username = " + username + ", password = " + password + ", email = " + email + "}";
+        return "User{id = " + id + ", username = " + username + ", passwordEncrypt = " + password + ", email = " + email + "}";
     }
 }

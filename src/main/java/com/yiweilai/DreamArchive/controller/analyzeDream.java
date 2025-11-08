@@ -17,13 +17,13 @@ public class analyzeDream {
     public Dream analysisDream(@RequestBody Dream dream){
         return dreamService.setDream(
                 dream.getTime(),
-                dream.getPlace(),
-                dream.getEmotion(),
-                dream.getContent(),
-                dream.getInterpretation()
-        );
-    }
-    @CrossOrigin(origins = "*")
+            dream.getPlace(),
+            dream.getEmotion(),
+            dream.getContent(),
+            dream.getInterpretation()
+            );
+}
+@CrossOrigin(origins = "*")
     @GetMapping("/dream/{id}")
     public Dream dream(@PathVariable String id){
         return dreamService.getDreamById(id);
