@@ -11,5 +11,6 @@ public class registerService {
     registerMapper registerMapper;
     public String newUser(String username,String password,String email){
 
+        return "200";
     }
 }
