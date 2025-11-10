@@ -11,9 +11,6 @@
     </insert>
 
 
-    <!-- 根据 ID 查询梦境 -->
-    <select id="selectDreamByID"  resultType="com.yiweilai.DreamArchive.DTO.User">
-        SELECT * FROM dream where id = #{id}
-    </select>
+    <!-- 判断用户是否存在 -->>
 
 </mapper>
