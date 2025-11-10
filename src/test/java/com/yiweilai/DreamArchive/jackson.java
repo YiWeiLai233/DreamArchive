@@ -11,9 +11,7 @@ import java.util.List;
 
 public class jackson{
     public static void main(String[] args) throws JsonProcessingException {
-        List<messages> ai = new ArrayList<messages>();
-        messages m = new messages("user","test");
-        ai.add(m);
-        System.out.println(JsonUtil.toJSON(ai, "gpt5"));
+
     }
+
 }
