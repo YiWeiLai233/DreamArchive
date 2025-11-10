@@ -11,7 +11,7 @@ public class JsonUtil {
     public static ObjectMapper mapper = new ObjectMapper();
         public static String toJSON(List<messages> messages,String model) {
         //这里将对象转换成json
-        AI ai=new AI(model,"0.5",messages);
+        AI ai=new AI("0.5",model,messages);
         try{
             return mapper.writeValueAsString(ai);
         }catch(JsonProcessingException e){

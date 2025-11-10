@@ -6,6 +6,7 @@ import com.yiweilai.DreamArchive.DTO.messages;
 import com.yiweilai.DreamArchive.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -19,24 +20,26 @@ import java.util.concurrent.*;
 @Service
 public class AiService {
     private static final Logger log = LoggerFactory.getLogger(AiService.class);
-    public String aiSerice() throws JsonProcessingException {
+    @Value("${ai.api.url}")
+    private static String url;
 
-        //修改成jackson
-        String json = """
-                {"temperature":0.5,"messages":[{"role":"user","content":"在一个晚上我梦到在房间里面我面对着镜子镜子里面有一个我但是和我做的动作不一样,我很恐慌"}],"model":"gpt-5-nano"}
-                """;
+    @Value("${ai.api.key}")
+    private static String apiKey;
+
+    @Value("${ai.api.model}")
+    private  static String model;
+    public String aiSerice(String content) throws JsonProcessingException {
 
         List<messages> ai = new ArrayList<messages>();
-        messages m = new messages("user","test");
-        ai.add(m);
-        System.out.println(JsonUtil.toJSON(ai, "gpt5"));
-
+        ai.add(new messages("user",content));
+        //修改成jackson
+        String json = JsonUtil.toJSON(ai, model);
         try{
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request =HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.ruyun.fun/v1/chat/completions"))
+                    .uri(URI.create(url))
                     .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer sk-GSGIRQDVzsgORLgvfeW96DogGb2bNsCDOEA29tXpIcw8lxtN")
+                    .header("Authorization", "Bearer "+apiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
                     .build();
             // 创建线程池用于执行请求
@@ -44,12 +47,12 @@ public class AiService {
             Callable<HttpResponse<String>> task = () -> client.send(request, HttpResponse.BodyHandlers.ofString());
             Future<HttpResponse<String>> future = executor.submit(task);
             HttpResponse<String> response = future.get(60, TimeUnit.SECONDS);
-            System.out.println(response.body());
             log.info(response.toString());
+            return response.body();
         }catch (Exception e){
             e.printStackTrace();
         }
-        return "0";
+        return "200";
     }
 
 }

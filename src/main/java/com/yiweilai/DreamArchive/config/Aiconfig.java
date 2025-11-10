@@ -46,7 +46,6 @@ public class Aiconfig {
             Callable<HttpResponse<String>> task = () -> client.send(request, HttpResponse.BodyHandlers.ofString());
             Future<HttpResponse<String>> future = executor.submit(task);
             HttpResponse<String> response = future.get(60, TimeUnit.SECONDS);
-
             log.info(response.toString());
             return response.body();
         }catch (Exception e){

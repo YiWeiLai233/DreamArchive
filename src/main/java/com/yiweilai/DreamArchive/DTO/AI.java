@@ -3,34 +3,18 @@ package com.yiweilai.DreamArchive.DTO;
 import java.util.List;
 
 public class AI {
-    private String model;
-    private String temperature;
-    private List<messages> messages;
 
+    private String temperature;
+    private String model;
+    private List<messages> messages;
 
     public AI() {
     }
 
-    public AI(String model, String temperature, List<messages> messages) {
-        this.model = model;
+    public AI(String temperature, String model, List<messages> messages) {
         this.temperature = temperature;
-        this.messages = messages;
-    }
-
-    /**
-     * 获取
-     * @return model
-     */
-    public String getModel() {
-        return model;
-    }
-
-    /**
-     * 设置
-     * @param model
-     */
-    public void setModel(String model) {
         this.model = model;
+        this.messages = messages;
     }
 
     /**
@@ -51,8 +35,23 @@ public class AI {
 
     /**
      * 获取
+     * @return model
+     */
+    public String getModel() {
+        return model;
+    }
+
+    /**
+     * 设置
+     * @param model
+     */
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    /**
+     * 获取
      * @return messages
-     *
      */
     public List<messages> getMessages() {
         return messages;
@@ -67,6 +66,6 @@ public class AI {
     }
 
     public String toString() {
-        return "AI{model = " + model + ", temperature = " + temperature + ", messages = " + messages + "}";
+        return "AI{temperature = " + temperature + ", model = " + model + ", messages = " + messages + "}";
     }
 }
