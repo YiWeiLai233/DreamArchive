@@ -11,6 +11,7 @@ const isEditing = ref(false)
 const isLoading = ref(false)
 const successMsg = ref('')
 const errorMsg = ref('')
+const avatarInput = ref<HTMLInputElement | null>(null)
 
 const profileUsername = computed(() => userStore.username || '梦境旅人')
 const profileEmail = computed(() => userStore.email || '未绑定邮箱')
@@ -22,6 +23,7 @@ const profileJoinDate = computed(() => {
   if (isNaN(d.getTime())) return raw
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 })
+const avatarUrl = computed(() => userStore.avatar)
 
 const profile = reactive({
   bio: '记录每一个奇妙的梦境'
@@ -70,6 +72,41 @@ function startEdit() {
 function cancelEdit() {
   isEditing.value = false
 }
+
+function triggerAvatarUpload() {
+  avatarInput.value?.click()
+}
+
+function handleAvatarChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    errorMsg.value = '请选择图片文件'
+    input.value = ''
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    errorMsg.value = '头像图片不能超过 2MB'
+    input.value = ''
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    userStore.updateAvatar(String(reader.result || ''))
+    successMsg.value = '头像已更新'
+    errorMsg.value = ''
+    setTimeout(() => { successMsg.value = '' }, 2500)
+  }
+  reader.onerror = () => {
+    errorMsg.value = '头像读取失败，请换一张图片'
+  }
+  reader.readAsDataURL(file)
+  input.value = ''
+}
+
 
 async function saveProfile() {
   errorMsg.value = ''
@@ -123,8 +160,15 @@ function goBack() { router.push('/') }
       <!-- 资料卡片 -->
       <div class="profile-card glass">
         <div class="profile-header">
-          <div class="avatar-large">
-            <span>{{ profileUsername.charAt(0).toUpperCase() }}</span>
+          <div class="avatar-block">
+            <button type="button" class="avatar-large avatar-button" @click="triggerAvatarUpload" title="更换头像">
+              <img v-if="avatarUrl" :src="avatarUrl" alt="头像" />
+              <span v-else>{{ profileUsername.charAt(0).toUpperCase() }}</span>
+            </button>
+            <input ref="avatarInput" class="avatar-input" type="file" accept="image/*" @change="handleAvatarChange" />
+            <div class="avatar-actions">
+              <button type="button" class="avatar-action" @click="triggerAvatarUpload">更换头像</button>
+            </div>
           </div>
           <div v-if="!isEditing" class="profile-info">
             <h2 class="profile-name">{{ profileUsername }}</h2>
@@ -269,13 +313,26 @@ function goBack() { router.push('/') }
 
 .profile-card { padding: 2rem; border-radius: 24px; margin-bottom: 1.5rem; }
 .profile-header { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem; }
+.avatar-block { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; flex-shrink: 0; }
 .avatar-large {
   width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
   display: flex; align-items: center; justify-content: center;
   color: white; font-size: 2rem; font-weight: 700;
   box-shadow: 0 4px 20px rgba(124,111,224,0.4); border: 3px solid rgba(255,255,255,0.5);
+  overflow: hidden;
 }
+.avatar-button { padding: 0; cursor: pointer; transition: all 0.3s ease; }
+.avatar-button:hover { transform: scale(1.04); box-shadow: 0 8px 28px rgba(124,111,224,0.45); }
+.avatar-large img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-input { display: none; }
+.avatar-actions { display: flex; align-items: center; gap: 0.4rem; }
+.avatar-action {
+  border: none; background: rgba(124,111,224,0.1); color: var(--primary);
+  border-radius: 999px; padding: 0.28rem 0.6rem; font-size: 0.75rem;
+  cursor: pointer; font-family: 'Noto Sans SC', sans-serif;
+}
+.avatar-action:hover { background: rgba(124,111,224,0.16); }
 .profile-name { font-size: 1.4rem; font-weight: 700; color: var(--text-dark); }
 .profile-email { font-size: 0.9rem; color: var(--text-light); margin-top: 0.2rem; }
 .profile-bio { font-size: 0.88rem; color: var(--text-light); margin-top: 0.3rem; }

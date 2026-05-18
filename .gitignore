@@ -39,3 +39,6 @@ build/
 ### Frontend generated files ###
 fount/node_modules/
 fount/dist/
+
+### Local runtime logs ###
+*.log

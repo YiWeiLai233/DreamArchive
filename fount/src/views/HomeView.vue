@@ -145,12 +145,14 @@ function goLearnMore() {
         <!-- 已登录：显示用户头像 -->
         <div v-else class="user-avatar-wrapper">
           <div class="user-avatar" :title="userStore.username">
-            <span class="avatar-text">{{ userStore.username.charAt(0).toUpperCase() }}</span>
+            <img v-if="userStore.avatar" :src="userStore.avatar" alt="头像" class="avatar-img" />
+            <span v-else class="avatar-text">{{ userStore.username.charAt(0).toUpperCase() }}</span>
           </div>
           <div class="user-dropdown">
             <div class="dropdown-header">
               <div class="dropdown-avatar">
-                <span>{{ userStore.username.charAt(0).toUpperCase() }}</span>
+                <img v-if="userStore.avatar" :src="userStore.avatar" alt="头像" class="avatar-img" />
+                <span v-else>{{ userStore.username.charAt(0).toUpperCase() }}</span>
               </div>
               <div class="dropdown-info">
                 <span class="dropdown-username">{{ userStore.username }}</span>
@@ -414,6 +416,7 @@ function goLearnMore() {
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(124, 111, 224, 0.4);
   border: 2px solid rgba(255, 255, 255, 0.5);
+  overflow: hidden;
 }
 
 .user-avatar:hover {
@@ -425,6 +428,13 @@ function goLearnMore() {
   color: white;
   font-size: 1.2rem;
   font-weight: 600;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* 下拉菜单 */
@@ -469,6 +479,7 @@ function goLearnMore() {
   color: white;
   font-size: 1rem;
   font-weight: 600;
+  overflow: hidden;
 }
 
 .dropdown-info {

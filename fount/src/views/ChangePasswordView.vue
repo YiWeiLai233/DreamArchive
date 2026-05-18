@@ -2,8 +2,10 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { useUserStore } from '@/stores'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const form = ref({
   oldPassword: '',
@@ -46,6 +48,9 @@ async function handleChange() {
   isLoading.value = true
   try {
     const { data } = await axios.post('/api/change-password', {
+      userId: userStore.userId,
+      username: userStore.username,
+      email: userStore.email,
       oldPassword: form.value.oldPassword,
       newPassword: form.value.newPassword
     })

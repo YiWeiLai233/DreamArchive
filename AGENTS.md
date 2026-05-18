@@ -584,3 +584,20 @@ dream_content (
 1. 多张功能相似的表必须确保读写一致
 2. 预计算表（`dream_stats`）比实时查询更可靠，应优先使用
 3. `dream_content` 表的 `emotion`/`place`/`time` 列是后加的，旧记录为 NULL，需要默认值填充
+
+### 个人资料头像功能记录（2026-05-19）
+
+已在前端个人资料页加入自定义头像功能：
+
+- 文件：`fount/src/views/ProfileView.vue`
+- 状态管理：`fount/src/stores/index.ts`
+- 首页头像展示：`fount/src/views/HomeView.vue`
+- 当前实现方式：前端选择图片后转为 Data URL，存入 `localStorage.avatar`
+- 上传限制：仅允许图片文件，大小不超过 2MB
+- UI 规则：只保留“更换头像”，不要添加“移除头像”按钮
+
+重要注意：
+
+- `ProfileView.vue` 中的背景/浮动装饰图标（如 💎、🌸、🪄、🫧）是用户指定的视觉设计元素，不是乱码。
+- 不要把这些装饰图标当作编码错误清理或替换。
+- 如需修复真正的乱码文本，只改影响语法、构建或可读性的文本，不要改动背景装饰图标。

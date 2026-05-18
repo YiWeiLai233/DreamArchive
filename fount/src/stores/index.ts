@@ -7,6 +7,7 @@ export const useUserStore = defineStore('user', () => {
   const username = ref(localStorage.getItem('username') || '')
   const email = ref(localStorage.getItem('email') || '')
   const createdAt = ref(localStorage.getItem('createdAt') || '')
+  const avatar = ref(localStorage.getItem('avatar') || '')
 
   function login(name: string, mail?: string, joinDate?: string, id?: string) {
     isLoggedIn.value = true
@@ -27,11 +28,13 @@ export const useUserStore = defineStore('user', () => {
     email.value = ''
     createdAt.value = ''
     userId.value = ''
+    avatar.value = ''
     localStorage.removeItem('isLoggedIn')
     localStorage.removeItem('username')
     localStorage.removeItem('email')
     localStorage.removeItem('createdAt')
     localStorage.removeItem('userId')
+    localStorage.removeItem('avatar')
   }
 
   function updateProfile(name: string, mail: string) {
@@ -41,5 +44,14 @@ export const useUserStore = defineStore('user', () => {
     if (mail) localStorage.setItem('email', mail)
   }
 
-  return { isLoggedIn, userId, username, email, createdAt, login, logout, updateProfile }
+  function updateAvatar(value: string) {
+    avatar.value = value
+    if (value) {
+      localStorage.setItem('avatar', value)
+    } else {
+      localStorage.removeItem('avatar')
+    }
+  }
+
+  return { isLoggedIn, userId, username, email, createdAt, avatar, login, logout, updateProfile, updateAvatar }
 })
