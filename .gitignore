@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local assistant/config ###
+.claude/
+**/.claude/
+
+### Frontend generated files ###
+fount/node_modules/
+fount/dist/

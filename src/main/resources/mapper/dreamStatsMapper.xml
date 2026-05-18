@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yiweilai.DreamArchive.mapper.DreamStatsMapper">
+
+    <!-- 获取用户某日的统计数据 -->
+    <select id="selectByUserAndDate" resultType="com.yiweilai.DreamArchive.DTO.DreamStatsEntity">
+        SELECT * FROM dream_stats
+        WHERE user_id = #{userId} AND stat_date = #{statDate}
+    </select>
+
+    <!-- 插入或更新每日统计 -->
+    <insert id="insertOrUpdateDailyStats" parameterType="com.yiweilai.DreamArchive.DTO.DreamStatsEntity">
+        INSERT INTO dream_stats (user_id, stat_date, total_dreams, happy_count, sad_count, scared_count, angry_count, peaceful_count, other_emotion_count)
+        VALUES (#{userId}, #{statDate}, #{totalDreams}, #{happyCount}, #{sadCount}, #{scaredCount}, #{angryCount}, #{peacefulCount}, #{otherEmotionCount})
+        ON DUPLICATE KEY UPDATE
+            total_dreams = VALUES(total_dreams),
+            happy_count = VALUES(happy_count),
+            sad_count = VALUES(sad_count),
+            scared_count = VALUES(scared_count),
+            angry_count = VALUES(angry_count),
+            peaceful_count = VALUES(peaceful_count),
+            other_emotion_count = VALUES(other_emotion_count)
+    </insert>
+
+    <!-- 增加总梦境数 -->
+    <update id="incrementTotalDreams">
+        INSERT INTO dream_stats (user_id, stat_date, total_dreams)
+        VALUES (#{userId}, #{statDate}, 1)
+        ON DUPLICATE KEY UPDATE total_dreams = total_dreams + 1
+    </update>
+
+    <!-- 增加特定情绪的梦境数 -->
+    <update id="incrementEmotionCount">
+        <choose>
+            <when test="emotion == '开心' or emotion == '快乐' or emotion == '高兴'">
+                INSERT INTO dream_stats (user_id, stat_date, happy_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE happy_count = happy_count + 1
+            </when>
+            <when test="emotion == '难过' or emotion == '悲伤' or emotion == '伤心'">
+                INSERT INTO dream_stats (user_id, stat_date, sad_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE sad_count = sad_count + 1
+            </when>
+            <when test="emotion == '恐惧' or emotion == '害怕' or emotion == '紧张'">
+                INSERT INTO dream_stats (user_id, stat_date, scared_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE scared_count = scared_count + 1
+            </when>
+            <when test="emotion == '愤怒' or emotion == '生气'">
+                INSERT INTO dream_stats (user_id, stat_date, angry_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE angry_count = angry_count + 1
+            </when>
+            <when test="emotion == '平静' or emotion == '安宁' or emotion == '放松'">
+                INSERT INTO dream_stats (user_id, stat_date, peaceful_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE peaceful_count = peaceful_count + 1
+            </when>
+            <otherwise>
+                INSERT INTO dream_stats (user_id, stat_date, other_emotion_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE other_emotion_count = other_emotion_count + 1
+            </otherwise>
+        </choose>
+    </update>
+
+    <!-- 获取用户的地点统计 -->
+    <select id="selectPlaceStats" resultType="com.yiweilai.DreamArchive.DTO.DreamPlaceStats">
+        SELECT * FROM dream_place_stats
+        WHERE user_id = #{userId} AND place = #{place}
+    </select>
+
+    <!-- 插入或更新地点统计 -->
+    <insert id="insertOrUpdatePlaceStats" parameterType="com.yiweilai.DreamArchive.DTO.DreamPlaceStats">
+        INSERT INTO dream_place_stats (user_id, place, dream_count)
+        VALUES (#{userId}, #{place}, #{dreamCount})
+        ON DUPLICATE KEY UPDATE dream_count = VALUES(dream_count)
+    </insert>
+
+    <!-- 增加地点的梦境数 -->
+    <update id="incrementPlaceCount">
+        INSERT INTO dream_place_stats (user_id, place, dream_count)
+        VALUES (#{userId}, #{place}, 1)
+        ON DUPLICATE KEY UPDATE dream_count = dream_count + 1
+    </update>
+
+    <!-- 获取用户最近N天的统计 -->
+    <select id="selectRecentDays" resultType="com.yiweilai.DreamArchive.DTO.DreamStatsEntity">
+        SELECT * FROM dream_stats
+        WHERE user_id = #{userId}
+          AND stat_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        ORDER BY stat_date ASC
+    </select>
+
+    <!-- 获取用户的地点统计列表 -->
+    <select id="selectPlaceStatsByUser" resultType="com.yiweilai.DreamArchive.DTO.DreamPlaceStats">
+        SELECT * FROM dream_place_stats
+        WHERE user_id = #{userId}
+        ORDER BY dream_count DESC
+        LIMIT 10
+    </select>
+
+</mapper>

@@ -1,0 +1,32 @@
+:root {
+  --primary: #7C6FE0;
+  --primary-light: #9B8FFF;
+  --secondary: #FFB347;
+  --bg-start: #E8D5F5;
+  --bg-end: #B8E6FF;
+  --text-dark: #2D2B55;
+  --text-light: #6B6899;
+  --white: #FFFFFF;
+  --glass-bg: rgba(255, 255, 255, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.4);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* PC 端适配：增大根字号，所有 rem 单位自动放大 12.5% */
+@media (min-width: 1024px) {
+  html {
+    font-size: 18px;
+  }
+}

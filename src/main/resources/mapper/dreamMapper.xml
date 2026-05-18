@@ -6,14 +6,22 @@
     <!-- 插入梦境 -->
 
     <insert id="insertDream" parameterType="com.yiweilai.DreamArchive.DTO.Dream">
-        INSERT INTO dream(id,time,place,emotion,content,interpretation)
-        VALUES (#{id}, #{time}, #{place}, #{emotion}, #{content}, #{interpretation})
+        INSERT INTO dream(id, user_id, time, place, emotion, content, interpretation, created_at)
+        VALUES (#{id}, #{userId}, #{time}, #{place}, #{emotion}, #{content}, #{interpretation}, NOW())
     </insert>
 
 
     <!-- 根据 ID 查询梦境 -->
     <select id="selectDreamByID"  resultType="com.yiweilai.DreamArchive.DTO.Dream">
-        SELECT * FROM dream where id = #{id}
+        SELECT id, user_id as userId, time, place, emotion, content, interpretation, created_at as createdAt FROM dream where id = #{id}
+    </select>
+
+    <!-- 查询用户的所有梦境 -->
+    <select id="selectByUserId" resultType="com.yiweilai.DreamArchive.DTO.Dream">
+        SELECT id, user_id as userId, time, place, emotion, content, interpretation, created_at as createdAt
+        FROM dream
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
     </select>
 
 </mapper>

@@ -5,22 +5,33 @@ import lombok.Data;
 
 public class Dream {
     private String id;
+    private Integer userId;
     private String time;
     private String place;
     private String content;
     private String emotion;
-    private String Interpretation;
+    private String interpretation;
+    private String createdAt;
 
-    public Dream(String id, String time, String place, String content, String emotion, String interpretation) {
+    public Dream(String id, Integer userId, String time, String place, String content, String emotion, String interpretation) {
         this.id = id;
+        this.userId = userId;
         this.time = time;
         this.place = place;
         this.content = content;
         this.emotion = emotion;
-        Interpretation = interpretation;
+        this.interpretation = interpretation;
     }
 
     public Dream() {
+    }
+
+    public String getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt;
     }
 
     public String getId() {
@@ -29,6 +40,14 @@ public class Dream {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getTime() {
@@ -64,10 +83,10 @@ public class Dream {
     }
 
     public String getInterpretation() {
-        return Interpretation;
+        return interpretation;
     }
 
     public void setInterpretation(String interpretation) {
-        Interpretation = interpretation;
+        this.interpretation = interpretation;
     }
 }

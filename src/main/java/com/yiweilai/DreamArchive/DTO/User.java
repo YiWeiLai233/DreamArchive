@@ -1,10 +1,28 @@
 package com.yiweilai.DreamArchive.DTO;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import java.time.LocalDateTime;
+
 public class User {
     private int id;
+
+    @NotBlank(message = "用户名不能为空")
+    @Size(min = 3, max = 20, message = "用户名长度必须在3-20个字符之间")
     private String username;
+
+    @NotBlank(message = "密码不能为空")
+    @Size(min = 6, max = 50, message = "密码长度必须在6-50个字符之间")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
+
+    @NotBlank(message = "邮箱不能为空")
+    @Email(message = "邮箱格式不正确")
     private String email;
+
+    private LocalDateTime createdAt;
 
     public User() {
     }
@@ -16,71 +34,48 @@ public class User {
         this.email = email;
     }
 
-    /**
-     * 获取
-     * @return id
-     */
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public int getId() {
         return id;
     }
 
-    /**
-     * 设置
-     * @param id
-     */
     public void setId(int id) {
         this.id = id;
     }
 
-    /**
-     * 获取
-     * @return username
-     */
     public String getUsername() {
         return username;
     }
 
-    /**
-     * 设置
-     * @param username
-     */
     public void setUsername(String username) {
         this.username = username;
     }
 
-    /**
-     * 获取
-     * @return passwordEncrypt
-     */
     public String getPassword() {
         return password;
     }
 
-    /**
-     * 设置
-     * @param password
-     */
     public void setPassword(String password) {
         this.password = password;
     }
 
-    /**
-     * 获取
-     * @return email
-     */
     public String getEmail() {
         return email;
     }
 
-    /**
-     * 设置
-     * @param email
-     */
     public void setEmail(String email) {
         this.email = email;
     }
 
+    @Override
     public String toString() {
-        return "User{id = " + id + ", username = " + username + ", passwordEncrypt = " + password + ", email = " + email + "}";
+        return "User{id=" + id + ", username=" + username + ", email=" + email + ", createdAt=" + createdAt + "}";
     }
 }

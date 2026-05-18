@@ -29,9 +29,9 @@ public class AiService {
     @Value("${ai.api.model}")
     private  static String model;
     public String aiSerice(String content) throws JsonProcessingException {
-
+        String OldDream="";
         List<messages> ai = new ArrayList<messages>();
-        ai.add(new messages("user",content));
+        ai.add(new messages("user",content+OldDream));
         //修改成jackson
         String json = JsonUtil.toJSON(ai, model);
         try{
