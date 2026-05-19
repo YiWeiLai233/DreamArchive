@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
-import { saveAndAnalyzeDream, saveDream } from '@/api/dream'
+import { getDreamById, saveAndAnalyzeDream, saveDream } from '@/api/dream'
 import type { DreamContent } from '@/api/dream'
 import { formatDreamInterpretation } from '@/utils/dreamInterpretation'
 
@@ -58,10 +58,14 @@ const commonPlaces = [
 
 const isSubmitting = ref(false)
 const submitMode = ref<'save' | 'analyze' | null>(null)
+const isPollingAnalysis = ref(false)
 const step = ref<'form' | 'result'>('form')
 const result = ref<DreamContent | null>(null)
+let analysisPollTimer: ReturnType<typeof window.setInterval> | null = null
+let analysisPollAttempts = 0
 
 const isFormValid = computed(() => form.value.content.trim().length > 0 && form.value.emotion.length > 0)
+const isAnalysisPending = computed(() => isPendingInterpretation(result.value?.interpretation))
 const formattedInterpretation = computed(() => formatDreamInterpretation(result.value?.interpretation))
 
 function selectEmotion(key: string) {
@@ -70,6 +74,48 @@ function selectEmotion(key: string) {
 
 function getEmotionIcon(emotion: string) {
   return emotions.find(e => e.key === emotion)?.icon || '🌙'
+}
+
+function isPendingInterpretation(interpretation?: string | null) {
+  if (!interpretation) return false
+  return interpretation.includes('后台解析') || interpretation.includes('解析中')
+}
+
+function clearAnalysisPolling() {
+  if (analysisPollTimer) {
+    window.clearInterval(analysisPollTimer)
+    analysisPollTimer = null
+  }
+  isPollingAnalysis.value = false
+  analysisPollAttempts = 0
+}
+
+function startAnalysisPolling(dreamId: string) {
+  clearAnalysisPolling()
+  isPollingAnalysis.value = true
+  void refreshDreamUntilAnalyzed(dreamId)
+  analysisPollTimer = window.setInterval(() => {
+    void refreshDreamUntilAnalyzed(dreamId)
+  }, 3000)
+}
+
+async function refreshDreamUntilAnalyzed(dreamId: string) {
+  analysisPollAttempts += 1
+  try {
+    const res = await getDreamById(dreamId)
+    if (res.data.code === 200 && res.data.data) {
+      result.value = res.data.data
+      if (!isPendingInterpretation(res.data.data.interpretation)) {
+        clearAnalysisPolling()
+      }
+    }
+  } catch (error) {
+    console.error('刷新 AI 解析结果失败:', error)
+  }
+
+  if (analysisPollAttempts >= 40) {
+    clearAnalysisPolling()
+  }
 }
 
 async function handleSubmit(mode: 'save' | 'analyze') {
@@ -100,6 +146,9 @@ async function handleSubmit(mode: 'save' | 'analyze') {
     if (res.data.code === 200) {
       result.value = res.data.data
       step.value = 'result'
+      if (mode === 'analyze' && res.data.data?.id && isPendingInterpretation(res.data.data.interpretation)) {
+        startAnalysisPolling(res.data.data.id)
+      }
     } else {
       alert(res.data.message || '保存失败')
     }
@@ -115,10 +164,13 @@ async function handleSubmit(mode: 'save' | 'analyze') {
 function goBack() { router.push('/') }
 function goDreams() { router.push('/dreams') }
 function recordAnother() {
+  clearAnalysisPolling()
   form.value = { title: '', content: '', emotion: '', place: '', time: '' }
   result.value = null
   step.value = 'form'
 }
+
+onBeforeUnmount(clearAnalysisPolling)
 </script>
 
 <template>
@@ -297,6 +349,10 @@ function recordAnother() {
 
             <div class="result-section">
               <h3 class="result-section-title">🔮 AI 解析</h3>
+              <div v-if="isAnalysisPending || isPollingAnalysis" class="analysis-refresh-status">
+                <span class="analysis-spinner"></span>
+                <span>AI 正在后台解析，页面会自动刷新结果</span>
+              </div>
               <div class="interpretation-box">
                 <div v-if="formattedInterpretation.length" class="interpretation-content">
                   <template
@@ -586,6 +642,26 @@ function recordAnother() {
 .result-body { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 1.5rem; }
 .result-section-title { font-size: 0.9rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.4rem; }
 .result-section-text { font-size: 0.88rem; color: #4A4678; line-height: 1.7; }
+.analysis-refresh-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.6rem;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(124,111,224,0.12);
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.analysis-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(124,111,224,0.22);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
 .interpretation-box {
   background: rgba(255,255,255,0.42);
   padding: 1rem; border-radius: 14px;
