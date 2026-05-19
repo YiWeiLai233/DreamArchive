@@ -1,7 +1,7 @@
 package com.yiweilai.DreamArchive.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.yiweilai.DreamArchive.DTO.AI;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yiweilai.DreamArchive.DTO.messages;
 import com.yiweilai.DreamArchive.util.JsonUtil;
 import org.slf4j.Logger;
@@ -15,44 +15,76 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
 
 @Service
 public class AiService {
     private static final Logger log = LoggerFactory.getLogger(AiService.class);
+
     @Value("${ai.api.url}")
-    private static String url;
+    private String url;
 
     @Value("${ai.api.key}")
-    private static String apiKey;
+    private String apiKey;
 
     @Value("${ai.api.model}")
-    private  static String model;
-    public String aiSerice(String content) throws JsonProcessingException {
-        String OldDream="";
-        List<messages> ai = new ArrayList<messages>();
-        ai.add(new messages("user",content+OldDream));
-        //修改成jackson
-        String json = JsonUtil.toJSON(ai, model);
-        try{
+    private String model;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public String analyzeDream(String content) {
+        List<messages> requestMessages = new ArrayList<>();
+        requestMessages.add(new messages(
+                "system",
+                "你是一名温和、专业的梦境分析助手。请用中文从情绪、象征和现实启发三个角度分析梦境，避免绝对化判断。"
+        ));
+        requestMessages.add(new messages("user", content));
+
+        String json = JsonUtil.toJSON(requestMessages, model);
+        try {
             HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request =HttpRequest.newBuilder()
-                    .uri(URI.create(url))
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(normalizeUrl(url)))
                     .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer "+apiKey)
-                    .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
+                    .header("Authorization", "Bearer " + apiKey)
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
                     .build();
-            // 创建线程池用于执行请求
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            Callable<HttpResponse<String>> task = () -> client.send(request, HttpResponse.BodyHandlers.ofString());
-            Future<HttpResponse<String>> future = executor.submit(task);
-            HttpResponse<String> response = future.get(60, TimeUnit.SECONDS);
-            log.info(response.toString());
-            return response.body();
-        }catch (Exception e){
-            e.printStackTrace();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info("AI response status: {}", response.statusCode());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new RuntimeException("AI 接口返回异常: " + response.statusCode());
+            }
+            return extractContent(response.body());
+        } catch (Exception e) {
+            log.error("AI dream analysis failed", e);
+            throw new RuntimeException("AI 解析失败: " + e.getMessage(), e);
         }
-        return "200";
     }
 
+    public String aiSerice(String content) {
+        return analyzeDream(content);
+    }
+
+    private String normalizeUrl(String rawUrl) {
+        if (rawUrl == null || rawUrl.isBlank()) {
+            throw new IllegalStateException("AI 接口地址未配置");
+        }
+        String trimmed = rawUrl.trim();
+        if (trimmed.endsWith("/chat/completions")) {
+            return trimmed;
+        }
+        if (trimmed.endsWith("/")) {
+            return trimmed + "v1/chat/completions";
+        }
+        return trimmed + "/v1/chat/completions";
+    }
+
+    private String extractContent(String body) throws Exception {
+        JsonNode root = objectMapper.readTree(body);
+        JsonNode content = root.path("choices").path(0).path("message").path("content");
+        if (!content.isMissingNode() && !content.asText().isBlank()) {
+            return content.asText();
+        }
+        return body;
+    }
 }

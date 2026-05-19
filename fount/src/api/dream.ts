@@ -7,6 +7,7 @@ export interface DreamForm {
   emotion: string
   place?: string
   time?: string
+  analyze?: boolean
 }
 
 export interface DreamContent {
@@ -41,7 +42,12 @@ export interface ApiResult<T> {
 
 // 保存梦境
 export function saveDream(form: DreamForm) {
-  return axios.post<ApiResult<DreamContent>>('/api/analysisDream', form)
+  return axios.post<ApiResult<DreamContent>>('/api/analysisDream', { ...form, analyze: false })
+}
+
+// 保存并调用 AI 解析梦境
+export function saveAndAnalyzeDream(form: DreamForm) {
+  return axios.post<ApiResult<DreamContent>>('/api/analysisDream', { ...form, analyze: true })
 }
 
 // 根据 ID 获取梦境

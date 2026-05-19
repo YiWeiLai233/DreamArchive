@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
-import { saveDream } from '@/api/dream'
+import { saveAndAnalyzeDream, saveDream } from '@/api/dream'
 import type { DreamContent } from '@/api/dream'
 
 const router = useRouter()
@@ -56,6 +56,7 @@ const commonPlaces = [
 ]
 
 const isSubmitting = ref(false)
+const submitMode = ref<'save' | 'analyze' | null>(null)
 const step = ref<'form' | 'result'>('form')
 const result = ref<DreamContent | null>(null)
 
@@ -69,7 +70,7 @@ function getEmotionIcon(emotion: string) {
   return emotions.find(e => e.key === emotion)?.icon || '🌙'
 }
 
-async function handleSubmit() {
+async function handleSubmit(mode: 'save' | 'analyze') {
   if (!isFormValid.value || isSubmitting.value) return
 
   if (!userStore.isLoggedIn) {
@@ -79,6 +80,7 @@ async function handleSubmit() {
   }
 
   isSubmitting.value = true
+  submitMode.value = mode
 
   try {
     const dreamData = {
@@ -90,7 +92,9 @@ async function handleSubmit() {
       time: form.value.time || new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
     }
 
-    const res = await saveDream(dreamData)
+    const res = mode === 'analyze'
+      ? await saveAndAnalyzeDream(dreamData)
+      : await saveDream(dreamData)
     if (res.data.code === 200) {
       result.value = res.data.data
       step.value = 'result'
@@ -102,6 +106,7 @@ async function handleSubmit() {
     alert('保存失败，请重试')
   } finally {
     isSubmitting.value = false
+    submitMode.value = null
   }
 }
 
@@ -242,16 +247,28 @@ function recordAnother() {
 
           <div class="bottom-bar">
             <span class="char-count">{{ form.content.length }} / 2000</span>
-            <button
-              class="submit-btn"
-              :class="{ disabled: !isFormValid || isSubmitting }"
-              :disabled="!isFormValid || isSubmitting"
-              @click="handleSubmit"
-            >
-              <span v-if="isSubmitting" class="loading-spinner"></span>
-              <span v-else class="btn-icon">🔮</span>
-              <span>{{ isSubmitting ? '正在解析...' : '保存并解析梦境' }}</span>
-            </button>
+            <div class="submit-actions">
+              <button
+                class="submit-btn secondary"
+                :class="{ disabled: !isFormValid || isSubmitting }"
+                :disabled="!isFormValid || isSubmitting"
+                @click="handleSubmit('save')"
+              >
+                <span v-if="isSubmitting && submitMode === 'save'" class="loading-spinner"></span>
+                <span v-else class="btn-icon">💾</span>
+                <span>{{ isSubmitting && submitMode === 'save' ? '正在保存...' : '单独保存梦境' }}</span>
+              </button>
+              <button
+                class="submit-btn"
+                :class="{ disabled: !isFormValid || isSubmitting }"
+                :disabled="!isFormValid || isSubmitting"
+                @click="handleSubmit('analyze')"
+              >
+                <span v-if="isSubmitting && submitMode === 'analyze'" class="loading-spinner"></span>
+                <span v-else class="btn-icon">🔮</span>
+                <span>{{ isSubmitting ? '正在解析...' : '保存并解析梦境' }}</span>
+              </button>
+            </div>
           </div>
         </section>
       </div>
@@ -501,6 +518,12 @@ function recordAnother() {
   flex-shrink: 0;
 }
 .char-count { font-size: 0.75rem; color: var(--text-light); }
+.submit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
 .submit-btn {
   display: inline-flex; align-items: center; gap: 0.5rem;
   padding: 0.6rem 1.8rem; border: none; border-radius: 50px;
@@ -510,7 +533,17 @@ function recordAnother() {
   font-family: 'Noto Sans SC', sans-serif;
   box-shadow: 0 4px 15px rgba(124,111,224,0.4);
 }
+.submit-btn.secondary {
+  background: rgba(255,255,255,0.72);
+  color: var(--primary);
+  border: 1px solid rgba(124,111,224,0.28);
+  box-shadow: none;
+}
 .submit-btn:hover:not(.disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(124,111,224,0.5); }
+.submit-btn.secondary:hover:not(.disabled) {
+  background: rgba(124,111,224,0.12);
+  box-shadow: 0 4px 14px rgba(124,111,224,0.16);
+}
 .submit-btn.disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-icon { font-size: 1.1rem; }
 .loading-spinner {
@@ -581,6 +614,9 @@ function recordAnother() {
   .emotion-btn { flex-direction: column; gap: 0.15rem; padding: 0.4rem 0.2rem; }
   .emotion-icon { font-size: 1rem; }
   .emotion-label { font-size: 0.65rem; }
+  .bottom-bar { align-items: stretch; flex-direction: column; gap: 0.75rem; }
+  .submit-actions { justify-content: stretch; }
+  .submit-btn { flex: 1; justify-content: center; padding: 0.6rem 0.9rem; }
   .result-card { padding: 1.5rem; }
 }
 
