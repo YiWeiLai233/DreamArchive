@@ -40,27 +40,30 @@ export interface ApiResult<T> {
   data: T
 }
 
-// 保存梦境
+export interface DreamAnalysisResult {
+  interpretation: string
+}
+
 export function saveDream(form: DreamForm) {
   return axios.post<ApiResult<DreamContent>>('/api/analysisDream', { ...form, analyze: false })
 }
 
-// 保存并调用 AI 解析梦境
 export function saveAndAnalyzeDream(form: DreamForm) {
-  return axios.post<ApiResult<DreamContent>>('/api/analysisDream', { ...form, analyze: true })
+  return axios.post<ApiResult<DreamContent>>('/api/dreams/save-and-analyze', form)
 }
 
-// 根据 ID 获取梦境
+export function analyzeDreamContent(content: string) {
+  return axios.post<ApiResult<DreamAnalysisResult>>('/api/dream/analyze', { content })
+}
+
 export function getDreamById(id: string) {
   return axios.get<ApiResult<DreamContent>>(`/api/dream/${id}`)
 }
 
-// 获取用户的所有梦境
 export function getUserDreams(userId: number) {
   return axios.get<ApiResult<DreamDetail[]>>(`/api/dreams/user/${userId}`)
 }
 
-// 删除梦境
 export function deleteDream(id: string) {
   return axios.delete<ApiResult<void>>(`/api/dream/${id}`)
 }

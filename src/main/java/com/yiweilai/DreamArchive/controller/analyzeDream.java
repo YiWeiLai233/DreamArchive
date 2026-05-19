@@ -28,31 +28,25 @@ public class analyzeDream {
     @Autowired
     private AiService aiService;
 
+    @PostMapping("/dream/analyze")
+    public Result<Map<String, String>> analyzeDreamOnly(@RequestBody Map<String, Object> request) {
+        try {
+            String content = toStringValue(request.get("content"));
+            String interpretation = aiService.analyzeDream(content);
+            return Result.success(Map.of("interpretation", interpretation));
+        } catch (Exception e) {
+            return Result.error("AI 解析梦境失败: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/dreams/save-and-analyze")
+    public Result<DreamContent> saveAndAnalyzeDream(@RequestBody Map<String, Object> request) {
+        return saveDreamInternal(request, true);
+    }
+
     @PostMapping("/analysisDream")
     public Result<DreamContent> saveDream(@RequestBody Map<String, Object> request) {
-        try {
-            Integer userId = toInteger(request.get("userId"));
-            String title = toStringValue(request.getOrDefault("title", ""));
-            String content = toStringValue(request.get("content"));
-            String emotion = toStringValue(request.get("emotion"));
-            String place = toStringValue(request.getOrDefault("place", "未知"));
-            String time = toStringValue(request.getOrDefault("time", ""));
-            boolean analyze = Boolean.TRUE.equals(request.get("analyze"));
-
-            DreamContent result = dreamService.saveDream(userId, title, content, emotion, place, time);
-            if (analyze) {
-                try {
-                    String interpretation = aiService.analyzeDream(content);
-                    dreamService.updateInterpretation(result.getId(), interpretation);
-                    result.setInterpretation(interpretation);
-                } catch (Exception aiException) {
-                    result.setInterpretation("AI 解析暂时失败，梦境已保存。你可以稍后重试或查看梦境记录。");
-                }
-            }
-            return Result.success(result);
-        } catch (Exception e) {
-            return Result.error("保存梦境失败: " + e.getMessage());
-        }
+        return saveDreamInternal(request, toBoolean(request.get("analyze")));
     }
 
     @GetMapping("/dream/{id}")
@@ -91,6 +85,31 @@ public class analyzeDream {
         }
     }
 
+    private Result<DreamContent> saveDreamInternal(Map<String, Object> request, boolean analyze) {
+        try {
+            Integer userId = toInteger(request.get("userId"));
+            String title = toStringValue(request.getOrDefault("title", ""));
+            String content = toStringValue(request.get("content"));
+            String emotion = toStringValue(request.get("emotion"));
+            String place = toStringValue(request.getOrDefault("place", "未知"));
+            String time = toStringValue(request.getOrDefault("time", ""));
+
+            DreamContent result = dreamService.saveDream(userId, title, content, emotion, place, time);
+            if (analyze) {
+                try {
+                    String interpretation = aiService.analyzeDream(content);
+                    dreamService.updateInterpretation(result.getId(), interpretation);
+                    result.setInterpretation(interpretation);
+                } catch (Exception aiException) {
+                    result.setInterpretation("AI 解析暂时失败，梦境已保存。你可以稍后重试或查看梦境记录。");
+                }
+            }
+            return Result.success(result);
+        } catch (Exception e) {
+            return Result.error("保存梦境失败: " + e.getMessage());
+        }
+    }
+
     private Integer toInteger(Object value) {
         if (value == null) {
             return null;
@@ -103,5 +122,12 @@ public class analyzeDream {
 
     private String toStringValue(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private boolean toBoolean(Object value) {
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        return value != null && Boolean.parseBoolean(String.valueOf(value));
     }
 }
