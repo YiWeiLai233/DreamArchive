@@ -49,7 +49,7 @@ public class AiService {
         List<messages> requestMessages = new ArrayList<>();
         requestMessages.add(new messages(
                 "system",
-                "你是一名温和、专业的梦境分析助手。请用中文从情绪、象征、现实启发三个角度分析梦境，避免绝对化判断。"
+                "你是一名温和、专业的梦境分析助手。请用中文按“整体解读、情绪层面、象征层面、现实启发”四个小标题分析梦境，避免绝对化判断，不要使用 ** 等 Markdown 符号。"
         ));
         requestMessages.add(new messages("user", content));
 

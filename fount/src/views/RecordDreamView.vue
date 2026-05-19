@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
 import { saveAndAnalyzeDream, saveDream } from '@/api/dream'
 import type { DreamContent } from '@/api/dream'
+import { formatDreamInterpretation } from '@/utils/dreamInterpretation'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -61,6 +62,7 @@ const step = ref<'form' | 'result'>('form')
 const result = ref<DreamContent | null>(null)
 
 const isFormValid = computed(() => form.value.content.trim().length > 0 && form.value.emotion.length > 0)
+const formattedInterpretation = computed(() => formatDreamInterpretation(result.value?.interpretation))
 
 function selectEmotion(key: string) {
   form.value.emotion = key
@@ -296,7 +298,21 @@ function recordAnother() {
             <div class="result-section">
               <h3 class="result-section-title">🔮 AI 解析</h3>
               <div class="interpretation-box">
-                <p class="result-section-text" v-if="result?.interpretation">{{ result.interpretation }}</p>
+                <div v-if="formattedInterpretation.length" class="interpretation-content">
+                  <template
+                    v-for="(block, index) in formattedInterpretation"
+                    :key="`${block.type}-${index}`"
+                  >
+                    <h4 v-if="block.type === 'heading'" class="interpretation-heading">
+                      {{ block.content }}
+                    </h4>
+                    <div v-else-if="block.type === 'item'" class="interpretation-item">
+                      <span class="interpretation-number">{{ block.marker || index + 1 }}</span>
+                      <p>{{ block.content }}</p>
+                    </div>
+                    <p v-else class="interpretation-paragraph">{{ block.content }}</p>
+                  </template>
+                </div>
                 <p class="result-section-text placeholder-text" v-else>AI 暂未生成解析，你可以稍后在梦境列表中查看。</p>
               </div>
             </div>
@@ -571,9 +587,57 @@ function recordAnother() {
 .result-section-title { font-size: 0.9rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.4rem; }
 .result-section-text { font-size: 0.88rem; color: #4A4678; line-height: 1.7; }
 .interpretation-box {
-  background: rgba(124,111,224,0.08);
-  padding: 1rem; border-radius: 12px;
+  background: rgba(255,255,255,0.42);
+  padding: 1rem; border-radius: 14px;
   border-left: 3px solid var(--primary);
+}
+.interpretation-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.interpretation-heading {
+  align-self: flex-start;
+  margin: 0.2rem 0 0;
+  padding: 0.24rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(124,111,224,0.14);
+  color: var(--primary);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.interpretation-paragraph {
+  margin: 0;
+  color: #4A4678;
+  font-size: 0.9rem;
+  line-height: 1.9;
+}
+.interpretation-item {
+  display: grid;
+  grid-template-columns: 1.7rem 1fr;
+  gap: 0.7rem;
+  align-items: flex-start;
+  padding: 0.78rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(124,111,224,0.08);
+}
+.interpretation-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.interpretation-item p {
+  margin: 0;
+  color: #4A4678;
+  font-size: 0.9rem;
+  line-height: 1.8;
 }
 .placeholder-text { color: var(--text-light); font-style: italic; }
 
