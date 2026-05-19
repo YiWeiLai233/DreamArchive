@@ -55,4 +55,12 @@ public interface DreamStatsMapper {
      * 获取用户的地点统计列表
      */
     List<DreamPlaceStats> selectPlaceStatsByUser(@Param("userId") Integer userId);
+
+    int deleteDailyStats(@Param("userId") Integer userId, @Param("statDate") LocalDate statDate);
+
+    int rebuildDailyStats(@Param("userId") Integer userId, @Param("statDate") LocalDate statDate);
+
+    int deletePlaceStatsByUser(@Param("userId") Integer userId);
+
+    int rebuildPlaceStatsByUser(@Param("userId") Integer userId);
 }

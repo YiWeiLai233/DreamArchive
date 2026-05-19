@@ -91,6 +91,18 @@ public class StatsService {
     /**
      * 获取用户的梦境总数（从统计表）
      */
+    @Transactional
+    public void rebuildStatsAfterDreamDeleted(Integer userId, LocalDate statDate) {
+        if (userId == null || statDate == null) {
+            return;
+        }
+
+        dreamStatsMapper.deleteDailyStats(userId, statDate);
+        dreamStatsMapper.rebuildDailyStats(userId, statDate);
+        dreamStatsMapper.deletePlaceStatsByUser(userId);
+        dreamStatsMapper.rebuildPlaceStatsByUser(userId);
+    }
+
     public Result<Integer> getTotalDreams(Integer userId) {
         try {
             List<DreamStatsEntity> allStats = dreamStatsMapper.selectRecentDays(userId, 365);

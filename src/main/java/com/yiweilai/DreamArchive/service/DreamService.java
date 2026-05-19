@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -81,6 +82,14 @@ public class DreamService {
         if (existingDream == null) {
             return false;
         }
-        return dreamContentMapper.deleteById(id) > 0;
+
+        boolean deleted = dreamContentMapper.deleteById(id) > 0;
+        if (deleted) {
+            LocalDate statDate = existingDream.getCreatedAt() == null
+                    ? LocalDate.now()
+                    : existingDream.getCreatedAt().toLocalDate();
+            statsService.rebuildStatsAfterDreamDeleted(existingDream.getUserId(), statDate);
+        }
+        return deleted;
     }
 }

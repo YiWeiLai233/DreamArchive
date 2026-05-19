@@ -34,6 +34,31 @@
     <!-- 增加特定情绪的梦境数 -->
     <update id="incrementEmotionCount">
         <choose>
+            <when test="emotion == 'happy'">
+                INSERT INTO dream_stats (user_id, stat_date, happy_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE happy_count = happy_count + 1
+            </when>
+            <when test="emotion == 'sad'">
+                INSERT INTO dream_stats (user_id, stat_date, sad_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE sad_count = sad_count + 1
+            </when>
+            <when test="emotion == 'scary' or emotion == 'scared'">
+                INSERT INTO dream_stats (user_id, stat_date, scared_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE scared_count = scared_count + 1
+            </when>
+            <when test="emotion == 'angry'">
+                INSERT INTO dream_stats (user_id, stat_date, angry_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE angry_count = angry_count + 1
+            </when>
+            <when test="emotion == 'peaceful'">
+                INSERT INTO dream_stats (user_id, stat_date, peaceful_count)
+                VALUES (#{userId}, #{statDate}, 1)
+                ON DUPLICATE KEY UPDATE peaceful_count = peaceful_count + 1
+            </when>
             <when test="emotion == '开心' or emotion == '快乐' or emotion == '高兴'">
                 INSERT INTO dream_stats (user_id, stat_date, happy_count)
                 VALUES (#{userId}, #{statDate}, 1)
@@ -88,6 +113,64 @@
     </update>
 
     <!-- 获取用户最近N天的统计 -->
+    <delete id="deleteDailyStats">
+        DELETE FROM dream_stats
+        WHERE user_id = #{userId}
+          AND stat_date = #{statDate}
+    </delete>
+
+    <insert id="rebuildDailyStats">
+        INSERT INTO dream_stats (
+            user_id,
+            stat_date,
+            total_dreams,
+            happy_count,
+            sad_count,
+            scared_count,
+            angry_count,
+            peaceful_count,
+            other_emotion_count
+        )
+        SELECT
+            #{userId},
+            #{statDate},
+            COUNT(*),
+            SUM(CASE WHEN emotion IN ('happy', '开心', '快乐', '高兴') THEN 1 ELSE 0 END),
+            SUM(CASE WHEN emotion IN ('sad', '难过', '悲伤', '伤心') THEN 1 ELSE 0 END),
+            SUM(CASE WHEN emotion IN ('scary', 'scared', '恐惧', '害怕', '紧张') THEN 1 ELSE 0 END),
+            SUM(CASE WHEN emotion IN ('angry', '愤怒', '生气') THEN 1 ELSE 0 END),
+            SUM(CASE WHEN emotion IN ('peaceful', '平静', '安宁', '放松') THEN 1 ELSE 0 END),
+            SUM(CASE
+                WHEN emotion IS NULL OR emotion NOT IN (
+                    'happy', '开心', '快乐', '高兴',
+                    'sad', '难过', '悲伤', '伤心',
+                    'scary', 'scared', '恐惧', '害怕', '紧张',
+                    'angry', '愤怒', '生气',
+                    'peaceful', '平静', '安宁', '放松'
+                ) THEN 1
+                ELSE 0
+            END)
+        FROM dream_content
+        WHERE user_id = #{userId}
+          AND DATE(created_at) = #{statDate}
+        HAVING COUNT(*) > 0
+    </insert>
+
+    <delete id="deletePlaceStatsByUser">
+        DELETE FROM dream_place_stats
+        WHERE user_id = #{userId}
+    </delete>
+
+    <insert id="rebuildPlaceStatsByUser">
+        INSERT INTO dream_place_stats (user_id, place, dream_count)
+        SELECT user_id, place, COUNT(*)
+        FROM dream_content
+        WHERE user_id = #{userId}
+          AND place IS NOT NULL
+          AND place != ''
+        GROUP BY user_id, place
+    </insert>
+
     <select id="selectRecentDays" resultType="com.yiweilai.DreamArchive.DTO.DreamStatsEntity">
         SELECT * FROM dream_stats
         WHERE user_id = #{userId}
@@ -99,6 +182,7 @@
     <select id="selectPlaceStatsByUser" resultType="com.yiweilai.DreamArchive.DTO.DreamPlaceStats">
         SELECT * FROM dream_place_stats
         WHERE user_id = #{userId}
+          AND dream_count > 0
         ORDER BY dream_count DESC
         LIMIT 10
     </select>
