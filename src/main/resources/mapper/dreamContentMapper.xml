@@ -22,6 +22,12 @@
         ORDER BY created_at DESC
     </select>
 
+    <update id="updateTitle">
+        UPDATE dream_content
+        SET title = #{title}
+        WHERE id = #{id}
+    </update>
+
     <update id="updateInterpretation">
         UPDATE dream_content
         SET interpretation = #{interpretation}

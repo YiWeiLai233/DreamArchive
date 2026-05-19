@@ -55,6 +55,10 @@ public class DreamService {
         dreamContentMapper.updateInterpretation(dreamId, interpretation);
     }
 
+    public void updateTitle(String dreamId, String title) {
+        dreamContentMapper.updateTitle(dreamId, title);
+    }
+
     /**
      * 根据 ID 查询梦境
      */

@@ -15,6 +15,8 @@ public interface DreamContentMapper {
 
     List<DreamContent> selectByUserId(@Param("userId") Integer userId);
 
+    void updateTitle(@Param("id") String id, @Param("title") String title);
+
     void updateInterpretation(@Param("id") String id, @Param("interpretation") String interpretation);
 
     int deleteById(@Param("id") String id);

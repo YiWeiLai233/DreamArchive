@@ -1,6 +1,7 @@
 package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.DTO.DreamContent;
+import com.yiweilai.DreamArchive.service.DreamAiTaskService;
 import com.yiweilai.DreamArchive.service.AiService;
 import com.yiweilai.DreamArchive.service.DreamService;
 import com.yiweilai.DreamArchive.util.Result;
@@ -27,6 +28,9 @@ public class analyzeDream {
 
     @Autowired
     private AiService aiService;
+
+    @Autowired
+    private DreamAiTaskService dreamAiTaskService;
 
     @PostMapping("/dream/analyze")
     public Result<Map<String, String>> analyzeDreamOnly(@RequestBody Map<String, Object> request) {
@@ -88,25 +92,24 @@ public class analyzeDream {
     private Result<DreamContent> saveDreamInternal(Map<String, Object> request, boolean analyze) {
         try {
             Integer userId = toInteger(request.get("userId"));
-            String title = toStringValue(request.getOrDefault("title", "")).trim();
             String content = toStringValue(request.get("content"));
+            String title = toStringValue(request.getOrDefault("title", "")).trim();
             String emotion = toStringValue(request.get("emotion"));
             String place = toStringValue(request.getOrDefault("place", "未知"));
             String time = toStringValue(request.getOrDefault("time", ""));
-
-            if (title.isBlank()) {
-                title = aiService.generateDreamTitle(content);
+            boolean shouldGenerateTitle = title.isBlank();
+            if (shouldGenerateTitle) {
+                title = fallbackTitle(content);
             }
 
             DreamContent result = dreamService.saveDream(userId, title, content, emotion, place, time);
             if (analyze) {
-                try {
-                    String interpretation = aiService.analyzeDream(content);
-                    dreamService.updateInterpretation(result.getId(), interpretation);
-                    result.setInterpretation(interpretation);
-                } catch (Exception aiException) {
-                    result.setInterpretation("AI 解析暂时失败，梦境已保存。你可以稍后重试或查看梦境记录。");
-                }
+                String pending = "AI 正在后台解析中，稍后可在梦境列表查看结果。";
+                dreamService.updateInterpretation(result.getId(), pending);
+                result.setInterpretation(pending);
+            }
+            if (shouldGenerateTitle || analyze) {
+                dreamAiTaskService.completeDreamAiFields(result.getId(), content, shouldGenerateTitle, analyze);
             }
             return Result.success(result);
         } catch (Exception e) {
@@ -133,5 +136,13 @@ public class analyzeDream {
             return (Boolean) value;
         }
         return value != null && Boolean.parseBoolean(String.valueOf(value));
+    }
+
+    private String fallbackTitle(String content) {
+        String compact = content == null ? "" : content.replaceAll("\\s+", "").trim();
+        if (compact.isBlank()) {
+            return "未命名梦境";
+        }
+        return compact.length() > 12 ? compact.substring(0, 12) : compact;
     }
 }
