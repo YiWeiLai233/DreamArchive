@@ -88,11 +88,15 @@ public class analyzeDream {
     private Result<DreamContent> saveDreamInternal(Map<String, Object> request, boolean analyze) {
         try {
             Integer userId = toInteger(request.get("userId"));
-            String title = toStringValue(request.getOrDefault("title", ""));
+            String title = toStringValue(request.getOrDefault("title", "")).trim();
             String content = toStringValue(request.get("content"));
             String emotion = toStringValue(request.get("emotion"));
             String place = toStringValue(request.getOrDefault("place", "未知"));
             String time = toStringValue(request.getOrDefault("time", ""));
+
+            if (title.isBlank()) {
+                title = aiService.generateDreamTitle(content);
+            }
 
             DreamContent result = dreamService.saveDream(userId, title, content, emotion, place, time);
             if (analyze) {

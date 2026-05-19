@@ -84,6 +84,45 @@ public class AiService {
         return analyzeDream(content);
     }
 
+    public String generateDreamTitle(String content) {
+        if (content == null || content.isBlank()) {
+            return "未命名梦境";
+        }
+
+        List<messages> requestMessages = new ArrayList<>();
+        requestMessages.add(new messages(
+                "system",
+                "你是梦境标题助手。请根据梦境内容生成一个温柔、简短、有画面感的中文标题。要求：不超过 12 个中文字符；只返回标题本身；不要解释；不要引号、书名号或标点。"
+        ));
+        requestMessages.add(new messages("user", content));
+
+        try {
+            String json = objectMapper.writeValueAsString(Map.of(
+                    "model", model,
+                    "temperature", 0.4,
+                    "messages", requestMessages
+            ));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(normalizeUrl(url)))
+                    .timeout(Duration.ofSeconds(45))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info("AI title response status: {}", response.statusCode());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new RuntimeException("AI 标题接口返回异常: " + response.statusCode());
+            }
+            return cleanGeneratedTitle(extractContent(response.body()), content);
+        } catch (Exception e) {
+            log.warn("AI dream title generation failed, using fallback title", e);
+            return fallbackTitle(content);
+        }
+    }
+
     private String normalizeUrl(String rawUrl) {
         if (rawUrl == null || rawUrl.isBlank()) {
             throw new IllegalStateException("AI 接口地址未配置");
@@ -102,6 +141,36 @@ public class AiService {
             return trimmed + "v1/chat/completions";
         }
         return trimmed + "/v1/chat/completions";
+    }
+
+    private String cleanGeneratedTitle(String title, String content) {
+        String cleaned = title == null ? "" : title
+                .replace("**", "")
+                .replace("标题：", "")
+                .replace("标题:", "")
+                .replace("《", "")
+                .replace("》", "")
+                .replace("\"", "")
+                .replace("“", "")
+                .replace("”", "")
+                .replace("'", "")
+                .replace("‘", "")
+                .replace("’", "")
+                .replaceAll("[\\r\\n]+", " ")
+                .trim();
+
+        if (cleaned.isBlank()) {
+            return fallbackTitle(content);
+        }
+        return cleaned.length() > 16 ? cleaned.substring(0, 16) : cleaned;
+    }
+
+    private String fallbackTitle(String content) {
+        String compact = content == null ? "" : content.replaceAll("\\s+", "").trim();
+        if (compact.isBlank()) {
+            return "未命名梦境";
+        }
+        return compact.length() > 12 ? compact.substring(0, 12) : compact;
     }
 
     private String extractContent(String body) throws Exception {
