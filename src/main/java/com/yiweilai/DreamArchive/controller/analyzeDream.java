@@ -6,6 +6,7 @@ import com.yiweilai.DreamArchive.service.DreamService;
 import com.yiweilai.DreamArchive.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -74,6 +75,19 @@ public class analyzeDream {
             return Result.success(dreams);
         } catch (Exception e) {
             return Result.error("查询梦境列表失败: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/dream/{id}")
+    public Result<Void> deleteDream(@PathVariable String id) {
+        try {
+            boolean deleted = dreamService.deleteDream(id);
+            if (!deleted) {
+                return Result.error("梦境不存在或已被删除");
+            }
+            return Result.success("删除成功", null);
+        } catch (Exception e) {
+            return Result.error("删除梦境失败: " + e.getMessage());
         }
     }
 

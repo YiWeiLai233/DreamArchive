@@ -28,4 +28,9 @@
         WHERE id = #{id}
     </update>
 
+    <delete id="deleteById">
+        DELETE FROM dream_content
+        WHERE id = #{id}
+    </delete>
+
 </mapper>

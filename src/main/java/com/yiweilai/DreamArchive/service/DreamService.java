@@ -74,4 +74,13 @@ public class DreamService {
     public List<DreamContent> getDreamsWithDetailsByUserId(Integer userId) {
         return dreamContentMapper.selectByUserId(userId);
     }
+
+    @Transactional
+    public boolean deleteDream(String id) {
+        DreamContent existingDream = dreamContentMapper.selectById(id);
+        if (existingDream == null) {
+            return false;
+        }
+        return dreamContentMapper.deleteById(id) > 0;
+    }
 }

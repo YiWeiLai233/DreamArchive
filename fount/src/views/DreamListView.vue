@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getUserDreams } from '@/api/dream'
+import { deleteDream, getUserDreams } from '@/api/dream'
 import { getUserByEmail } from '@/api/user'
 import { useUserStore } from '@/stores'
 
@@ -13,7 +13,10 @@ const activeFilter = ref('all')
 const showDetail = ref(false)
 const selectedDream = ref<Dream | null>(null)
 const isLoading = ref(true)
+const isDeleting = ref(false)
 const errorMsg = ref('')
+const showDeleteConfirm = ref(false)
+const dreamPendingDelete = ref<Dream | null>(null)
 
 interface Dream {
   id: string
@@ -132,6 +135,41 @@ function closeDetail() {
   selectedDream.value = null
 }
 
+function askDeleteDream(dream: Dream) {
+  dreamPendingDelete.value = dream
+  showDeleteConfirm.value = true
+}
+
+function closeDeleteConfirm() {
+  if (isDeleting.value) return
+  showDeleteConfirm.value = false
+  dreamPendingDelete.value = null
+}
+
+async function confirmDeleteDream() {
+  if (!dreamPendingDelete.value || isDeleting.value) return
+
+  const dreamId = dreamPendingDelete.value.id
+  try {
+    isDeleting.value = true
+    const res = await deleteDream(dreamId)
+    if (res.data.code === 200) {
+      dreams.value = dreams.value.filter(d => d.id !== dreamId)
+      if (selectedDream.value?.id === dreamId) {
+        closeDetail()
+      }
+      showDeleteConfirm.value = false
+      dreamPendingDelete.value = null
+    } else {
+      alert(res.data.message || '删除失败，请重试')
+    }
+  } catch (e: any) {
+    alert(e.message || '删除失败，请重试')
+  } finally {
+    isDeleting.value = false
+  }
+}
+
 function goBack() {
   router.push('/')
 }
@@ -222,7 +260,17 @@ function goBack() {
         >
           <div class="card-top">
             <span class="emotion-badge">{{ getEmotionIcon(dream.emotion) }} {{ getEmotionLabel(dream.emotion) }}</span>
-            <span class="dream-date">{{ dream.createdAt }}</span>
+            <div class="card-actions">
+              <span class="dream-date">{{ dream.createdAt }}</span>
+              <button
+                class="card-delete-btn"
+                title="删除梦境"
+                @click.stop="askDeleteDream(dream)"
+              >
+                <span>🗑</span>
+                <span>删除</span>
+              </button>
+            </div>
           </div>
           <h3 class="dream-title">{{ dream.title }}</h3>
           <p class="dream-preview">{{ dream.content.slice(0, 80) }}...</p>
@@ -257,6 +305,36 @@ function goBack() {
               <h3 class="section-title">🔮 AI 解析</h3>
               <p class="section-text interpretation">{{ selectedDream.interpretation }}</p>
             </div>
+          </div>
+          <div class="modal-actions">
+            <button class="delete-detail-btn" @click="askDeleteDream(selectedDream)">
+              <span>🗑</span>
+              <span>删除梦境</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="modal">
+      <div
+        v-if="showDeleteConfirm && dreamPendingDelete"
+        class="modal-overlay confirm-overlay"
+        @click.self="closeDeleteConfirm"
+      >
+        <div class="confirm-card glass">
+          <div class="confirm-icon">🗑</div>
+          <h2 class="confirm-title">确认删除这个梦境？</h2>
+          <p class="confirm-text">
+            《{{ dreamPendingDelete.title }}》删除后无法恢复，请确认后再继续。
+          </p>
+          <div class="confirm-actions">
+            <button class="confirm-cancel" :disabled="isDeleting" @click="closeDeleteConfirm">
+              取消
+            </button>
+            <button class="confirm-delete" :disabled="isDeleting" @click="confirmDeleteDream">
+              {{ isDeleting ? '正在删除...' : '确认删除' }}
+            </button>
           </div>
         </div>
       </div>
@@ -369,7 +447,31 @@ function goBack() {
   font-size: 0.8rem; padding: 0.25rem 0.75rem; border-radius: 50px;
   background: rgba(124,111,224,0.1); color: var(--primary);
 }
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 .dream-date { font-size: 0.8rem; color: var(--text-light); }
+.card-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid rgba(229,57,53,0.22);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.5);
+  color: #c62828;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.card-delete-btn:hover {
+  background: rgba(229,57,53,0.12);
+  border-color: rgba(229,57,53,0.45);
+  transform: translateY(-1px);
+}
 .dream-title { font-size: 1.15rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem; }
 .dream-preview { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.75rem; }
 .card-bottom { display: flex; gap: 1rem; }
@@ -440,6 +542,87 @@ function goBack() {
   background: rgba(124,111,224,0.1); padding: 1rem; border-radius: 12px;
   border-left: 3px solid var(--primary);
 }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+.delete-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(229,57,53,0.3);
+  border-radius: 999px;
+  background: rgba(229,57,53,0.08);
+  color: #c62828;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.delete-detail-btn:hover {
+  background: rgba(229,57,53,0.15);
+  transform: translateY(-1px);
+}
+.confirm-overlay { z-index: 140; }
+.confirm-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 2rem;
+  border-radius: 20px;
+  text-align: center;
+  background: rgba(255,255,255,0.92);
+}
+.confirm-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+.confirm-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.65rem;
+}
+.confirm-text {
+  color: #5A5788;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.confirm-cancel,
+.confirm-delete {
+  min-width: 108px;
+  padding: 0.65rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.confirm-cancel {
+  border: 1px solid rgba(124,111,224,0.18);
+  background: rgba(255,255,255,0.75);
+  color: var(--text-dark);
+}
+.confirm-delete {
+  border: 1px solid rgba(229,57,53,0.32);
+  background: #e53935;
+  color: white;
+}
+.confirm-cancel:hover:not(:disabled),
+.confirm-delete:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.confirm-cancel:disabled,
+.confirm-delete:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 
 /* 动画 */
 @keyframes twinkle { 0% { opacity: 0.5; } 100% { opacity: 1; } }
@@ -459,7 +642,13 @@ function goBack() {
   .search-box { max-width: 100%; }
   .dreams-container { padding: 0 1rem; }
   .dreams-grid { grid-template-columns: 1fr; }
+  .card-top { align-items: flex-start; gap: 0.5rem; }
+  .card-actions { align-items: flex-end; flex-direction: column; gap: 0.35rem; }
   .modal-card { padding: 1.5rem; }
+  .confirm-card { padding: 1.5rem; }
+  .confirm-actions { flex-direction: column; }
+  .confirm-cancel,
+  .confirm-delete { width: 100%; }
   .page-title { font-size: 1.1rem; }
   .nav-placeholder { display: none; }
 }
