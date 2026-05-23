@@ -56,11 +56,20 @@ function goDreamList() {
       </div>
     </nav>
 
+    <!-- 浮动装饰 -->
+    <div class="decor">
+      <span class="float-icon fi-1">🌙</span>
+      <span class="float-icon fi-2">✨</span>
+      <span class="float-icon fi-3">🔮</span>
+      <span class="float-icon fi-4">💫</span>
+      <span class="float-icon fi-5">⭐</span>
+    </div>
+
     <!-- 主要内容 -->
     <main class="content">
       <!-- 标题区域 -->
       <section class="hero-section">
-        <div class="hero-content">
+        <div class="hero-content card-enter">
           <h1 class="hero-title">
             <span class="title-line">探索梦境的</span>
             <span class="title-line title-highlight">无限可能</span>
@@ -75,23 +84,23 @@ function goDreamList() {
       <section class="features-section">
         <h2 class="section-title">核心功能</h2>
         <div class="features-grid">
-          <div class="feature-card glass">
-            <div class="feature-icon">📖</div>
+          <div class="feature-card glass card-enter" style="animation-delay: 0.1s">
+            <div class="feature-icon-wrap purple"><div class="feature-icon">📖</div></div>
             <h3>梦境记录</h3>
             <p>用文字详细记录你的梦境内容，包括时间、地点、情绪等元素，建立专属的梦境档案库</p>
           </div>
-          <div class="feature-card glass">
-            <div class="feature-icon">🔮</div>
+          <div class="feature-card glass card-enter" style="animation-delay: 0.2s">
+            <div class="feature-icon-wrap pink"><div class="feature-icon">🔮</div></div>
             <h3>AI 智能解析</h3>
             <p>借助先进的人工智能技术，分析梦境背后的深层含义，解读潜意识想要传达的信息</p>
           </div>
-          <div class="feature-card glass">
-            <div class="feature-icon">📊</div>
+          <div class="feature-card glass card-enter" style="animation-delay: 0.3s">
+            <div class="feature-icon-wrap blue"><div class="feature-icon">📊</div></div>
             <h3>数据统计</h3>
             <p>可视化展示你的梦境频率、情绪变化、主题分布，发现梦境中的规律和模式</p>
           </div>
-          <div class="feature-card glass">
-            <div class="feature-icon">🌙</div>
+          <div class="feature-card glass card-enter" style="animation-delay: 0.4s">
+            <div class="feature-icon-wrap mixed"><div class="feature-icon">🌙</div></div>
             <h3>梦境追踪</h3>
             <p>长期追踪梦境变化，记录情绪波动，帮助你更好地了解自己的内心世界</p>
           </div>
@@ -102,28 +111,28 @@ function goDreamList() {
       <section class="how-it-works">
         <h2 class="section-title">如何使用</h2>
         <div class="steps-container">
-          <div class="step glass">
+          <div class="step glass card-enter" style="animation-delay: 0.1s">
             <div class="step-number">1</div>
             <div class="step-content">
               <h3>注册账号</h3>
               <p>创建你的专属梦境档案账户，开始记录奇妙旅程</p>
             </div>
           </div>
-          <div class="step glass">
+          <div class="step glass card-enter" style="animation-delay: 0.2s">
             <div class="step-number">2</div>
             <div class="step-content">
               <h3>记录梦境</h3>
               <p>醒来后立即记录梦中的场景、人物、情节和感受</p>
             </div>
           </div>
-          <div class="step glass">
+          <div class="step glass card-enter" style="animation-delay: 0.3s">
             <div class="step-number">3</div>
             <div class="step-content">
               <h3>AI 分析</h3>
               <p>让 AI 为你解读梦境含义，发现潜意识的秘密</p>
             </div>
           </div>
-          <div class="step glass">
+          <div class="step glass card-enter" style="animation-delay: 0.4s">
             <div class="step-number">4</div>
             <div class="step-content">
               <h3>洞察自我</h3>
@@ -135,7 +144,7 @@ function goDreamList() {
 
       <!-- 关于项目 -->
       <section class="about-section">
-        <div class="about-card glass">
+        <div class="about-card glass card-enter">
           <h2>关于梦境档案</h2>
           <p>
             梦境档案是一个充满创意的个人项目，旨在探索人类潜意识的奥秘。
@@ -162,7 +171,7 @@ function goDreamList() {
 
       <!-- 号召行动 -->
       <section class="cta-section">
-        <div class="cta-content glass">
+        <div class="cta-content glass card-enter">
           <h2>开始你的梦境之旅</h2>
           <p>加入我们，一起探索梦境的奇妙世界</p>
           <div class="cta-actions">
@@ -264,6 +273,16 @@ function goDreamList() {
   background: rgba(255, 179, 71, 0.2);
   animation: pulse 10s ease-in-out infinite 3s;
 }
+
+/* 浮动装饰 */
+.decor { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+.float-icon { position: absolute; font-size: 1.5rem; animation: float 6s ease-in-out infinite; opacity: 0.5; }
+.fi-1 { top: 12%; left: 8%; animation-delay: 0s; }
+.fi-2 { top: 35%; right: 6%; animation-delay: 1.2s; font-size: 1.2rem; }
+.fi-3 { top: 55%; left: 5%; animation-delay: 2.4s; font-size: 1.8rem; }
+.fi-4 { bottom: 25%; right: 10%; animation-delay: 3.6s; }
+.fi-5 { bottom: 10%; left: 15%; animation-delay: 4.8s; font-size: 1.3rem; }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
 
 /* 导航栏 */
 .navbar {
@@ -396,7 +415,7 @@ function goDreamList() {
 
 .title-highlight {
   font-size: 4rem;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  background: linear-gradient(135deg, #6B8CFF 0%, #FF8FAB 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -435,12 +454,24 @@ function goDreamList() {
   border-radius: 20px;
   text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .feature-card:hover {
   transform: translateY(-10px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
+
+.feature-icon-wrap {
+  width: 4rem; height: 4rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1rem;
+}
+.feature-icon-wrap.purple { background: linear-gradient(135deg, rgba(107,140,255,0.2), rgba(107,140,255,0.06)); }
+.feature-icon-wrap.pink { background: linear-gradient(135deg, rgba(255,143,171,0.2), rgba(255,143,171,0.06)); }
+.feature-icon-wrap.blue { background: linear-gradient(135deg, rgba(107,180,255,0.2), rgba(107,180,255,0.06)); }
+.feature-icon-wrap.mixed { background: linear-gradient(135deg, rgba(107,140,255,0.15), rgba(255,143,171,0.15)); }
 
 .glass {
   background: var(--glass-bg);
@@ -450,8 +481,7 @@ function goDreamList() {
 }
 
 .feature-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-size: 2rem;
 }
 
 .feature-card h3 {
@@ -496,7 +526,7 @@ function goDreamList() {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: linear-gradient(135deg, #6B8CFF 0%, #FF8FAB 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -529,8 +559,9 @@ function goDreamList() {
   padding: 3rem;
   border-radius: 24px;
   text-align: center;
+  position: relative;
+  overflow: hidden;
 }
-
 .about-card h2 {
   font-size: 2rem;
   color: var(--text-dark);
@@ -571,6 +602,11 @@ function goDreamList() {
   color: var(--primary);
   font-size: 0.9rem;
   font-weight: 500;
+  transition: all 0.2s;
+}
+.tech-tag:hover {
+  background: rgba(124, 111, 224, 0.2);
+  transform: translateY(-2px);
 }
 
 /* 号召行动 */
@@ -584,8 +620,9 @@ function goDreamList() {
   margin: 0 auto;
   padding: 3rem;
   border-radius: 24px;
+  position: relative;
+  overflow: hidden;
 }
-
 .cta-content h2 {
   font-size: 2rem;
   color: var(--text-dark);
@@ -636,6 +673,12 @@ function goDreamList() {
 }
 
 /* 响应式 */
+@media (max-width: 1024px) {
+  .navbar {
+    padding: 1rem 2rem;
+  }
+}
+
 @media (max-width: 768px) {
   .navbar {
     padding: 0.75rem 1.5rem;
@@ -686,6 +729,34 @@ function goDreamList() {
     flex-direction: column;
     align-items: center;
   }
+
+  .hero-section { padding: 2.5rem 0; }
+  .feature-card { padding: 1.5rem; }
+  .feature-icon { font-size: 2.5rem; }
+  .feature-card h3 { font-size: 1.2rem; }
+  .feature-card p { font-size: 0.9rem; }
+  .about-card { padding: 2rem; }
+  .about-card h2 { font-size: 1.6rem; }
+  .about-card p { font-size: 0.95rem; }
+  .cta-content { padding: 2rem; }
+  .cta-content h2 { font-size: 1.6rem; }
+  .step-number { width: 40px; height: 40px; font-size: 1rem; }
+  .footer { padding: 1.5rem; }
+}
+
+@media (max-width: 480px) {
+  .hero-title { font-size: 1.8rem; }
+  .title-highlight { font-size: 2.4rem; }
+  .hero-subtitle { font-size: 0.9rem; }
+  .section-title { font-size: 1.5rem; }
+  .feature-card { padding: 1.25rem; }
+  .feature-icon { font-size: 2rem; }
+  .feature-card h3 { font-size: 1.1rem; }
+  .about-card { padding: 1.5rem; }
+  .about-card h2 { font-size: 1.4rem; }
+  .cta-content { padding: 1.5rem; }
+  .cta-content h2 { font-size: 1.4rem; }
+  .step-number { width: 36px; height: 36px; font-size: 0.9rem; }
 }
 
 @media (min-width: 1024px) {

@@ -221,7 +221,8 @@ function goBack() { router.push('/') }
 }
 .back-btn {
   display: flex; align-items: center; gap: 0.5rem;
-  padding: 0.6rem 1.2rem; background: var(--glass-bg); backdrop-filter: blur(20px);
+  padding: 0.7rem 1.2rem; min-height: 44px;
+  background: var(--glass-bg); backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border); border-radius: 50px;
   color: var(--text-dark); font-size: 0.9rem; font-weight: 500;
   cursor: pointer; transition: all 0.3s ease; font-family: 'Noto Sans SC', sans-serif;
@@ -322,6 +323,17 @@ function goBack() { router.push('/') }
   .pwd-card { padding: 1.75rem; }
   .page-title { font-size: 1.1rem; }
   .nav-placeholder { display: none; }
+  .code-row { flex-wrap: wrap; }
+  .send-code-btn { flex-shrink: 1; min-width: 0; white-space: normal; font-size: 0.8rem; padding: 0 0.8rem; }
+}
+
+@media (max-width: 480px) {
+  .pwd-card { padding: 1.5rem; }
+  .card-title { font-size: 1.3rem; }
+  .card-subtitle { font-size: 0.82rem; }
+  .form-group label { font-size: 0.8rem; }
+  .input-wrapper input { font-size: 0.9rem; padding: 0.7rem 0.9rem; }
+  .submit-btn { font-size: 0.92rem; padding: 0.75rem; }
 }
 
 @media (min-width: 1024px) {
