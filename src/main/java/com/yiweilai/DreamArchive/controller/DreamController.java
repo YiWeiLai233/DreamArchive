@@ -9,7 +9,6 @@ import com.yiweilai.DreamArchive.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -83,12 +82,12 @@ public class DreamController {
         }
     }
 
-    @DeleteMapping("/dream/{id}")
+    @PostMapping("/dream/{id}/delete")
     public Result<Void> deleteDream(@PathVariable String id) {
         try {
             DreamContent dream = dreamService.getDreamById(id);
             if (dream == null) {
-                return Result.error("姊﹀涓嶅瓨鍦ㄦ垨宸茶鍒犻櫎");
+                return Result.error("梦境不存在或已被删除");
             }
             if (!canAccessDream(dream)) {
                 return Result.error(403, "\u6743\u9650\u4e0d\u8db3");
@@ -100,6 +99,25 @@ public class DreamController {
             return Result.success("删除成功", null);
         } catch (Exception e) {
             return Result.error("删除梦境失败: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/dream/{id}/analyze")
+    public Result<Void> analyzeDream(@PathVariable String id) {
+        try {
+            DreamContent dream = dreamService.getDreamById(id);
+            if (dream == null) {
+                return Result.error("梦境不存在或已被删除");
+            }
+            if (!canAccessDream(dream)) {
+                return Result.error(403, "权限不足");
+            }
+            String pending = "梦境解析中，请稍候...";
+            dreamService.updateInterpretation(id, pending);
+            dreamAiTaskService.completeDreamAiFields(id, dream.getContent(), false, true);
+            return Result.success("已提交解析", null);
+        } catch (Exception e) {
+            return Result.error("提交解析失败: " + e.getMessage());
         }
     }
 
@@ -115,14 +133,18 @@ public class DreamController {
             String emotion = toStringValue(request.get("emotion"));
             String place = toStringValue(request.getOrDefault("place", "未知"));
             String time = toStringValue(request.getOrDefault("time", ""));
+            String interpretation = toStringValue(request.getOrDefault("interpretation", ""));
             boolean shouldGenerateTitle = title.isBlank();
             if (shouldGenerateTitle) {
                 title = fallbackTitle(content);
             }
 
             DreamContent result = dreamService.saveDream(userId, title, content, emotion, place, time);
-            if (analyze) {
-                String pending = "AI 正在后台解析中，稍后可在梦境列表查看结果。";
+            if (!interpretation.isBlank()) {
+                dreamService.updateInterpretation(result.getId(), interpretation);
+                result.setInterpretation(interpretation);
+            } else if (analyze) {
+                String pending = "梦境解析中，请稍候...";
                 dreamService.updateInterpretation(result.getId(), pending);
                 result.setInterpretation(pending);
             }
