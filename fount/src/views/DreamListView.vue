@@ -448,7 +448,7 @@ function goBack() {
                       {{ block.content }}
                     </h4>
                     <div v-else-if="block.type === 'item'" class="interpretation-item">
-                      <span class="interpretation-number">{{ block.marker || index + 1 }}</span>
+                      <span class="interpretation-number">{{ block.marker }}</span>
                       <p>{{ block.content }}</p>
                     </div>
                     <p v-else class="interpretation-paragraph">{{ block.content }}</p>

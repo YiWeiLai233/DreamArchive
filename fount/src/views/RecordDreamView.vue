@@ -48,10 +48,18 @@ const emotions = [
 ]
 
 const timeOptions = [
-  '凌晨 00:00-02:00', '凌晨 02:00-04:00', '凌晨 04:00-06:00',
-  '清晨 06:00-08:00', '上午 08:00-10:00', '上午 10:00-12:00',
-  '下午 12:00-14:00', '下午 14:00-16:00', '傍晚 16:00-18:00',
-  '晚上 18:00-20:00', '晚上 20:00-22:00', '深夜 22:00-24:00'
+  { label: '凌晨 00:00-02:00', icon: '🌙' },
+  { label: '凌晨 02:00-04:00', icon: '🌑' },
+  { label: '凌晨 04:00-06:00', icon: '🌄' },
+  { label: '清晨 06:00-08:00', icon: '🌅' },
+  { label: '上午 08:00-10:00', icon: '☀️' },
+  { label: '上午 10:00-12:00', icon: '🌤️' },
+  { label: '下午 12:00-14:00', icon: '⛅' },
+  { label: '下午 14:00-16:00', icon: '🌇' },
+  { label: '傍晚 16:00-18:00', icon: '🌆' },
+  { label: '晚上 18:00-20:00', icon: '🌃' },
+  { label: '晚上 20:00-22:00', icon: '✨' },
+  { label: '深夜 22:00-24:00', icon: '🌌' }
 ]
 
 const commonPlaces = [
@@ -319,10 +327,26 @@ onBeforeUnmount(() => {
                 <span class="label-icon">🕐</span>
                 <span>梦境时间</span>
               </label>
-              <select v-model="form.time" class="form-select">
-                <option value="">当前时间</option>
-                <option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option>
-              </select>
+              <div class="time-tags">
+                <button
+                  class="time-tag"
+                  :class="{ active: !form.time }"
+                  @click="form.time = ''"
+                >
+                  <span class="time-tag-icon">⏱️</span>
+                  <span class="time-tag-label">当前</span>
+                </button>
+                <button
+                  v-for="t in timeOptions"
+                  :key="t.label"
+                  class="time-tag"
+                  :class="{ active: form.time === t.label }"
+                  @click="form.time = t.label"
+                >
+                  <span class="time-tag-icon">{{ t.icon }}</span>
+                  <span class="time-tag-label">{{ t.label.split(' ')[0] }}</span>
+                </button>
+              </div>
             </div>
 
             <div class="form-section">
@@ -454,10 +478,26 @@ onBeforeUnmount(() => {
                     <span class="label-icon">🕐</span>
                     <span>梦境时间</span>
                   </label>
-                  <select v-model="form.time" class="form-select">
-                    <option value="">当前时间</option>
-                    <option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option>
-                  </select>
+                  <div class="time-tags">
+                    <button
+                      class="time-tag"
+                      :class="{ active: !form.time }"
+                      @click="form.time = ''"
+                    >
+                      <span class="time-tag-icon">⏱️</span>
+                      <span class="time-tag-label">当前</span>
+                    </button>
+                    <button
+                      v-for="t in timeOptions"
+                      :key="t.label"
+                      class="time-tag"
+                      :class="{ active: form.time === t.label }"
+                      @click="form.time = t.label"
+                    >
+                      <span class="time-tag-icon">{{ t.icon }}</span>
+                      <span class="time-tag-label">{{ t.label.split(' ')[0] }}</span>
+                    </button>
+                  </div>
                 </div>
                 <div class="meta-field">
                   <label class="section-label">
@@ -595,7 +635,7 @@ onBeforeUnmount(() => {
                       {{ block.content }}
                     </h4>
                     <div v-else-if="block.type === 'item'" class="interpretation-item">
-                      <span class="interpretation-number">{{ block.marker || index + 1 }}</span>
+                      <span class="interpretation-number">{{ block.marker }}</span>
                       <p>{{ block.content }}</p>
                     </div>
                     <p v-else class="interpretation-paragraph">{{ block.content }}</p>
@@ -838,6 +878,27 @@ onBeforeUnmount(() => {
 .emotion-btn.active { box-shadow: 0 2px 10px rgba(124,111,224,0.3); }
 .emotion-icon { font-size: 1.1rem; }
 .emotion-label { font-size: 0.75rem; color: var(--text-dark); }
+
+/* 时间标签 */
+.time-tags {
+  display: flex; flex-wrap: wrap; gap: 0.35rem;
+}
+.time-tag {
+  display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+  padding: 0.35rem 0.5rem; min-width: 52px;
+  border: 2px solid var(--glass-border); border-radius: 10px;
+  background: var(--glass-bg); backdrop-filter: blur(10px);
+  cursor: pointer; transition: all 0.2s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.time-tag:hover { border-color: var(--primary); transform: translateY(-1px); }
+.time-tag.active {
+  border-color: var(--primary);
+  background: rgba(124,111,224,0.15);
+  box-shadow: 0 2px 10px rgba(124,111,224,0.25);
+}
+.time-tag-icon { font-size: 1rem; line-height: 1; }
+.time-tag-label { font-size: 0.65rem; color: var(--text-dark); white-space: nowrap; }
 
 /* 输入框 */
 .form-select {
@@ -1132,9 +1193,12 @@ onBeforeUnmount(() => {
   .page-title { font-size: 1rem; }
   .nav-placeholder { display: none; }
   .meta-row-pair { flex-direction: column; gap: 0.5rem; }
-  .emotion-btn { flex-direction: column; gap: 0.15rem; padding: 0.4rem 0.5rem; }
+  .emotion-btn { flex: 1; min-width: 0; flex-direction: column; gap: 0.15rem; padding: 0.45rem 0.3rem; }
   .emotion-icon { font-size: 1rem; }
   .emotion-label { font-size: 0.65rem; }
+  .time-tag { min-width: 44px; padding: 0.3rem 0.4rem; }
+  .time-tag-icon { font-size: 0.9rem; }
+  .time-tag-label { font-size: 0.6rem; }
   .step-text { display: none; }
   .step-line { width: 40px; }
   .bottom-bar { align-items: stretch; flex-direction: column; gap: 0.75rem; }
@@ -1152,7 +1216,7 @@ onBeforeUnmount(() => {
   .dream-textarea { min-height: 200px; }
   .form-input { font-size: 0.88rem; padding: 0.5rem 0.7rem; }
   .dream-textarea { font-size: 0.88rem; padding: 0.5rem 0.7rem; }
-  .emotion-btn { padding: 0.3rem 0.35rem; }
+  .emotion-btn { flex: 1; min-width: 0; padding: 0.35rem 0.25rem; }
   .emotion-icon { font-size: 0.9rem; }
   .emotion-label { font-size: 0.6rem; }
   .place-tag { font-size: 0.7rem; padding: 0.3rem 0.5rem; }
