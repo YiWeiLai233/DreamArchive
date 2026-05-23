@@ -324,3 +324,15 @@ JAVA_HOME=C:\Program Files\Java\jdk-17.0.4.1
 - 上传 GitHub 时不要加入配置文件信息、密钥、账号、服务器连接等敏感信息。
 - 以后写入本地 `AGENTS.md` 的协作说明，也同步追加到 `CLAUDE.md`。
 - 同步到 `CLAUDE.md` 时只添加新内容，不删除已有内容。
+
+## 变更记录
+
+### 2026-05-23 部署修复 + 前端优化
+
+| 文件 | 改动 |
+|------|------|
+| `SecurityConfig.java` | CORS 白名单加 `http://175.178.84.239:*`，修复新服务器部署 403 |
+| `WebConfig.java` | CORS 白名单加 `http://175.178.84.239:*` |
+| `RecordDreamView.vue` | 时间选择器从原生 select 改为标签式，显示具体时间段（00-02、08-10 等）；手机端情绪按钮 flex:1 加宽 |
+| `DreamListView.vue` | AI 解析序号显示改为自动递增 |
+| `dreamInterpretation.ts` | AI 解析序号逻辑：忽略 AI 原始序号，改为 itemCounter 自动递增 1,2,3,4,5 |
