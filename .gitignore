@@ -42,3 +42,9 @@ fount/dist/
 
 ### Local runtime logs ###
 *.log
+
+### Sensitive config ###
+src/main/resources/application.properties
+
+### Project docs (local only) ###
+*.md
