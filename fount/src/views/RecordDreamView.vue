@@ -48,18 +48,18 @@ const emotions = [
 ]
 
 const timeOptions = [
-  { label: '凌晨 00:00-02:00', icon: '🌙' },
-  { label: '凌晨 02:00-04:00', icon: '🌑' },
-  { label: '凌晨 04:00-06:00', icon: '🌄' },
-  { label: '清晨 06:00-08:00', icon: '🌅' },
-  { label: '上午 08:00-10:00', icon: '☀️' },
-  { label: '上午 10:00-12:00', icon: '🌤️' },
-  { label: '下午 12:00-14:00', icon: '⛅' },
-  { label: '下午 14:00-16:00', icon: '🌇' },
-  { label: '傍晚 16:00-18:00', icon: '🌆' },
-  { label: '晚上 18:00-20:00', icon: '🌃' },
-  { label: '晚上 20:00-22:00', icon: '✨' },
-  { label: '深夜 22:00-24:00', icon: '🌌' }
+  { label: '凌晨 00:00-02:00', icon: '🌙', short: '00-02' },
+  { label: '凌晨 02:00-04:00', icon: '🌑', short: '02-04' },
+  { label: '凌晨 04:00-06:00', icon: '🌄', short: '04-06' },
+  { label: '清晨 06:00-08:00', icon: '🌅', short: '06-08' },
+  { label: '上午 08:00-10:00', icon: '☀️', short: '08-10' },
+  { label: '上午 10:00-12:00', icon: '🌤️', short: '10-12' },
+  { label: '下午 12:00-14:00', icon: '⛅', short: '12-14' },
+  { label: '下午 14:00-16:00', icon: '🌇', short: '14-16' },
+  { label: '傍晚 16:00-18:00', icon: '🌆', short: '16-18' },
+  { label: '晚上 18:00-20:00', icon: '🌃', short: '18-20' },
+  { label: '晚上 20:00-22:00', icon: '✨', short: '20-22' },
+  { label: '深夜 22:00-24:00', icon: '🌌', short: '22-24' }
 ]
 
 const commonPlaces = [
@@ -344,7 +344,7 @@ onBeforeUnmount(() => {
                   @click="form.time = t.label"
                 >
                   <span class="time-tag-icon">{{ t.icon }}</span>
-                  <span class="time-tag-label">{{ t.label.split(' ')[0] }}</span>
+                  <span class="time-tag-label">{{ t.short }}</span>
                 </button>
               </div>
             </div>
@@ -495,7 +495,7 @@ onBeforeUnmount(() => {
                       @click="form.time = t.label"
                     >
                       <span class="time-tag-icon">{{ t.icon }}</span>
-                      <span class="time-tag-label">{{ t.label.split(' ')[0] }}</span>
+                      <span class="time-tag-label">{{ t.short }}</span>
                     </button>
                   </div>
                 </div>
@@ -885,7 +885,7 @@ onBeforeUnmount(() => {
 }
 .time-tag {
   display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
-  padding: 0.35rem 0.5rem; min-width: 52px;
+  padding: 0.35rem 0.55rem; min-width: 56px;
   border: 2px solid var(--glass-border); border-radius: 10px;
   background: var(--glass-bg); backdrop-filter: blur(10px);
   cursor: pointer; transition: all 0.2s ease;
@@ -898,7 +898,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 2px 10px rgba(124,111,224,0.25);
 }
 .time-tag-icon { font-size: 1rem; line-height: 1; }
-.time-tag-label { font-size: 0.65rem; color: var(--text-dark); white-space: nowrap; }
+.time-tag-label { font-size: 0.72rem; font-weight: 500; color: var(--text-dark); white-space: nowrap; letter-spacing: 0.02em; }
 
 /* 输入框 */
 .form-select {
