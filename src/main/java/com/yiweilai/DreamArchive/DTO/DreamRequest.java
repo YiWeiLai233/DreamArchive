@@ -1,23 +1,18 @@
 package com.yiweilai.DreamArchive.DTO;
 
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
-
-
 public class DreamRequest {
-    private String DreamText;
+    private String dreamText;
 
     public String getDreamText() {
-        return DreamText;
+        return dreamText;
     }
 
     public void setDreamText(String dreamText) {
-        DreamText = dreamText;
+        this.dreamText = dreamText;
     }
 
     public DreamRequest(String dreamText) {
-        DreamText = dreamText;
+        this.dreamText = dreamText;
     }
 
     public DreamRequest() {

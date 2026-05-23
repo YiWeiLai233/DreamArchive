@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { deleteDream, getUserDreams } from '@/api/dream'
 import { getUserByEmail } from '@/api/user'
@@ -14,6 +14,7 @@ const activeFilter = ref('all')
 const showDetail = ref(false)
 const selectedDream = ref<Dream | null>(null)
 const isLoading = ref(true)
+const isRefreshingPendingDreams = ref(false)
 const isDeleting = ref(false)
 const errorMsg = ref('')
 const showDeleteConfirm = ref(false)
@@ -39,6 +40,9 @@ const filters = [
 ]
 
 const dreams = ref<Dream[]>([])
+let pendingDreamsRefreshTimer: ReturnType<typeof window.setInterval> | null = null
+
+const PENDING_DREAMS_REFRESH_INTERVAL_MS = 5000
 
 async function getUserId(): Promise<string | number | null> {
   if (userStore.userId) return userStore.userId
@@ -65,20 +69,80 @@ function formatCreatedAt(raw: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-async function loadDreams() {
+function isPendingInterpretation(interpretation?: string | null) {
+  if (!interpretation) return false
+  return interpretation.includes('后台解析') || interpretation.includes('解析中')
+}
+
+function hasPendingDreams() {
+  return dreams.value.some(dream => isPendingInterpretation(dream.interpretation))
+}
+
+function stopPendingDreamsRefresh() {
+  if (pendingDreamsRefreshTimer) {
+    window.clearInterval(pendingDreamsRefreshTimer)
+    pendingDreamsRefreshTimer = null
+  }
+}
+
+function startPendingDreamsRefresh() {
+  if (pendingDreamsRefreshTimer) return
+
+  pendingDreamsRefreshTimer = window.setInterval(() => {
+    if (document.visibilityState === 'hidden') return
+    if (!hasPendingDreams()) {
+      stopPendingDreamsRefresh()
+      return
+    }
+    void refreshPendingDreams()
+  }, PENDING_DREAMS_REFRESH_INTERVAL_MS)
+}
+
+function syncPendingDreamsRefresh() {
+  if (hasPendingDreams()) {
+    startPendingDreamsRefresh()
+  } else {
+    stopPendingDreamsRefresh()
+  }
+}
+
+async function refreshPendingDreams() {
+  if (isRefreshingPendingDreams.value || !hasPendingDreams()) return
+
+  isRefreshingPendingDreams.value = true
+  try {
+    await loadDreams({ silent: true })
+  } finally {
+    isRefreshingPendingDreams.value = false
+  }
+}
+
+function refreshPendingDreamsOnResume() {
+  if (document.visibilityState === 'hidden') return
+  if (hasPendingDreams()) {
+    startPendingDreamsRefresh()
+    void refreshPendingDreams()
+  }
+}
+
+async function loadDreams(options: { silent?: boolean } = {}) {
   const userId = await getUserId()
   if (!userId) {
-    errorMsg.value = '请先登录'
-    isLoading.value = false
+    if (!options.silent) {
+      errorMsg.value = '请先登录'
+      isLoading.value = false
+    }
     return
   }
 
   try {
-    isLoading.value = true
-    errorMsg.value = ''
+    if (!options.silent) {
+      isLoading.value = true
+      errorMsg.value = ''
+    }
     const res = await getUserDreams(Number(userId))
     if (res.data.code === 200) {
-      dreams.value = (res.data.data || []).map(d => ({
+      const nextDreams = (res.data.data || []).map(d => ({
         id: d.id,
         title: d.title || (d.content ? d.content.slice(0, 20) + (d.content.length > 20 ? '...' : '') : '未命名梦境'),
         content: d.content || '',
@@ -88,17 +152,43 @@ async function loadDreams() {
         interpretation: d.interpretation || '暂无解析',
         createdAt: formatCreatedAt(d.createdAt)
       }))
+      dreams.value = nextDreams
+      if (selectedDream.value) {
+        const updatedSelectedDream = nextDreams.find(dream => dream.id === selectedDream.value?.id)
+        if (updatedSelectedDream) {
+          selectedDream.value = updatedSelectedDream
+        }
+      }
+      syncPendingDreamsRefresh()
     } else {
-      errorMsg.value = res.data.message || '加载失败'
+      if (!options.silent) {
+        errorMsg.value = res.data.message || '加载失败'
+      }
     }
   } catch (e: any) {
-    errorMsg.value = e.message || '网络错误'
+    if (!options.silent) {
+      errorMsg.value = e.message || '网络错误'
+    }
   } finally {
-    isLoading.value = false
+    if (!options.silent) {
+      isLoading.value = false
+    }
   }
 }
 
-onMounted(loadDreams)
+onMounted(() => {
+  void loadDreams()
+  document.addEventListener('visibilitychange', refreshPendingDreamsOnResume)
+  window.addEventListener('focus', refreshPendingDreamsOnResume)
+  window.addEventListener('pageshow', refreshPendingDreamsOnResume)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', refreshPendingDreamsOnResume)
+  window.removeEventListener('focus', refreshPendingDreamsOnResume)
+  window.removeEventListener('pageshow', refreshPendingDreamsOnResume)
+  stopPendingDreamsRefresh()
+})
 
 const filteredDreams = computed(() => {
   let result = dreams.value
@@ -245,7 +335,7 @@ function goBack() {
       <!-- 错误提示 -->
       <div v-else-if="errorMsg" class="error-state">
         <p>{{ errorMsg }}</p>
-        <button @click="loadDreams" class="retry-btn">重试</button>
+        <button @click="loadDreams()" class="retry-btn">重试</button>
       </div>
 
       <div v-else-if="filteredDreams.length === 0" class="empty-state glass">
@@ -262,7 +352,10 @@ function goBack() {
           @click="openDetail(dream)"
         >
           <div class="card-top">
-            <span class="emotion-badge">{{ getEmotionIcon(dream.emotion) }} {{ getEmotionLabel(dream.emotion) }}</span>
+            <div class="card-badges">
+              <span class="emotion-badge">{{ getEmotionIcon(dream.emotion) }} {{ getEmotionLabel(dream.emotion) }}</span>
+              <span v-if="isPendingInterpretation(dream.interpretation)" class="analysis-badge">AI 解析中</span>
+            </div>
             <div class="card-actions">
               <span class="dream-date">{{ dream.createdAt }}</span>
               <button
@@ -306,6 +399,10 @@ function goBack() {
             </div>
             <div class="section">
               <h3 class="section-title">🔮 AI 解析</h3>
+              <div v-if="isPendingInterpretation(selectedDream.interpretation)" class="analysis-refresh-status">
+                <span class="analysis-spinner"></span>
+                <span>AI 正在后台解析，结果会自动刷新</span>
+              </div>
               <div class="interpretation">
                 <div v-if="selectedInterpretationBlocks.length" class="interpretation-content">
                   <template
@@ -462,10 +559,25 @@ function goBack() {
   border: 1px solid rgba(255,255,255,0.5);
   box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.2) inset;
 }
-.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; gap: 0.75rem; }
+.card-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
 .emotion-badge {
   font-size: 0.8rem; padding: 0.25rem 0.75rem; border-radius: 50px;
   background: rgba(124,111,224,0.1); color: var(--primary);
+}
+.analysis-badge {
+  font-size: 0.75rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 50px;
+  background: rgba(124,111,224,0.13);
+  color: var(--primary);
+  font-weight: 600;
 }
 .card-actions {
   display: flex;
@@ -536,11 +648,11 @@ function goBack() {
   display: flex; align-items: center; justify-content: center; padding: 2rem;
 }
 .modal-card {
-  width: 100%; max-width: 560px; max-height: 80vh; overflow-y: auto;
-  padding: 2rem; border-radius: 24px; position: relative;
-  background: rgba(255,255,255,0.88);
+  width: 100%; max-width: 700px; max-height: 85vh; overflow-y: auto;
+  padding: 2.5rem; border-radius: 24px; position: relative;
+  background: rgba(255,255,255,0.92);
   border: 1px solid rgba(255,255,255,0.7);
-  box-shadow: 0 12px 48px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.3) inset;
+  box-shadow: 0 16px 56px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.3) inset;
 }
 .modal-close {
   position: absolute; top: 1rem; right: 1rem;
@@ -558,6 +670,26 @@ function goBack() {
 .modal-body { display: flex; flex-direction: column; gap: 1.5rem; }
 .section-title { font-size: 1rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem; }
 .section-text { font-size: 0.92rem; color: #4A4678; line-height: 1.8; }
+.analysis-refresh-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(124,111,224,0.12);
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.analysis-spinner {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid rgba(124,111,224,0.22);
+  border-top-color: var(--primary);
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
 .interpretation {
   background: rgba(124,111,224,0.08); padding: 1rem; border-radius: 14px;
   border-left: 3px solid var(--primary);
@@ -711,6 +843,7 @@ function goBack() {
   .dreams-container { padding: 0 1rem; }
   .dreams-grid { grid-template-columns: 1fr; }
   .card-top { align-items: flex-start; gap: 0.5rem; }
+  .card-badges { align-items: flex-start; }
   .card-actions { align-items: flex-end; flex-direction: column; gap: 0.35rem; }
   .modal-card { padding: 1.5rem; }
   .confirm-card { padding: 1.5rem; }
@@ -722,17 +855,31 @@ function goBack() {
 }
 
 @media (min-width: 1024px) {
-  .page-nav { padding: 1.5rem 3rem; }
-  .toolbar { padding: 0 3rem; }
-  .search-box { max-width: 420px; }
-  .dreams-container { padding: 0 3rem; }
-  .dreams-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+  .page-nav { padding: 1.5rem 2rem; }
+  .toolbar { padding: 0 2rem; }
+  .search-box { max-width: 480px; }
+  .dreams-container { padding: 0 2rem; }
+  .dreams-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
   .dream-card { padding: 1.75rem; }
   .dream-title { font-size: 1.25rem; }
   .dream-preview { font-size: 0.95rem; }
-  .modal-card { max-width: 660px; padding: 2.5rem; }
-  .modal-title { font-size: 1.7rem; }
-  .section-title { font-size: 1.1rem; }
-  .section-text { font-size: 1rem; }
+  .modal-card { max-width: 1100px; padding: 3rem 4rem; }
+  .modal-overlay { padding: 1.5rem; }
+  .modal-close { top: 1.25rem; right: 1.25rem; width: 36px; height: 36px; font-size: 1.1rem; }
+  .modal-header { margin-bottom: 2rem; }
+  .modal-emotion { font-size: 3rem; }
+  .modal-title { font-size: 1.8rem; }
+  .modal-meta span { font-size: 0.92rem; }
+  .modal-body { gap: 2rem; }
+  .section-title { font-size: 1.15rem; }
+  .section-text { font-size: 1.05rem; line-height: 1.9; }
+  .interpretation { padding: 1.5rem; }
+  .interpretation-heading { font-size: 0.95rem; }
+  .interpretation-paragraph { font-size: 1.05rem; line-height: 2; }
+  .interpretation-item { padding: 1rem 1.2rem; }
+  .interpretation-item p { font-size: 1.05rem; line-height: 1.9; }
+  .interpretation-number { width: 2rem; height: 2rem; font-size: 0.85rem; }
+  .modal-actions { margin-top: 2rem; }
+  .delete-detail-btn { font-size: 0.95rem; padding: 0.7rem 1.2rem; }
 }
 </style>

@@ -1,12 +1,14 @@
 package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.DTO.DreamContent;
+import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.service.DreamAiTaskService;
 import com.yiweilai.DreamArchive.service.AiService;
 import com.yiweilai.DreamArchive.service.DreamService;
 import com.yiweilai.DreamArchive.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,8 +22,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
-public class analyzeDream {
+public class DreamController {
 
     @Autowired
     private DreamService dreamService;
@@ -60,6 +61,9 @@ public class analyzeDream {
             if (dream == null) {
                 return Result.error("梦境不存在");
             }
+            if (!canAccessDream(dream)) {
+                return Result.error(403, "\u6743\u9650\u4e0d\u8db3");
+            }
             return Result.success(dream);
         } catch (Exception e) {
             return Result.error("查询梦境失败: " + e.getMessage());
@@ -69,6 +73,9 @@ public class analyzeDream {
     @GetMapping("/dreams/user/{userId}")
     public Result<List<DreamContent>> getUserDreams(@PathVariable Integer userId) {
         try {
+            if (!canAccessUser(userId)) {
+                return Result.error(403, "\u6743\u9650\u4e0d\u8db3");
+            }
             List<DreamContent> dreams = dreamService.getDreamsWithDetailsByUserId(userId);
             return Result.success(dreams);
         } catch (Exception e) {
@@ -79,6 +86,13 @@ public class analyzeDream {
     @DeleteMapping("/dream/{id}")
     public Result<Void> deleteDream(@PathVariable String id) {
         try {
+            DreamContent dream = dreamService.getDreamById(id);
+            if (dream == null) {
+                return Result.error("姊﹀涓嶅瓨鍦ㄦ垨宸茶鍒犻櫎");
+            }
+            if (!canAccessDream(dream)) {
+                return Result.error(403, "\u6743\u9650\u4e0d\u8db3");
+            }
             boolean deleted = dreamService.deleteDream(id);
             if (!deleted) {
                 return Result.error("梦境不存在或已被删除");
@@ -91,7 +105,11 @@ public class analyzeDream {
 
     private Result<DreamContent> saveDreamInternal(Map<String, Object> request, boolean analyze) {
         try {
-            Integer userId = toInteger(request.get("userId"));
+            User currentUser = currentUser();
+            if (currentUser == null) {
+                return Result.error(401, "\u8bf7\u5148\u767b\u5f55");
+            }
+            Integer userId = currentUser.getId();
             String content = toStringValue(request.get("content"));
             String title = toStringValue(request.getOrDefault("title", "")).trim();
             String emotion = toStringValue(request.get("emotion"));
@@ -125,6 +143,29 @@ public class analyzeDream {
             return (Integer) value;
         }
         return Integer.parseInt(String.valueOf(value));
+    }
+
+    private boolean canAccessDream(DreamContent dream) {
+        return dream != null && canAccessUser(dream.getUserId());
+    }
+
+    private boolean canAccessUser(Integer userId) {
+        User currentUser = currentUser();
+        return currentUser != null
+                && userId != null
+                && (isAdmin(currentUser) || currentUser.getId() == userId);
+    }
+
+    private boolean isAdmin(User user) {
+        return user != null && "ADMIN".equalsIgnoreCase(user.getRole());
+    }
+
+    private User currentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            return null;
+        }
+        return user;
     }
 
     private String toStringValue(Object value) {

@@ -6,12 +6,12 @@ public class AI {
 
     private String temperature;
     private String model;
-    private List<messages> messages;
+    private List<Message> messages;
 
     public AI() {
     }
 
-    public AI(String temperature, String model, List<messages> messages) {
+    public AI(String temperature, String model, List<Message> messages) {
         this.temperature = temperature;
         this.model = model;
         this.messages = messages;
@@ -53,7 +53,7 @@ public class AI {
      * 获取
      * @return messages
      */
-    public List<messages> getMessages() {
+    public List<Message> getMessages() {
         return messages;
     }
 
@@ -61,7 +61,7 @@ public class AI {
      * 设置
      * @param messages
      */
-    public void setMessages(List<messages> messages) {
+    public void setMessages(List<Message> messages) {
         this.messages = messages;
     }
 

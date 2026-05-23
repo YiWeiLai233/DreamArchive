@@ -1,8 +1,5 @@
 package com.yiweilai.DreamArchive.DTO;
 
-import lombok.Data;
-
-
 public class Dream {
     private String id;
     private Integer userId;

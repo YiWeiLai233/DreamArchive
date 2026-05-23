@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
 import { getDreamById, saveAndAnalyzeDream, saveDream } from '@/api/dream'
@@ -63,6 +63,11 @@ const step = ref<'form' | 'result'>('form')
 const result = ref<DreamContent | null>(null)
 let analysisPollTimer: ReturnType<typeof window.setInterval> | null = null
 let analysisPollAttempts = 0
+let currentAnalysisDreamId: string | null = null
+let isAnalysisRefreshInFlight = false
+
+const ANALYSIS_POLL_INTERVAL_MS = 3000
+const MAX_ANALYSIS_POLL_ATTEMPTS = 120
 
 const isFormValid = computed(() => form.value.content.trim().length > 0 && form.value.emotion.length > 0)
 const isAnalysisPending = computed(() => isPendingInterpretation(result.value?.interpretation))
@@ -87,23 +92,38 @@ function clearAnalysisPolling() {
     analysisPollTimer = null
   }
   isPollingAnalysis.value = false
+  currentAnalysisDreamId = null
+  isAnalysisRefreshInFlight = false
   analysisPollAttempts = 0
 }
 
 function startAnalysisPolling(dreamId: string) {
   clearAnalysisPolling()
+  currentAnalysisDreamId = dreamId
   isPollingAnalysis.value = true
   void refreshDreamUntilAnalyzed(dreamId)
+  ensureAnalysisPollingTimer(dreamId)
+}
+
+function ensureAnalysisPollingTimer(dreamId: string) {
+  currentAnalysisDreamId = dreamId
+  isPollingAnalysis.value = true
+  if (analysisPollTimer) return
+
   analysisPollTimer = window.setInterval(() => {
+    if (document.visibilityState === 'hidden') return
     void refreshDreamUntilAnalyzed(dreamId)
-  }, 3000)
+  }, ANALYSIS_POLL_INTERVAL_MS)
 }
 
 async function refreshDreamUntilAnalyzed(dreamId: string) {
+  if (isAnalysisRefreshInFlight) return
+  isAnalysisRefreshInFlight = true
   analysisPollAttempts += 1
   try {
     const res = await getDreamById(dreamId)
     if (res.data.code === 200 && res.data.data) {
+      if (currentAnalysisDreamId !== dreamId && result.value?.id !== dreamId) return
       result.value = res.data.data
       if (!isPendingInterpretation(res.data.data.interpretation)) {
         clearAnalysisPolling()
@@ -111,10 +131,31 @@ async function refreshDreamUntilAnalyzed(dreamId: string) {
     }
   } catch (error) {
     console.error('刷新 AI 解析结果失败:', error)
+  } finally {
+    isAnalysisRefreshInFlight = false
   }
 
-  if (analysisPollAttempts >= 40) {
+  if (analysisPollAttempts >= MAX_ANALYSIS_POLL_ATTEMPTS) {
     clearAnalysisPolling()
+  }
+}
+
+function refreshAnalysisOnResume() {
+  const dreamId = currentAnalysisDreamId || result.value?.id
+  if (!dreamId || step.value !== 'result') return
+
+  if (!isPendingInterpretation(result.value?.interpretation)) {
+    clearAnalysisPolling()
+    return
+  }
+
+  ensureAnalysisPollingTimer(dreamId)
+  void refreshDreamUntilAnalyzed(dreamId)
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    refreshAnalysisOnResume()
   }
 }
 
@@ -170,7 +211,18 @@ function recordAnother() {
   step.value = 'form'
 }
 
-onBeforeUnmount(clearAnalysisPolling)
+onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  window.addEventListener('focus', refreshAnalysisOnResume)
+  window.addEventListener('pageshow', refreshAnalysisOnResume)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  window.removeEventListener('focus', refreshAnalysisOnResume)
+  window.removeEventListener('pageshow', refreshAnalysisOnResume)
+  clearAnalysisPolling()
+})
 </script>
 
 <template>

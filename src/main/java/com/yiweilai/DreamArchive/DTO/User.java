@@ -24,6 +24,12 @@ public class User {
 
     private LocalDateTime createdAt;
 
+    private String role = "USER";
+
+    private String status = "ACTIVE";
+
+    private Boolean deleted = false;
+
     public User() {
     }
 
@@ -40,6 +46,30 @@ public class User {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role == null || role.isBlank() ? "USER" : role;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status == null || status.isBlank() ? "ACTIVE" : status;
+    }
+
+    public Boolean getDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(Boolean deleted) {
+        this.deleted = deleted != null && deleted;
     }
 
     public int getId() {
@@ -76,6 +106,6 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{id=" + id + ", username=" + username + ", email=" + email + ", createdAt=" + createdAt + "}";
+        return "User{id=" + id + ", username=" + username + ", email=" + email + ", role=" + role + ", status=" + status + ", deleted=" + deleted + ", createdAt=" + createdAt + "}";
     }
 }

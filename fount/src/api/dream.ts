@@ -1,4 +1,4 @@
-import axios from 'axios'
+import api from './axios'
 
 export interface DreamForm {
   userId: number
@@ -45,25 +45,25 @@ export interface DreamAnalysisResult {
 }
 
 export function saveDream(form: DreamForm) {
-  return axios.post<ApiResult<DreamContent>>('/api/analysisDream', { ...form, analyze: false })
+  return api.post<ApiResult<DreamContent>>('/api/analysisDream', { ...form, analyze: false })
 }
 
 export function saveAndAnalyzeDream(form: DreamForm) {
-  return axios.post<ApiResult<DreamContent>>('/api/dreams/save-and-analyze', form)
+  return api.post<ApiResult<DreamContent>>('/api/dreams/save-and-analyze', form)
 }
 
 export function analyzeDreamContent(content: string) {
-  return axios.post<ApiResult<DreamAnalysisResult>>('/api/dream/analyze', { content })
+  return api.post<ApiResult<DreamAnalysisResult>>('/api/dream/analyze', { content })
 }
 
 export function getDreamById(id: string) {
-  return axios.get<ApiResult<DreamContent>>(`/api/dream/${id}`)
+  return api.get<ApiResult<DreamContent>>(`/api/dream/${id}`)
 }
 
 export function getUserDreams(userId: number) {
-  return axios.get<ApiResult<DreamDetail[]>>(`/api/dreams/user/${userId}`)
+  return api.get<ApiResult<DreamDetail[]>>(`/api/dreams/user/${userId}`)
 }
 
 export function deleteDream(id: string) {
-  return axios.delete<ApiResult<void>>(`/api/dream/${id}`)
+  return api.delete<ApiResult<void>>(`/api/dream/${id}`)
 }
