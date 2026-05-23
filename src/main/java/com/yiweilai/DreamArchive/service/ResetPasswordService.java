@@ -2,7 +2,7 @@ package com.yiweilai.DreamArchive.service;
 
 import com.yiweilai.DreamArchive.mapper.ResetPasswordMapper;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
-import com.yiweilai.DreamArchive.util.passwordEncrypt;
+import com.yiweilai.DreamArchive.util.PasswordEncrypt;
 import com.yiweilai.DreamArchive.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 public class ResetPasswordService {
 
     @Autowired
-    private passwordEncrypt passwordEncrypt;
+    private PasswordEncrypt passwordEncrypt;
 
     @Autowired
     private ResetPasswordMapper resetPasswordMapper;

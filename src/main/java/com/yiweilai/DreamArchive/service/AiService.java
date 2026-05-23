@@ -2,7 +2,7 @@ package com.yiweilai.DreamArchive.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.yiweilai.DreamArchive.DTO.messages;
+import com.yiweilai.DreamArchive.DTO.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,12 +46,12 @@ public class AiService {
             throw new IllegalStateException("AI 模型未配置");
         }
 
-        List<messages> requestMessages = new ArrayList<>();
-        requestMessages.add(new messages(
+        List<Message> requestMessages = new ArrayList<>();
+        requestMessages.add(new Message(
                 "system",
                 "你是一名温和、专业的梦境分析助手。请用中文按“整体解读、情绪层面、象征层面、现实启发”四个小标题分析梦境，避免绝对化判断，不要使用 ** 等 Markdown 符号。"
         ));
-        requestMessages.add(new messages("user", content));
+        requestMessages.add(new Message("user", content));
 
         try {
             String json = objectMapper.writeValueAsString(Map.of(
@@ -89,12 +89,12 @@ public class AiService {
             return "未命名梦境";
         }
 
-        List<messages> requestMessages = new ArrayList<>();
-        requestMessages.add(new messages(
+        List<Message> requestMessages = new ArrayList<>();
+        requestMessages.add(new Message(
                 "system",
                 "你是梦境标题助手。请根据梦境内容生成一个温柔、简短、有画面感的中文标题。要求：不超过 12 个中文字符；只返回标题本身；不要解释；不要引号、书名号或标点。"
         ));
-        requestMessages.add(new messages("user", content));
+        requestMessages.add(new Message("user", content));
 
         try {
             String json = objectMapper.writeValueAsString(Map.of(

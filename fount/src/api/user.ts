@@ -1,20 +1,4 @@
-import axios from 'axios'
-import { onAxiosError } from '@/utils/errorHandler'
-
-// 创建 axios 实例并配置拦截器
-const api = axios.create({
-  baseURL: '',
-  timeout: 10000
-})
-
-// 响应拦截器：处理非200状态码
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    onAxiosError(error)
-    return Promise.reject(error)
-  }
-)
+import api from './axios'
 
 export interface RegisterForm {
   username: string
@@ -31,6 +15,10 @@ export interface UserInfo {
   id: number
   username: string
   email: string
+  role?: 'USER' | 'ADMIN'
+  status?: 'ACTIVE' | 'BANNED'
+  createdAt?: string
+  token?: string
 }
 
 export interface ApiResult<T> {
@@ -47,12 +35,41 @@ export interface DreamStats {
   recentTrend: { date: string; count: number }[]
 }
 
-export function register(form: RegisterForm) {
-  return api.post<ApiResult<RegisterForm>>('/api/register', form)
+export function sendRegisterCode(email: string) {
+  return api.post<ApiResult<string>>('/api/register/send-code', { email })
+}
+
+export function register(form: RegisterForm, code?: string) {
+  const params = code ? `?code=${encodeURIComponent(code)}` : ''
+  return api.post<ApiResult<UserInfo>>(`/api/register${params}`, form)
+}
+
+export function sendChangePasswordCode(email: string) {
+  return api.post<ApiResult<string>>('/api/change-password/send-code', { email })
+}
+
+export function sendResetPasswordCode(identifier: string) {
+  return api.post<ApiResult<string>>('/api/reset-password/send-code', { identifier })
+}
+
+export function resetPassword(identifier: string, code: string, newPassword: string) {
+  return api.post<ApiResult<string>>('/api/reset-password', { identifier, code, newPassword })
+}
+
+export function setupAccount(username: string, password: string) {
+  return api.post<ApiResult<string>>('/api/account/setup', { username, password })
 }
 
 export function login(form: LoginForm) {
   return api.post<ApiResult<UserInfo>>('/api/login', form)
+}
+
+export function sendLoginCode(email: string) {
+  return api.post<ApiResult<string>>('/api/login/send-code', { email })
+}
+
+export function loginByCode(email: string, code: string) {
+  return api.post<ApiResult<UserInfo>>('/api/login/code', { email, code })
 }
 
 // 梦境统计相关 API

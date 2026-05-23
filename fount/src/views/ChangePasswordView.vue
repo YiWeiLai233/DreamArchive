@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '@/api/axios'
+import { sendChangePasswordCode } from '@/api/user'
 import { useUserStore } from '@/stores'
 
 const router = useRouter()
@@ -17,6 +18,28 @@ const showNew = ref(false)
 const isLoading = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
+const code = ref('')
+const codeCountdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+async function handleSendCode() {
+  errorMsg.value = ''
+  if (!userStore.email) { errorMsg.value = '无法获取邮箱，请重新登录'; return }
+  try {
+    const { data } = await sendChangePasswordCode(userStore.email)
+    if (data.code === 200) {
+      codeCountdown.value = 60
+      countdownTimer = setInterval(() => {
+        codeCountdown.value--
+        if (codeCountdown.value <= 0 && countdownTimer) { clearInterval(countdownTimer); countdownTimer = null }
+      }, 1000)
+    } else {
+      errorMsg.value = data.message || '发送失败'
+    }
+  } catch (e: any) {
+    errorMsg.value = e.response?.data?.message || '发送失败，请稍后再试'
+  }
+}
 
 const strength = ref(0)
 const strengthLabel = ref('')
@@ -44,15 +67,17 @@ async function handleChange() {
   if (form.value.newPassword.length < 6) { errorMsg.value = '新密码长度至少6位'; return }
   if (form.value.newPassword === form.value.oldPassword) { errorMsg.value = '新密码不能与旧密码相同'; return }
   if (form.value.newPassword !== form.value.confirmPassword) { errorMsg.value = '两次密码输入不一致'; return }
+  if (!code.value.trim()) { errorMsg.value = '请输入验证码'; return }
 
   isLoading.value = true
   try {
-    const { data } = await axios.post('/api/change-password', {
+    const { data } = await api.post('/api/change-password', {
       userId: userStore.userId,
       username: userStore.username,
       email: userStore.email,
       oldPassword: form.value.oldPassword,
-      newPassword: form.value.newPassword
+      newPassword: form.value.newPassword,
+      code: code.value
     })
     if (data.code === 200) {
       successMsg.value = '密码修改成功！'
@@ -127,6 +152,18 @@ function goBack() { router.push('/') }
             <label for="confirmPwd"><span class="label-icon">🔑</span>确认新密码</label>
             <div class="input-wrapper">
               <input id="confirmPwd" v-model="form.confirmPassword" :type="showNew ? 'text' : 'password'" placeholder="再次输入新密码" maxlength="50" :disabled="isLoading" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="code"><span class="label-icon">📧</span>邮箱验证码</label>
+            <div class="code-row">
+              <div class="input-wrapper code-input">
+                <input id="code" v-model="code" type="text" placeholder="输入6位验证码" maxlength="6" :disabled="isLoading" />
+              </div>
+              <button type="button" class="send-code-btn" :disabled="codeCountdown > 0" @click="handleSendCode">
+                {{ codeCountdown > 0 ? `${codeCountdown}s` : '发送验证码' }}
+              </button>
             </div>
           </div>
 
@@ -266,6 +303,18 @@ function goBack() { router.push('/') }
 @keyframes pulse-icon { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes card-enter { from { opacity: 0; transform: translateY(30px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.code-row { display: flex; gap: 0.75rem; align-items: stretch; }
+.code-input { flex: 1; }
+.send-code-btn {
+  flex-shrink: 0; padding: 0 1.2rem; height: auto;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.3s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.send-code-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(124,111,224,0.35); }
+.send-code-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @media (max-width: 768px) {
   .page-nav { padding: 1rem; }

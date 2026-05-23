@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import { resetPassword, sendResetPasswordCode } from '@/api/user'
 
 const router = useRouter()
 
@@ -36,12 +36,12 @@ async function handleSendCode() {
     errorMsg.value = '请输入用户名或邮箱'
     return
   }
+  const target = identifier.value.trim()
   isLoading.value = true
   try {
-    const { data } = await axios.post('/api/reset-password/send-code', {
-      identifier: identifier.value
-    })
+    const { data } = await sendResetPasswordCode(target)
     if (data.code === 200) {
+      identifier.value = target
       successMsg.value = '验证码已发送'
       step.value = 'verify'
       startCountdown()
@@ -75,11 +75,7 @@ async function handleReset() {
   }
   isLoading.value = true
   try {
-    const { data } = await axios.post('/api/reset-password', {
-      identifier: identifier.value,
-      code: code.value,
-      newPassword: newPassword.value
-    })
+    const { data } = await resetPassword(identifier.value.trim(), code.value.trim(), newPassword.value)
     if (data.code === 200) {
       successMsg.value = '密码重置成功！'
       step.value = 'done'

@@ -85,6 +85,10 @@ function goDreamStats() {
   router.push('/dream-stats')
 }
 
+function goAdmin() {
+  router.push('/admin')
+}
+
 function goDreamNew() {
   if (!userStore.isLoggedIn) { router.push('/login'); return }
   router.push('/record-dream')
@@ -174,6 +178,10 @@ function goLearnMore() {
             <button class="dropdown-item" @click="goDreamStats">
               <span>📊</span>
               <span>梦境统计</span>
+            </button>
+            <button v-if="userStore.isAdmin" class="dropdown-item admin-item" @click="goAdmin">
+              <span>🛡️</span>
+              <span>管理员控制台</span>
             </button>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item logout-item" @click="handleLogout">
@@ -516,6 +524,14 @@ function goLearnMore() {
 
 .dropdown-item:hover {
   background: rgba(124, 111, 224, 0.1);
+}
+
+.admin-item {
+  color: #4b3fc9;
+}
+
+.admin-item:hover {
+  background: rgba(75, 63, 201, 0.12);
 }
 
 .logout-item:hover {

@@ -1,73 +1,125 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import axios from 'axios'
+import { useRoute, useRouter } from 'vue-router'
+import { login, loginByCode, sendLoginCode, setupAccount } from '@/api/user'
 import { useUserStore } from '@/stores'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
-const form = ref({
-  username: '',
-  password: ''
-})
-
+const loginMode = ref<'password' | 'code'>('password')
+const form = ref({ username: '', password: '', email: '', code: '' })
 const isLoading = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
 const showPassword = ref(false)
+const codeCountdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+function getRedirectPath() {
+  const redirect = route.query.redirect
+  if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
+    return redirect
+  }
+  return '/'
+}
+
+const showSetup = ref(false)
+const setupForm = ref({ username: '', password: '', confirmPassword: '' })
+const setupLoading = ref(false)
+const setupError = ref('')
+
+function afterLogin(data: any) {
+  userStore.login(data.username, data.email, data.createdAt || '', data.id, data.role, data.token)
+  if (data.needsSetup) {
+    showSetup.value = true
+  } else {
+    successMsg.value = '登录成功！正在跳转...'
+    setTimeout(() => router.replace(getRedirectPath()), 1000)
+  }
+}
+
+async function handleSetup() {
+  setupError.value = ''
+  if (setupForm.value.username.trim().length < 3) { setupError.value = '用户名至少3个字符'; return }
+  if (setupForm.value.password.length < 6) { setupError.value = '密码至少6位'; return }
+  if (setupForm.value.password !== setupForm.value.confirmPassword) { setupError.value = '两次密码不一致'; return }
+  setupLoading.value = true
+  try {
+    const { data } = await setupAccount(setupForm.value.username, setupForm.value.password)
+    if (data.code === 200) {
+      userStore.updateProfile(setupForm.value.username, userStore.email)
+      showSetup.value = false
+      successMsg.value = '设置成功！正在跳转...'
+      setTimeout(() => router.replace(getRedirectPath()), 1000)
+    } else {
+      setupError.value = data.message || '设置失败'
+    }
+  } catch (e: any) {
+    setupError.value = e.response?.data?.message || '设置失败'
+  } finally {
+    setupLoading.value = false
+  }
+}
+
+async function handleSendCode() {
+  errorMsg.value = ''
+  if (!form.value.email.trim()) { errorMsg.value = '请输入邮箱'; return }
+  try {
+    const { data } = await sendLoginCode(form.value.email)
+    if (data.code === 200) {
+      codeCountdown.value = 60
+      countdownTimer = setInterval(() => {
+        codeCountdown.value--
+        if (codeCountdown.value <= 0 && countdownTimer) { clearInterval(countdownTimer); countdownTimer = null }
+      }, 1000)
+    } else {
+      errorMsg.value = data.message || '发送失败'
+    }
+  } catch (e: any) {
+    errorMsg.value = e.response?.data?.message || '发送失败，请稍后再试'
+  }
+}
 
 async function handleLogin() {
   errorMsg.value = ''
   successMsg.value = ''
 
-  if (!form.value.username.trim()) {
-    errorMsg.value = '请输入用户名或邮箱'
-    return
-  }
-  if (!form.value.password) {
-    errorMsg.value = '请输入密码'
-    return
-  }
-
-  isLoading.value = true
-  try {
-    const { data } = await axios.post('/api/login', {
-      username: form.value.username,
-      password: form.value.password
-    })
-    if (data.code === 200) {
-      successMsg.value = '登录成功！正在跳转...'
-      // 更新登录状态
-      userStore.login(data.data.username, data.data.email, data.data.createdAt, data.data.id)
-      setTimeout(() => {
-        router.push('/')
-      }, 1000)
-    } else {
-      errorMsg.value = data.message || '登录失败，请检查账号密码'
-    }
-  } catch (e: any) {
-    if (e.response?.status === 404) {
-      errorMsg.value = '登录接口暂未开放，请联系管理员'
-    } else {
-      errorMsg.value = e.response?.data?.message || '网络错误，请检查网络连接'
-    }
-  } finally {
-    isLoading.value = false
+  if (loginMode.value === 'password') {
+    if (!form.value.username.trim()) { errorMsg.value = '请输入用户名或邮箱'; return }
+    if (!form.value.password) { errorMsg.value = '请输入密码'; return }
+    isLoading.value = true
+    try {
+      const { data } = await login({ username: form.value.username, password: form.value.password })
+      if (data.code === 200) { afterLogin(data.data) }
+      else { errorMsg.value = data.message || '登录失败' }
+    } catch (e: any) {
+      errorMsg.value = e.response?.data?.message || '网络错误'
+    } finally { isLoading.value = false }
+  } else {
+    if (!form.value.email.trim()) { errorMsg.value = '请输入邮箱'; return }
+    if (!form.value.code.trim()) { errorMsg.value = '请输入验证码'; return }
+    isLoading.value = true
+    try {
+      const { data } = await loginByCode(form.value.email, form.value.code)
+      if (data.code === 200) { afterLogin(data.data) }
+      else { errorMsg.value = data.message || '登录失败' }
+    } catch (e: any) {
+      errorMsg.value = e.response?.data?.message || '网络错误'
+    } finally { isLoading.value = false }
   }
 }
 
-function goHome() {
-  router.push('/')
+function switchMode(mode: 'password' | 'code') {
+  loginMode.value = mode
+  errorMsg.value = ''
+  successMsg.value = ''
 }
 
-function goRegister() {
-  router.push('/register')
-}
-
-function goResetPassword() {
-  router.push('/reset-password')
-}
+function goHome() { router.push('/') }
+function goRegister() { router.push('/register') }
+function goResetPassword() { router.push('/reset-password') }
 </script>
 
 <template>
@@ -109,75 +161,62 @@ function goResetPassword() {
         <p class="card-subtitle">继续你的梦境探索之旅</p>
       </div>
 
+      <!-- 登录模式切换 -->
+      <div class="mode-tabs">
+        <button type="button" class="mode-tab" :class="{ active: loginMode === 'password' }" @click="switchMode('password')">密码登录</button>
+        <button type="button" class="mode-tab" :class="{ active: loginMode === 'code' }" @click="switchMode('code')">验证码登录</button>
+      </div>
+
       <!-- 表单 -->
       <form class="login-form" @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label for="username">
-            <span class="label-icon">👤</span>
-            用户名 / 邮箱
-          </label>
-          <div class="input-wrapper">
-            <input
-              id="username"
-              v-model="form.username"
-              type="text"
-              placeholder="输入用户名或邮箱"
-              maxlength="50"
-              :disabled="isLoading"
-            />
+        <!-- 密码登录 -->
+        <template v-if="loginMode === 'password'">
+          <div class="form-group">
+            <label for="username"><span class="label-icon">👤</span>用户名 / 邮箱</label>
+            <div class="input-wrapper">
+              <input id="username" v-model="form.username" type="text" placeholder="输入用户名或邮箱" maxlength="50" :disabled="isLoading" />
+            </div>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label for="password">
-            <span class="label-icon">🔒</span>
-            密码
-          </label>
-          <div class="input-wrapper">
-            <input
-              id="password"
-              v-model="form.password"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="输入你的密码"
-              maxlength="50"
-              :disabled="isLoading"
-            />
-            <button
-              type="button"
-              class="toggle-pwd"
-              @click="showPassword = !showPassword"
-            >
-              {{ showPassword ? '🙈' : '👁️' }}
-            </button>
+          <div class="form-group">
+            <label for="password"><span class="label-icon">🔒</span>密码</label>
+            <div class="input-wrapper">
+              <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="输入你的密码" maxlength="50" :disabled="isLoading" />
+              <button type="button" class="toggle-pwd" @click="showPassword = !showPassword">{{ showPassword ? '🙈' : '👁️' }}</button>
+            </div>
           </div>
-        </div>
+        </template>
 
-        <!-- 提示信息 -->
+        <!-- 验证码登录 -->
+        <template v-else>
+          <div class="form-group">
+            <label for="email"><span class="label-icon">📧</span>邮箱</label>
+            <div class="input-wrapper">
+              <input id="email" v-model="form.email" type="email" placeholder="输入注册邮箱" :disabled="isLoading" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="code"><span class="label-icon">🔑</span>验证码</label>
+            <div class="code-row">
+              <div class="input-wrapper code-input">
+                <input id="code" v-model="form.code" type="text" placeholder="输入6位验证码" maxlength="6" :disabled="isLoading" />
+              </div>
+              <button type="button" class="send-code-btn" :disabled="codeCountdown > 0" @click="handleSendCode">
+                {{ codeCountdown > 0 ? `${codeCountdown}s` : '发送验证码' }}
+              </button>
+            </div>
+          </div>
+        </template>
+
         <Transition name="msg">
-          <div v-if="errorMsg" class="message error-msg">
-            <span>⚠️</span>{{ errorMsg }}
-          </div>
+          <div v-if="errorMsg" class="message error-msg"><span>⚠️</span>{{ errorMsg }}</div>
         </Transition>
         <Transition name="msg">
-          <div v-if="successMsg" class="message success-msg">
-            <span>✅</span>{{ successMsg }}
-          </div>
+          <div v-if="successMsg" class="message success-msg"><span>✅</span>{{ successMsg }}</div>
         </Transition>
 
-        <button
-          type="submit"
-          class="submit-btn"
-          :class="{ loading: isLoading }"
-          :disabled="isLoading"
-        >
-          <span v-if="!isLoading" class="btn-content">
-            <span>进入梦境</span>
-            <span class="btn-sparkle">🌙</span>
-          </span>
-          <span v-else class="btn-loading">
-            <span class="spinner"></span>
-            <span>登录中...</span>
-          </span>
+        <button type="submit" class="submit-btn" :class="{ loading: isLoading }" :disabled="isLoading">
+          <span v-if="!isLoading" class="btn-content"><span>进入梦境</span><span class="btn-sparkle">🌙</span></span>
+          <span v-else class="btn-loading"><span class="spinner"></span><span>登录中...</span></span>
         </button>
       </form>
 
@@ -186,6 +225,47 @@ function goResetPassword() {
         <p>还没有账号？<span class="link" @click="goRegister">立即注册</span></p>
       </div>
     </div>
+
+    <!-- 设置用户名密码弹窗 -->
+    <Teleport to="body">
+      <div v-if="showSetup" class="modal-overlay">
+        <div class="modal-card glass">
+          <div class="card-header">
+            <div class="card-icon">🎉</div>
+            <h2 class="card-title">欢迎加入梦境档案</h2>
+            <p class="card-subtitle">请设置你的用户名和密码，下次可直接密码登录</p>
+          </div>
+          <form class="login-form" @submit.prevent="handleSetup">
+            <div class="form-group">
+              <label><span class="label-icon">👤</span>用户名</label>
+              <div class="input-wrapper">
+                <input v-model="setupForm.username" type="text" placeholder="给自己起个名字" maxlength="20" :disabled="setupLoading" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label><span class="label-icon">🔒</span>密码</label>
+              <div class="input-wrapper">
+                <input v-model="setupForm.password" type="password" placeholder="至少6位" maxlength="50" :disabled="setupLoading" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label><span class="label-icon">🔑</span>确认密码</label>
+              <div class="input-wrapper">
+                <input v-model="setupForm.confirmPassword" type="password" placeholder="再输入一次" maxlength="50" :disabled="setupLoading" />
+              </div>
+            </div>
+            <Transition name="msg">
+              <div v-if="setupError" class="message error-msg"><span>⚠️</span>{{ setupError }}</div>
+            </Transition>
+            <button type="submit" class="submit-btn" :disabled="setupLoading">
+              <span v-if="!setupLoading" class="btn-content"><span>完成设置</span><span class="btn-sparkle">✨</span></span>
+              <span v-else class="btn-loading"><span class="spinner"></span><span>设置中...</span></span>
+            </button>
+            <p class="skip-link" @click="showSetup = false; router.replace(getRedirectPath())">暂时跳过</p>
+          </form>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -391,6 +471,47 @@ function goResetPassword() {
   font-size: 0.9rem;
   color: var(--text-light);
 }
+
+/* 模式切换 */
+.mode-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  background: rgba(124, 111, 224, 0.08);
+  border-radius: 12px;
+  padding: 4px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.mode-tab.active {
+  background: white;
+  color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* 验证码行 */
+.code-row { display: flex; gap: 0.75rem; align-items: stretch; }
+.code-input { flex: 1; }
+.send-code-btn {
+  flex-shrink: 0; padding: 0 1.2rem; height: auto;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.3s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.send-code-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(124,111,224,0.35); }
+.send-code-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* 表单 */
 .login-form {
@@ -674,6 +795,19 @@ function goResetPassword() {
     border-radius: 18px;
   }
 }
+
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 2rem; animation: card-enter 0.3s ease;
+}
+.modal-card { max-width: 420px; width: 100%; padding: 2.5rem; border-radius: 24px; }
+.skip-link {
+  text-align: center; margin-top: 0.75rem; font-size: 0.85rem;
+  color: var(--text-light); cursor: pointer; transition: color 0.2s;
+}
+.skip-link:hover { color: var(--primary); }
 
 @media (min-width: 1024px) {
   .login-card { max-width: 500px; padding: 3rem; }

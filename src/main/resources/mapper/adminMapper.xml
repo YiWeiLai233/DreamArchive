@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yiweilai.DreamArchive.mapper.AdminMapper">
+    <select id="countUsers" resultType="int">
+        SELECT COUNT(*)
+        FROM user
+        WHERE deleted = 0
+    </select>
+
+    <select id="countAdminUsers" resultType="int">
+        SELECT COUNT(*)
+        FROM user
+        WHERE role = 'ADMIN'
+          AND deleted = 0
+    </select>
+
+    <select id="countDreams" resultType="int">
+        SELECT COUNT(*)
+        FROM dream_content
+    </select>
+
+    <select id="countTodayDreams" resultType="int">
+        SELECT COUNT(*)
+        FROM dream_content
+        WHERE DATE(created_at) = CURDATE()
+    </select>
+
+    <select id="countUserSummaries" resultType="int">
+        SELECT COUNT(*)
+        FROM user u
+        WHERE u.deleted = 0
+        <if test="keyword != null and keyword != ''">
+          AND (
+            LOWER(u.username) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+            OR LOWER(u.email) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+            OR LOWER(u.role) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+            OR LOWER(u.status) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+          )
+        </if>
+    </select>
+
+    <select id="selectUserSummaries" resultType="com.yiweilai.DreamArchive.DTO.AdminUserSummary">
+        SELECT
+            u.id,
+            u.username,
+            u.email,
+            u.role,
+            u.status,
+            u.deleted,
+            u.created_at as createdAt,
+            COUNT(dc.id) as dreamCount
+        FROM user u
+        LEFT JOIN dream_content dc ON dc.user_id = u.id
+        WHERE u.deleted = 0
+        <if test="keyword != null and keyword != ''">
+          AND (
+            LOWER(u.username) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+            OR LOWER(u.email) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+            OR LOWER(u.role) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+            OR LOWER(u.status) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+          )
+        </if>
+        GROUP BY u.id, u.username, u.email, u.role, u.status, u.deleted, u.created_at
+        ORDER BY u.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countRecentDreams" resultType="int">
+        SELECT COUNT(*)
+        FROM dream_content dc
+        LEFT JOIN user u ON u.id = dc.user_id
+        <where>
+          <if test="keyword != null and keyword != ''">
+            (
+              LOWER(dc.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+              OR LOWER(dc.content) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+              OR LOWER(u.username) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+              OR LOWER(dc.place) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+              OR LOWER(dc.emotion) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+            )
+          </if>
+        </where>
+    </select>
+
+    <select id="selectRecentDreams" resultType="com.yiweilai.DreamArchive.DTO.AdminDreamSummary">
+        SELECT
+            dc.id,
+            dc.user_id as userId,
+            u.username,
+            dc.title,
+            dc.content,
+            dc.emotion,
+            dc.place,
+            dc.time,
+            dc.created_at as createdAt
+        FROM dream_content dc
+        LEFT JOIN user u ON u.id = dc.user_id
+        <where>
+          <if test="keyword != null and keyword != ''">
+            (
+              LOWER(dc.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+              OR LOWER(dc.content) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+              OR LOWER(u.username) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+              OR LOWER(dc.place) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+              OR LOWER(dc.emotion) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+            )
+          </if>
+        </where>
+        ORDER BY dc.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectUserById" resultType="com.yiweilai.DreamArchive.DTO.User">
+        SELECT id, username, password, email, role, status, deleted, created_at as createdAt
+        FROM user
+        WHERE id = #{id}
+    </select>
+
+    <select id="countByUsernameExceptId" resultType="int">
+        SELECT COUNT(*)
+        FROM user
+        WHERE username = #{username}
+          AND (#{id} IS NULL OR id != #{id})
+    </select>
+
+    <select id="countByEmailExceptId" resultType="int">
+        SELECT COUNT(*)
+        FROM user
+        WHERE email = #{email}
+          AND (#{id} IS NULL OR id != #{id})
+    </select>
+
+    <insert id="insertUser" parameterType="com.yiweilai.DreamArchive.DTO.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user(username, password, email, role, status, deleted, created_at)
+        VALUES (#{username}, #{password}, #{email}, #{role}, #{status}, 0, NOW())
+    </insert>
+
+    <update id="updateUser" parameterType="com.yiweilai.DreamArchive.DTO.User">
+        UPDATE user
+        <set>
+            username = #{username},
+            email = #{email},
+            role = #{role},
+            status = #{status},
+            deleted = 0,
+            <if test="password != null and password != ''">
+                password = #{password},
+            </if>
+        </set>
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <update id="softDeleteUser">
+        UPDATE user
+        SET deleted = 1
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <update id="updateUserStatus">
+        UPDATE user
+        SET status = #{status}
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+</mapper>

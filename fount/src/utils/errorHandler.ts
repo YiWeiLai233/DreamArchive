@@ -19,7 +19,18 @@ export function handleApiError(status: number, message?: string) {
   const errorMsg = message || errorPages[status] || '未知错误'
   console.error(`API Error ${status}: ${errorMsg}`)
 
-  // 跳转到错误页面
+  if (status === 401) {
+    localStorage.removeItem('isLoggedIn')
+    localStorage.removeItem('authToken')
+    router.push('/login')
+    return
+  }
+
+  if (status === 403) {
+    router.push('/error/403')
+    return
+  }
+
   router.push({
     name: 'error',
     params: { code: String(status) }

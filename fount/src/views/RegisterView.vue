@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { register } from '@/api/user'
+import { register, sendRegisterCode } from '@/api/user'
+import { useUserStore } from '@/stores'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const form = ref({
   username: '',
@@ -17,6 +19,31 @@ const errorMsg = ref('')
 const successMsg = ref('')
 const showPassword = ref(false)
 const showConfirm = ref(false)
+const code = ref('')
+const codeSent = ref(false)
+const codeCountdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+async function handleSendCode() {
+  errorMsg.value = ''
+  if (!form.value.email.trim()) { errorMsg.value = '请先输入邮箱'; return }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) { errorMsg.value = '请输入正确的邮箱格式'; return }
+  try {
+    const { data } = await sendRegisterCode(form.value.email)
+    if (data.code === 200) {
+      codeSent.value = true
+      codeCountdown.value = 60
+      countdownTimer = setInterval(() => {
+        codeCountdown.value--
+        if (codeCountdown.value <= 0 && countdownTimer) { clearInterval(countdownTimer); countdownTimer = null }
+      }, 1000)
+    } else {
+      errorMsg.value = data.message || '发送失败'
+    }
+  } catch (e: any) {
+    errorMsg.value = e.response?.data?.message || '发送失败，请稍后再试'
+  }
+}
 
 async function handleRegister() {
   errorMsg.value = ''
@@ -50,6 +77,10 @@ async function handleRegister() {
     errorMsg.value = '两次输入的密码不一致'
     return
   }
+  if (!code.value.trim()) {
+    errorMsg.value = '请输入验证码'
+    return
+  }
 
   isLoading.value = true
   try {
@@ -57,12 +88,21 @@ async function handleRegister() {
       username: form.value.username,
       email: form.value.email,
       password: form.value.password
-    })
+    }, code.value)
     if (data.code === 200) {
-      successMsg.value = '注册成功！即将跳转到登录页面...'
+      const user = data.data
+      userStore.login(
+        user.username,
+        user.email,
+        user.createdAt || '',
+        user.id,
+        user.role || 'USER',
+        user.token || ''
+      )
+      successMsg.value = '注册成功！正在跳转...'
       setTimeout(() => {
         router.push('/')
-      }, 1500)
+      }, 1000)
     } else {
       errorMsg.value = data.message || '注册失败，请稍后重试'
     }
@@ -149,6 +189,33 @@ function goHome() {
               placeholder="your@email.com"
               :disabled="isLoading"
             />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="code">
+            <span class="label-icon">🔑</span>
+            验证码
+          </label>
+          <div class="code-row">
+            <div class="input-wrapper code-input">
+              <input
+                id="code"
+                v-model="code"
+                type="text"
+                placeholder="输入6位验证码"
+                maxlength="6"
+                :disabled="isLoading"
+              />
+            </div>
+            <button
+              type="button"
+              class="send-code-btn"
+              :disabled="codeCountdown > 0"
+              @click="handleSendCode"
+            >
+              {{ codeCountdown > 0 ? `${codeCountdown}s` : '发送验证码' }}
+            </button>
           </div>
         </div>
 
@@ -711,6 +778,19 @@ function goHome() {
     border-radius: 18px;
   }
 }
+
+.code-row { display: flex; gap: 0.75rem; align-items: stretch; }
+.code-input { flex: 1; }
+.code-input input { width: 100%; }
+.send-code-btn {
+  flex-shrink: 0; padding: 0 1.2rem; height: auto;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.3s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.send-code-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(124,111,224,0.35); }
+.send-code-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @media (min-width: 1024px) {
   .register-card { max-width: 500px; padding: 3rem; }

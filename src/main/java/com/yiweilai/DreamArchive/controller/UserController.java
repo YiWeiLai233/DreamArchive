@@ -4,6 +4,8 @@ import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
 import com.yiweilai.DreamArchive.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,6 +28,9 @@ public class UserController {
             }
             // 清空密码再返回
             user.setPassword(null);
+            if (!canAccessUser(user)) {
+                return Result.error(403, "\u6743\u9650\u4e0d\u8db3");
+            }
             return Result.success(user);
         } catch (Exception e) {
             return Result.error("查询失败: " + e.getMessage());
@@ -45,9 +50,26 @@ public class UserController {
             }
             // 清空密码再返回
             user.setPassword(null);
+            if (!canAccessUser(user)) {
+                return Result.error(403, "\u6743\u9650\u4e0d\u8db3");
+            }
             return Result.success(user);
         } catch (Exception e) {
             return Result.error("查询失败: " + e.getMessage());
         }
+    }
+    private boolean canAccessUser(User user) {
+        User currentUser = currentUser();
+        return currentUser != null
+                && user != null
+                && ("ADMIN".equalsIgnoreCase(currentUser.getRole()) || currentUser.getId() == user.getId());
+    }
+
+    private User currentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            return null;
+        }
+        return user;
     }
 }

@@ -5,25 +5,25 @@
 
 <mapper namespace="com.yiweilai.DreamArchive.mapper.LoginMapper">
     <select id="login" resultType="com.yiweilai.DreamArchive.DTO.User">
-        SELECT id, username, password, email, created_at as createdAt
+        SELECT id, username, password, email, role, status, deleted, created_at as createdAt
         FROM user
         WHERE username = #{username} OR email = #{email}
     </select>
 
     <select id="selectById" resultType="com.yiweilai.DreamArchive.DTO.User">
-        SELECT id, username, password, email, created_at as createdAt
+        SELECT id, username, password, email, role, status, deleted, created_at as createdAt
         FROM user
         WHERE id = #{id}
     </select>
 
     <select id="selectByUsername" resultType="com.yiweilai.DreamArchive.DTO.User">
-        SELECT id, username, password, email, created_at as createdAt
+        SELECT id, username, password, email, role, status, deleted, created_at as createdAt
         FROM user
         WHERE username = #{username}
     </select>
 
     <select id="selectByEmail" resultType="com.yiweilai.DreamArchive.DTO.User">
-        SELECT id, username, password, email, created_at as createdAt
+        SELECT id, username, password, email, role, status, deleted, created_at as createdAt
         FROM user
         WHERE email = #{email}
     </select>

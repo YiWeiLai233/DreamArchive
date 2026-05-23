@@ -30,8 +30,6 @@ const profile = reactive({
 })
 
 const editForm = reactive({
-  username: profileUsername.value,
-  email: profileEmail.value,
   bio: profile.bio
 })
 
@@ -61,8 +59,6 @@ async function loadStats() {
 onMounted(loadStats)
 
 function startEdit() {
-  editForm.username = profileUsername.value
-  editForm.email = profileEmail.value
   editForm.bio = profile.bio
   isEditing.value = true
   errorMsg.value = ''
@@ -110,15 +106,10 @@ function handleAvatarChange(event: Event) {
 
 async function saveProfile() {
   errorMsg.value = ''
-  if (!editForm.username.trim()) {
-    errorMsg.value = '用户名不能为空'
-    return
-  }
   isLoading.value = true
   try {
     // 模拟保存
     await new Promise(r => setTimeout(r, 800))
-    userStore.updateProfile(editForm.username, editForm.email)
     profile.bio = editForm.bio
     isEditing.value = false
     successMsg.value = '资料更新成功！'
@@ -203,14 +194,16 @@ function goBack() { router.push('/') }
         <form v-else class="edit-form" @submit.prevent="saveProfile">
           <div class="form-group">
             <label>用户名</label>
-            <div class="input-wrapper">
-              <input v-model="editForm.username" type="text" maxlength="20" />
+            <div class="readonly-field">
+              <span>{{ profileUsername }}</span>
+              <small>不可更改</small>
             </div>
           </div>
           <div class="form-group">
             <label>邮箱</label>
-            <div class="input-wrapper">
-              <input v-model="editForm.email" type="email" />
+            <div class="readonly-field">
+              <span>{{ profileEmail }}</span>
+              <small>不可更改</small>
             </div>
           </div>
           <div class="form-group">
@@ -367,6 +360,17 @@ function goBack() { router.push('/') }
 .input-wrapper input:focus, .input-wrapper textarea:focus {
   border-color: var(--primary); background: rgba(255,255,255,0.7);
   box-shadow: 0 0 0 4px rgba(124,111,224,0.1);
+}
+.readonly-field {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  width: 100%; padding: 0.7rem 1rem; background: rgba(255,255,255,0.32);
+  border: 1.5px solid rgba(124,111,224,0.1); border-radius: 12px;
+  color: var(--text-dark); font-size: 0.92rem;
+}
+.readonly-field span { min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+.readonly-field small {
+  flex-shrink: 0; color: var(--text-light); font-size: 0.75rem;
+  background: rgba(124,111,224,0.08); border-radius: 999px; padding: 0.15rem 0.45rem;
 }
 
 .form-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
