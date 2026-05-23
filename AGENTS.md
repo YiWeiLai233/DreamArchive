@@ -1,0 +1,288 @@
+# DreamArchive 开发记录
+
+Dream Archive - Spring Boot 3.5.7 + MyBatis + MySQL，Java 17。Vue 3 + TypeScript 前端。
+
+**当前状态：核心功能已可用，AI 池化已接入。**
+
+- 用户注册/登录（验证码登录、密码登录）
+- 梦境记录、AI 解析（多 provider 池化）
+- 管理员控制台
+- 统计图表
+
+---
+
+## 项目结构
+
+```text
+src/main/java/com/yiweilai/DreamArchive/
+├── controller/    # Controller (LoginController, RegisterController, ChangePasswordController,
+│                  #   ResetPasswordController, AdminController, DreamController, StatsController,
+│                  #   UserController, AiPoolController)
+├── service/       # Service (LoginService, RegisterService, AdminService, AiService,
+│                  #   AiProviderPool, DreamService, DreamAiTaskService, StatsService, TokenService,
+│                  #   ResetPasswordService, VerificationCodeService)
+├── mapper/        # Mapper (LoginMapper, RegisterMapper, AdminMapper, DreamContentMapper,
+│                  #   DreamStatsMapper, StatsMapper, ResetPasswordMapper, DreamMapper)
+├── DTO/           # DTO (User, LoginResponse, DreamContent, DreamStats, AdminOverview, AiProvider 等)
+├── config/        # Config (SecurityConfig, TokenAuthenticationFilter, SecurityPaths,
+│                  #   WebConfig, AsyncConfig, GlobalExceptionHandler)
+└── util/          # Util (Result, PasswordEncrypt, CaptchaGenerator)
+src/main/resources/
+├── mapper/        # MyBatis XML
+├── db/            # admin_role_patch.sql, admin_user_status_patch.sql
+└── application.properties
+fount/             # Vue 3 + TS + Vite 前端，12 个 View 组件
+```
+
+## 核心表结构
+
+| 表 | 用途 | 主键 |
+|---|---|---|
+| `user` | 用户表 (id, username, password, email, role, status, deleted, created_at) | INT 自增 |
+| `dream_content` | 梦境主表 (id, user_id, title, content, emotion, place, time, interpretation, created_at) | UUID varchar(36) |
+| `dream_stats` | 每日情绪统计 (user_id, stat_date, 各情绪计数) | INT 自增，uk_user_date 唯一 |
+| `dream_place_stats` | 地点统计 (user_id, place, dream_count) | INT 自增，uk_user_place 唯一 |
+
+**关键规则**：所有新梦境数据写入 `dream_content`，统计 SQL 查 `dream_content` 或预计算表。
+
+---
+
+## 已完成功能
+
+### 用户系统
+
+- 注册（验证码强制校验）
+- 登录（密码 + 验证码双模式，新用户自动注册+设置弹窗）
+- 修改密码（需验证码）
+- 重置密码（多步流程）
+- Token 认证（HMAC-SHA256）
+- Session 超时（前端 15 分钟）
+
+### 梦境系统
+
+- 保存梦境 + 异步 AI 解析
+- 梦境列表 + 搜索 + 详情
+- 删除梦境
+- AI 解析结果自动轮询刷新
+
+### AI 资源池化
+
+- 多 provider 加权轮询
+- 延迟感知（EMA 更新，低延迟 provider 自动获得更高有效权重）
+- 熔断降级（连续失败 3 次 → 熔断 60 秒 → 半开试探）
+- 运行时管理（管理员 API 动态增删改 provider、重置熔断）
+- 详见 `docs/AI-POOL.md`
+
+### 管理员系统
+
+- 管理员控制台（用户管理 + 最近梦境）
+- 用户操作：新增、编辑、封禁/解封、软删除
+- 梦境查看：分页搜索 + AI 解析详情
+- 角色权限：ROLE_ADMIN 才能访问 `/api/admin/**`
+
+### 统计系统
+
+- 情绪分布、地点分布、趋势图
+- 预计算表（dream_stats / dream_place_stats）
+
+### 安全
+
+- Spring Security 过滤链
+- TokenAuthenticationFilter（验 token + 查数据库确认用户状态）
+- 全局 CORS
+- 密码 SHA-256+盐值加密
+
+---
+
+## 认证与安全
+
+- **Spring Security**：`SecurityConfig` 过滤链，CSRF 关闭、无状态 session、全局 CORS
+- **Token**：`TokenService` HMAC-SHA256 签名，前端存 localStorage，axios 拦截器自动附带
+- **TokenAuthenticationFilter**：验 token + 查数据库确认用户未删除/未封禁
+- **SecurityPaths**：公开接口白名单（login, register, reset-password, hello, swagger）
+- **密码**：`PasswordEncrypt` SHA-256+盐值
+- **管理员**：`/api/admin/**` 要求 `ROLE_ADMIN`
+- **前端守卫**：guestOnly(`/login`, `/register`, `/reset-password`)、requiresAuth、requiresAdmin(`/admin`)
+- **Session**：前端 15 分钟超时
+- **软删除**：`user.deleted=1`，封禁：`user.status='BANNED'`
+
+## 验证码 + 邮件系统
+
+- **VerificationCodeService**：支持多场景（register/login/change-password/reset-password）
+- Redis 存储验证码（5 分钟 TTL）+ 频率限制（60 秒）
+- QQ 邮箱 SMTP：`spring.mail.host=smtp.qq.com`，端口 587
+- 邮件发送失败返回用户友好提示，不泄露 SMTP 技术错误
+
+---
+
+## 接口清单
+
+### 公开接口（无需认证）
+
+| 方法 | 路径 | 功能 |
+|------|------|------|
+| POST | `/api/login` | 密码登录 |
+| POST | `/api/login/send-code` | 登录验证码 |
+| POST | `/api/login/code` | 验证码登录（不存在则自动注册） |
+| POST | `/api/register` | 注册（需验证码） |
+| POST | `/api/register/send-code` | 注册验证码 |
+| POST | `/api/reset-password/send-code` | 重置密码验证码 |
+| POST | `/api/reset-password` | 重置密码 |
+| GET | `/api/hello` | 健康检查 |
+
+### 需认证接口
+
+| 方法 | 路径 | 功能 |
+|------|------|------|
+| POST | `/api/account/setup` | 新用户设置用户名密码 |
+| POST | `/api/change-password/send-code` | 修改密码验证码 |
+| POST | `/api/change-password` | 修改密码（需验证码） |
+| GET | `/api/dream/{id}` | 查单个梦境 |
+| GET | `/api/dreams/user/{userId}` | 查用户所有梦境 |
+| POST | `/api/analysisDream` | 保存梦境 |
+| POST | `/api/dreams/save-and-analyze` | 保存 + 异步 AI 解析 |
+| POST | `/api/dream/{id}/delete` | 删除梦境 |
+| GET | `/api/stats/{userId}/*` | 统计接口 |
+| GET | `/api/user/by-email` | 邮箱查用户 |
+
+### 管理员接口（需 ROLE_ADMIN）
+
+| 方法 | 路径 | 功能 |
+|------|------|------|
+| POST | `/api/admin/overview` | 管理总览 |
+| POST | `/api/admin/user-action` | 用户操作 |
+| POST | `/api/admin/delete-user` | 软删除 |
+| POST | `/api/admin/dream-detail` | 梦境详情 |
+| GET | `/api/admin/ai-pool/providers` | 查看所有 AI provider 状态 |
+| POST | `/api/admin/ai-pool/providers` | 添加 provider |
+| POST | `/api/admin/ai-pool/providers/{name}/update` | 更新 provider |
+| POST | `/api/admin/ai-pool/providers/{name}/delete` | 删除 provider |
+| POST | `/api/admin/ai-pool/providers/{name}/reset` | 重置熔断 |
+
+---
+
+## 前端 API 模块
+
+| 文件 | 用途 |
+|---|---|
+| `api/axios.ts` | 共享 axios 实例，带 `attachAuthHeader` 拦截器 |
+| `api/user.ts` | 注册、登录（密码/验证码）、统计、验证码发送、setupAccount |
+| `api/dream.ts` | 梦境 CRUD、AI 解析 |
+| `api/admin.ts` | 管理员后台 |
+
+## 前端页面
+
+| 页面 | 路径 | 说明 |
+|------|------|------|
+| HomeView | `/` | 首页/仪表板 |
+| LoginView | `/login` | 密码登录/验证码登录切换，新用户自动注册+设置弹窗 |
+| RegisterView | `/register` | 注册（验证码强制校验，注册后自动登录） |
+| ResetPasswordView | `/reset-password` | 多步密码重置 |
+| RecordDreamView | `/record-dream` | 记录梦境 + AI 解析，PC 左右分栏/手机向导式 |
+| DreamListView | `/dreams` | 梦境列表 + 搜索 + 详情 |
+| ProfileView | `/profile` | 个人资料 + 头像 |
+| ChangePasswordView | `/change-password` | 修改密码（需验证码） |
+| DreamStatsView | `/dream-stats` | 统计图表 |
+| AdminView | `/admin` | 管理员控制台 |
+| ErrorView | `/error/:code` | 错误页 |
+| LearnMoreView | `/learn-more` | 产品介绍 |
+
+## 前端设计风格
+
+项目有两套视觉风格，按页面类型选用。
+
+### 主功能页面：梦幻玻璃拟态（Dreamy Glassmorphism）
+
+适用于：HomeView、LoginView、RegisterView、RecordDreamView、DreamListView、ProfileView、ChangePasswordView、ResetPasswordView、DreamStatsView、LearnMoreView、ErrorView。
+
+- **色彩**：主色 `#7C6FE0`（紫）+ 辅色 `#FFB347`（橙），渐变背景 `#E8D5F5` → `#B8E6FF`，文字深紫 `#2D2B55` / 浅紫 `#6B6899`。CSS 变量在 `assets/main.css` `:root` 中定义。
+- **视觉**：毛玻璃卡片（`rgba(255,255,255,0.25)` + `backdrop-filter: blur(20-24px)`）、梦幻背景层（星星/云朵/光晕）、浮动 emoji 装饰（🌙✨⭐💫🔮）、渐变文字（`-webkit-background-clip: text`）。
+- **交互**：胶囊按钮（radius 50px）、hover 上浮 + 紫色投影、入场动画 `card-enter`（下方淡入缩放）、submit 按钮光泽扫过效果。
+- **字体**：Noto Sans SC，PC 端 `font-size: 18px`。
+- **响应式**：≤768px / ≥1024px / ≥1440px 三档，侧边装饰仅 ≥1024px 显示。
+- **规范**：新主功能页面必须复用此风格，参考 `HomeView.vue` 和 `LoginView.vue`。
+
+### 管理员后台：简洁 Dashboard 风格
+
+适用于：AdminView。
+
+- **色彩**：浅灰白背景（`#f5f7fb`）、indigo 主色（`#4f46e5` → `#7c3aed`）、白色卡片 + 细边框。
+- **视觉**：无毛玻璃、无浮动装饰、无梦幻背景。白色实底卡片 + 微投影、指标卡左侧色条、表格布局。
+- **交互**：圆角按钮（radius 10-12px）、hover 微上浮、modal 弹窗带 hero 渐变头部。
+- **规范**：管理类页面用此风格，参考 `AdminView.vue`。
+
+## 前端响应式布局策略
+
+RecordDreamView 采用 JS 切换模板的方式实现响应式：
+
+- **PC (>= 1024px)**：左右分栏，左侧边栏（情绪/时间/地点）+ 右侧主内容区
+- **手机 (< 1024px)**：向导式两步卡片，步骤指示器 + 上一步/下一步导航
+- 实现：`isMobile = ref(window.innerWidth < 1024)` + resize 监听 + `v-if`/`v-else` 切换
+- CSS 断点：`@media (max-width: 1023px)` 覆盖手机端样式
+
+---
+
+## 技术约定
+
+### HTTP 方法
+
+项目只使用 GET 和 POST，不使用 PUT/DELETE/PATCH。操作类接口用 POST，路径加动词后缀（如 `/dream/{id}/delete`、`/providers/{name}/update`）。
+
+### 敏感信息
+
+`application.properties` 不提交到 Git，用 `.gitignore` 排除。敏感值用环境变量。
+
+### 编码
+
+`pom.xml` 已配置 UTF-8 编码。Java 源文件避免使用中文引号，统一使用 ASCII 引号。
+
+---
+
+## AI 资源池化
+
+详见 `docs/AI-POOL.md`。
+
+- `DTO/AiProvider`：provider 模型
+- `service/AiProviderPool`：加权轮询 + 延迟感知 + 熔断降级
+- `controller/AiPoolController`：管理员 CRUD 接口
+- 配置格式：`ai.pool.providers[0].name/url/apiKey/model/weight/enabled`
+
+---
+
+## 遗留代码
+
+### 已清理
+
+- `config/Aiconfig.java`
+- `util/JsonUtil.java`
+- `service/captcha.java`
+- `service/emailCode.java`
+
+### 仍可安全删除或继续核对
+
+- `config/Ai.java`：旧 AI 配置结构
+- `DTO/Dream.java` + `mapper/DreamMapper.java` + `mapper/dreamMapper.xml`：旧 dream 表结构
+- `DTO/AI.java` + `DTO/messages.java`：旧 AI 请求结构
+- `controller/TestDataController.java`：测试数据
+- `controller/InitController.java`：DDL 操作
+
+---
+
+## 开发命令
+
+```bash
+# 前端
+cd fount && npm run build
+
+# 后端（需 JDK 17）
+mvn -DskipTests compile
+
+# 本机 Java 17 位置（Windows）
+JAVA_HOME=C:\Program Files\Java\jdk-17.0.4.1
+```
+
+## 服务器
+
+- 数据库：MySQL 192.168.199.136:3306
+- Redis：192.168.199.136:6379
+- 邮件：QQ 邮箱 859399899@qq.com
