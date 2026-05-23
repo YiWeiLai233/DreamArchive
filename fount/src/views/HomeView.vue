@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
-import { getDreamStats, getEmotionDistribution, getPlaceDistribution } from '@/api/user'
+import { getDreamStats } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -11,7 +11,6 @@ const userStore = useUserStore()
 const totalDreams = ref(0)
 const topEmotion = ref<{ icon: string; label: string; count: number } | null>(null)
 const topPlace = ref<{ label: string; count: number } | null>(null)
-const statsLoaded = ref(false)
 
 const emotionIcons: Record<string, string> = {
   'happy': '😊', '开心': '😊', '快乐': '😊',
@@ -30,26 +29,22 @@ const emotionLabels: Record<string, string> = {
 async function loadStats() {
   if (!userStore.isLoggedIn || !userStore.userId) return
   try {
-    const [statsRes, emotionRes, placeRes] = await Promise.all([
-      getDreamStats(userStore.userId),
-      getEmotionDistribution(userStore.userId),
-      getPlaceDistribution(userStore.userId)
-    ])
-    if (statsRes.data.code === 200) {
-      totalDreams.value = statsRes.data.data.totalDreams
-    }
-    if (emotionRes.data.code === 200 && emotionRes.data.data.length > 0) {
-      const top = emotionRes.data.data[0]
-      topEmotion.value = {
-        icon: emotionIcons[top.label] || '😊',
-        label: emotionLabels[top.label] || top.label,
-        count: top.value
+    const { data } = await getDreamStats(userStore.userId)
+    if (data.code === 200) {
+      const stats = data.data
+      totalDreams.value = stats.totalDreams
+      if (stats.emotionDistribution.length > 0) {
+        const top = stats.emotionDistribution[0]
+        topEmotion.value = {
+          icon: emotionIcons[top.label] || '😊',
+          label: emotionLabels[top.label] || top.label,
+          count: top.value
+        }
+      }
+      if (stats.placeDistribution.length > 0) {
+        topPlace.value = { label: stats.placeDistribution[0].label, count: stats.placeDistribution[0].value }
       }
     }
-    if (placeRes.data.code === 200 && placeRes.data.data.length > 0) {
-      topPlace.value = { label: placeRes.data.data[0].label, count: placeRes.data.data[0].value }
-    }
-    statsLoaded.value = true
   } catch {
     // 静默失败，不展示错误
   }
@@ -89,8 +84,23 @@ function goAdmin() {
   router.push('/admin')
 }
 
+const dropdownOpen = ref(false)
+const avatarWrapperRef = ref<HTMLElement | null>(null)
+
+function toggleDropdown() {
+  dropdownOpen.value = !dropdownOpen.value
+}
+
+function onDocClick(e: MouseEvent) {
+  if (avatarWrapperRef.value && !avatarWrapperRef.value.contains(e.target as Node)) {
+    dropdownOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', onDocClick))
+onUnmounted(() => document.removeEventListener('click', onDocClick))
+
 function goDreamNew() {
-  if (!userStore.isLoggedIn) { router.push('/login'); return }
   router.push('/record-dream')
 }
 
@@ -147,7 +157,7 @@ function goLearnMore() {
           <button class="btn btn-register" @click="goRegister">注册</button>
         </template>
         <!-- 已登录：显示用户头像 -->
-        <div v-else class="user-avatar-wrapper">
+        <div v-else class="user-avatar-wrapper" :class="{ 'dropdown-open': dropdownOpen }" ref="avatarWrapperRef" @click.stop="toggleDropdown">
           <div class="user-avatar" :title="userStore.username">
             <img v-if="userStore.avatar" :src="userStore.avatar" alt="头像" class="avatar-img" />
             <span v-else class="avatar-text">{{ userStore.username.charAt(0).toUpperCase() }}</span>
@@ -220,31 +230,33 @@ function goLearnMore() {
     <!-- 底部功能区（已登录时展示） -->
     <section v-if="userStore.isLoggedIn" class="dashboard">
       <!-- 快捷入口 -->
+      <p class="section-hint">快捷入口</p>
       <div class="quick-cards">
-        <div class="quick-card glass" @click="goDreamList">
+        <div class="quick-card glass qc-purple card-enter" style="animation-delay: 0.1s" @click="goDreamList">
           <span class="quick-icon">📖</span>
           <span class="quick-label">我的梦境</span>
         </div>
-        <div class="quick-card glass" @click="goStats">
+        <div class="quick-card glass qc-orange card-enter" style="animation-delay: 0.2s" @click="goStats">
           <span class="quick-icon">📊</span>
           <span class="quick-label">梦境统计</span>
         </div>
       </div>
 
       <!-- 统计概览 -->
-      <div v-if="statsLoaded" class="stats-cards">
-        <div class="stat-card glass" @click="goDreamList">
-          <span class="stat-icon">🌙</span>
+      <p class="section-hint">数据概览</p>
+      <div class="stats-cards">
+        <div class="stat-card glass card-enter" style="animation-delay: 0.15s" @click="goDreamList">
+          <span class="stat-icon-wrap purple"><span class="stat-icon">🌙</span></span>
           <span class="stat-value">{{ totalDreams }}</span>
           <span class="stat-label">梦境总数</span>
         </div>
-        <div class="stat-card glass" @click="goStats">
-          <span class="stat-icon">{{ topEmotion?.icon || '😊' }}</span>
+        <div class="stat-card glass card-enter" style="animation-delay: 0.25s" @click="goStats">
+          <span class="stat-icon-wrap orange"><span class="stat-icon">{{ topEmotion?.icon || '😊' }}</span></span>
           <span class="stat-value">{{ topEmotion?.label || '—' }}</span>
           <span class="stat-label">最常情绪</span>
         </div>
-        <div class="stat-card glass" @click="goStats">
-          <span class="stat-icon">📍</span>
+        <div class="stat-card glass card-enter" style="animation-delay: 0.35s" @click="goStats">
+          <span class="stat-icon-wrap mixed"><span class="stat-icon">📍</span></span>
           <span class="stat-value">{{ topPlace?.label || '—' }}</span>
           <span class="stat-label">最常地点</span>
         </div>
@@ -463,7 +475,8 @@ function goLearnMore() {
   z-index: 100;
 }
 
-.user-avatar-wrapper:hover .user-dropdown {
+.user-avatar-wrapper:hover .user-dropdown,
+.user-avatar-wrapper.dropdown-open .user-dropdown {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -524,6 +537,15 @@ function goLearnMore() {
 
 .dropdown-item:hover {
   background: rgba(124, 111, 224, 0.1);
+}
+.dropdown-item:hover span:first-child {
+  animation: icon-bounce 0.5s ease;
+}
+@keyframes icon-bounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.3) rotate(-8deg); }
+  60% { transform: scale(0.9) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
 }
 
 .admin-item {
@@ -635,7 +657,7 @@ function goLearnMore() {
 
 .title-highlight {
   font-size: 4.5rem;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  background: linear-gradient(135deg, #6B8CFF 0%, #FF8FAB 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -777,12 +799,31 @@ function goLearnMore() {
   justify-content: center;
   gap: 0.6rem;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 
 .quick-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 36px rgba(124, 111, 224, 0.18);
+  box-shadow: 0 12px 30px rgba(124, 111, 224, 0.2);
+}
+.quick-card:active {
+  transform: translateY(-1px);
+  transition-duration: 0.1s;
+}
+
+.quick-card.qc-purple {
+  background: linear-gradient(135deg, rgba(124,111,224,0.08), rgba(255,255,255,0.25));
+  backdrop-filter: blur(20px);
+}
+.quick-card.qc-purple:hover {
+  background: linear-gradient(135deg, rgba(124,111,224,0.22), rgba(155,143,255,0.15));
+}
+.quick-card.qc-orange {
+  background: linear-gradient(135deg, rgba(255,179,71,0.1), rgba(255,255,255,0.25));
+  backdrop-filter: blur(20px);
+}
+.quick-card.qc-orange:hover {
+  background: linear-gradient(135deg, rgba(255,179,71,0.25), rgba(255,210,138,0.15));
 }
 
 .quick-icon {
@@ -802,6 +843,11 @@ function goLearnMore() {
   width: 100%;
 }
 
+.section-hint {
+  font-size: 0.75rem; color: var(--text-light); font-weight: 500;
+  letter-spacing: 0.05em; margin: 0; padding-left: 0.25rem;
+}
+
 .stat-card {
   flex: 1;
   padding: 1rem;
@@ -810,23 +856,37 @@ function goLearnMore() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.4rem;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
-
 .stat-card:hover {
   transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(107,140,255,0.22);
+  background: linear-gradient(135deg, rgba(107,140,255,0.1), rgba(255,143,171,0.08));
 }
 
+.stat-icon-wrap {
+  width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.stat-icon-wrap.purple { background: linear-gradient(135deg, rgba(107,140,255,0.2), rgba(107,140,255,0.08)); }
+.stat-icon-wrap.orange { background: linear-gradient(135deg, rgba(255,143,171,0.25), rgba(255,143,171,0.08)); }
+.stat-icon-wrap.mixed { background: linear-gradient(135deg, rgba(107,140,255,0.15), rgba(255,143,171,0.15)); }
+
 .stat-icon {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 }
 
 .stat-value {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: var(--text-dark);
+  background: linear-gradient(135deg, #6B8CFF, #FF8FAB);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -958,6 +1018,12 @@ function goLearnMore() {
 }
 
 /* 响应式 */
+@media (max-width: 1024px) {
+  .navbar {
+    padding: 1rem 2rem;
+  }
+}
+
 @media (max-width: 768px) {
   .navbar {
     padding: 0.75rem 1.5rem;
@@ -1009,6 +1075,20 @@ function goLearnMore() {
   .learn-more-icon { font-size: 1.4rem; }
   .learn-more-text h3 { font-size: 0.9rem; }
   .learn-more-text p { font-size: 0.75rem; }
+}
+
+@media (max-width: 480px) {
+  .hero-title { font-size: 2rem; }
+  .title-highlight { font-size: 2.6rem; }
+  .hero-subtitle { font-size: 0.9rem; }
+  .btn-primary { padding: 0.85rem 2rem; font-size: 1rem; }
+  .dashboard { padding: 0 1rem 1.5rem; }
+  .quick-card { padding: 0.75rem; }
+  .quick-icon { font-size: 1.1rem; }
+  .quick-label { font-size: 0.8rem; }
+  .stat-card { padding: 0.7rem 0.4rem; }
+  .stat-value { font-size: 0.88rem; }
+  .stat-label { font-size: 0.65rem; }
 }
 
 @media (min-width: 1024px) {

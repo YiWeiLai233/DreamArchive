@@ -161,6 +161,21 @@ function goBack() { router.go(-1) }
   box-shadow: 0 6px 20px rgba(124,111,224,0.4);
 }
 
+@media (max-width: 768px) {
+  .error-code { font-size: 4rem; }
+  .error-title { font-size: 1.2rem; }
+  .error-actions { flex-direction: column; align-items: center; }
+  .btn-back, .btn-home { width: 100%; max-width: 260px; justify-content: center; }
+}
+
+@media (max-width: 480px) {
+  .error-page { padding: 1.5rem; }
+  .error-icon { font-size: 3rem; }
+  .error-code { font-size: 3rem; }
+  .error-title { font-size: 1.1rem; }
+  .error-desc { font-size: 0.88rem; }
+}
+
 @media (min-width: 1024px) {
   .error-code { font-size: 8rem; }
   .error-title { font-size: 2rem; }

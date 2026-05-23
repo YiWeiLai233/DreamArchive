@@ -12,9 +12,13 @@ const errorMsg = ref('')
 
 // 统计数据
 const totalDreams = ref(0)
+const todayCount = ref(0)
+const yesterdayCount = ref(0)
 const emotionData = ref<{ label: string; icon: string; count: number; color: string }[]>([])
 const placeData = ref<{ label: string; value: number }[]>([])
 const weekData = ref<{ day: string; count: number }[]>([])
+
+const trendDiff = computed(() => todayCount.value - yesterdayCount.value)
 
 // 情绪图标映射（英文 key + 中文标签）
 const emotionIcons: Record<string, string> = {
@@ -130,7 +134,11 @@ async function loadStats() {
         const dateStr = date.toISOString().split('T')[0]
         const dayName = dayNames[date.getDay()]
         const found = trend.find(t => t.date === dateStr)
-        weekDays.push({ day: dayName, count: found ? found.count : 0 })
+        const count = found ? found.count : 0
+        weekDays.push({ day: dayName, count })
+
+        if (i === 0) todayCount.value = count
+        if (i === 1) yesterdayCount.value = count
       }
       weekData.value = weekDays
     }
@@ -186,10 +194,30 @@ onMounted(loadStats)
     <div v-else class="content-wrapper">
       <!-- 概览卡片 -->
       <div class="overview-grid">
-        <div class="overview-card glass">
+        <div class="overview-card glass card-enter" style="animation-delay: 0.1s">
           <span class="ov-icon">🌙</span>
-          <span class="ov-value">{{ totalDreams }}</span>
-          <span class="ov-label">梦境总数</span>
+          <div class="ov-value-row">
+            <span class="ov-value">{{ totalDreams }}</span>
+            <span v-if="trendDiff !== 0" class="ov-trend" :class="trendDiff > 0 ? 'up' : 'down'">
+              {{ trendDiff > 0 ? '↑' : '↓' }} {{ Math.abs(trendDiff) }}
+            </span>
+          </div>
+          <span class="ov-label">梦境总数 <span class="ov-sub">较昨日</span></span>
+        </div>
+        <div class="overview-card glass card-enter" style="animation-delay: 0.2s">
+          <span class="ov-icon">📅</span>
+          <span class="ov-value">{{ todayCount }}</span>
+          <span class="ov-label">今日梦境</span>
+        </div>
+        <div class="overview-card glass card-enter" style="animation-delay: 0.3s">
+          <span class="ov-icon">📊</span>
+          <span class="ov-value">{{ weekData.reduce((s, d) => s + d.count, 0) }}</span>
+          <span class="ov-label">本周梦境</span>
+        </div>
+        <div class="overview-card glass card-enter" style="animation-delay: 0.4s">
+          <span class="ov-icon">{{ emotionData.length > 0 ? emotionData[0].icon : '🌙' }}</span>
+          <span class="ov-value">{{ emotionData.length > 0 ? emotionData[0].label : '-' }}</span>
+          <span class="ov-label">最常情绪</span>
         </div>
       </div>
 
@@ -288,7 +316,8 @@ onMounted(loadStats)
 }
 .back-btn {
   display: flex; align-items: center; gap: 0.5rem;
-  padding: 0.6rem 1.2rem; background: var(--glass-bg); backdrop-filter: blur(20px);
+  padding: 0.7rem 1.2rem; min-height: 44px;
+  background: var(--glass-bg); backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border); border-radius: 50px;
   color: var(--text-dark); font-size: 0.9rem; font-weight: 500;
   cursor: pointer; transition: all 0.3s ease; font-family: 'Noto Sans SC', sans-serif;
@@ -317,13 +346,34 @@ onMounted(loadStats)
 .overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
 .overview-card {
   padding: 1.25rem; border-radius: 18px; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
-  transition: transform 0.3s ease;
+  display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative; overflow: hidden;
 }
-.overview-card:hover { transform: translateY(-5px); }
+.overview-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(107,140,255,0.2); }
 .ov-icon { font-size: 1.5rem; }
-.ov-value { font-size: 1.3rem; font-weight: 700; color: var(--text-dark); }
+.ov-value-row { display: flex; align-items: baseline; gap: 0.4rem; }
+.ov-value {
+  font-size: 1.3rem; font-weight: 700;
+  background: linear-gradient(135deg, #6B8CFF, #FF8FAB);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.ov-trend {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+.ov-trend.up {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.12);
+}
+.ov-trend.down {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.12);
+}
 .ov-label { font-size: 0.78rem; color: var(--text-light); }
+.ov-sub { font-size: 0.68rem; opacity: 0.7; }
 
 /* 通用图表卡片 */
 .section-card { padding: 1.75rem; border-radius: 20px; }
@@ -331,11 +381,12 @@ onMounted(loadStats)
 
 /* 情绪分布 */
 .emotion-bars { display: flex; flex-direction: column; gap: 0.85rem; }
-.emotion-row { display: flex; align-items: center; gap: 0.75rem; }
-.emotion-label { font-size: 0.88rem; color: var(--text-dark); min-width: 80px; }
-.bar-track { flex: 1; height: 10px; background: rgba(124,111,224,0.08); border-radius: 5px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 5px; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
-.bar-count { font-size: 0.88rem; font-weight: 600; color: var(--text-dark); min-width: 24px; text-align: right; }
+.emotion-row { display: flex; align-items: center; gap: 0.75rem; transition: background 0.2s; padding: 0.25rem 0.35rem; border-radius: 8px; }
+.emotion-row:hover { background: rgba(124,111,224,0.04); }
+.emotion-label { font-size: 0.85rem; color: var(--text-dark); min-width: 80px; }
+.bar-track { flex: 1; height: 14px; background: rgba(124,111,224,0.08); border-radius: 7px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 7px; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
+.bar-count { font-size: 0.85rem; font-weight: 600; color: var(--text-dark); min-width: 24px; text-align: right; }
 
 /* 本周柱状图 */
 .week-chart { display: flex; justify-content: space-between; align-items: flex-end; height: 140px; gap: 0.5rem; }
@@ -344,10 +395,12 @@ onMounted(loadStats)
   width: 100%; height: 100px; display: flex; align-items: flex-end; justify-content: center;
 }
 .week-bar {
-  width: 60%; max-width: 36px; min-height: 4px;
-  background: linear-gradient(to top, var(--primary), var(--primary-light));
-  border-radius: 6px 6px 2px 2px; transition: height 0.8s cubic-bezier(0.16,1,0.3,1);
+  width: 60%; max-width: 40px; min-height: 4px;
+  background: linear-gradient(to top, var(--primary), var(--secondary));
+  border-radius: 8px 8px 2px 2px; transition: height 0.8s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s;
+  cursor: pointer;
 }
+.week-bar:hover { box-shadow: 0 0 12px rgba(124,111,224,0.35); }
 .week-label { font-size: 0.75rem; color: var(--text-light); }
 .week-count { font-size: 0.78rem; font-weight: 600; color: var(--text-dark); }
 
@@ -390,6 +443,27 @@ onMounted(loadStats)
   .overview-grid { grid-template-columns: repeat(2, 1fr); }
   .section-card { padding: 1.25rem; }
   .time-label { min-width: 110px; font-size: 0.8rem; }
+  .emotion-label { min-width: 60px; font-size: 0.8rem; }
+  .place-label { min-width: 60px; font-size: 0.8rem; }
+}
+
+@media (max-width: 480px) {
+  .overview-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+  .overview-card { padding: 0.75rem; }
+  .ov-icon { font-size: 1.2rem; }
+  .ov-value { font-size: 1rem; }
+  .ov-label { font-size: 0.68rem; }
+  .section-card { padding: 1rem; }
+  .section-title { font-size: 0.95rem; margin-bottom: 0.75rem; }
+  .emotion-label { min-width: 50px; font-size: 0.75rem; }
+  .bar-count { font-size: 0.75rem; }
+  .place-label { min-width: 50px; font-size: 0.75rem; }
+  .week-chart { height: 100px; }
+  .week-bar-wrap { height: 70px; }
+  .week-label { font-size: 0.7rem; }
+  .week-count { font-size: 0.72rem; }
+  .time-label { min-width: 90px; font-size: 0.75rem; }
+  .empty-state { padding: 2rem 1rem; }
 }
 
 @media (min-width: 1024px) {
@@ -486,10 +560,14 @@ onMounted(loadStats)
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  transition: background 0.2s;
+  padding: 0.25rem 0.35rem;
+  border-radius: 8px;
 }
+.place-row:hover { background: rgba(255,179,71,0.06); }
 
 .place-label {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   color: var(--text-dark);
   min-width: 80px;
   max-width: 120px;
@@ -500,6 +578,7 @@ onMounted(loadStats)
 
 .place-fill {
   background: linear-gradient(90deg, #FFB347, #FFD08A);
+  border-radius: 7px;
 }
 
 /* 空状态 */

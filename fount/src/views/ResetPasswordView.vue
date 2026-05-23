@@ -582,6 +582,7 @@ function goHome() {
 .code-row {
   display: flex;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .code-input { flex: 1; }
@@ -746,6 +747,19 @@ function goHome() {
   .back-btn { top: 1rem; left: 1rem; padding: 0.5rem 1rem; font-size: 0.8rem; }
   .float-icon { font-size: 1.2rem; }
   .step-line { width: 28px; }
+  .code-row { flex-wrap: wrap; }
+  .resend-btn { flex-shrink: 1; min-width: 0; white-space: normal; font-size: 0.8rem; padding: 0 0.8rem; }
+}
+
+@media (max-width: 480px) {
+  .card-subtitle { font-size: 0.82rem; }
+  .form-group label { font-size: 0.8rem; }
+  .input-wrapper input { font-size: 0.9rem; padding: 0.7rem 0.9rem; }
+  .submit-btn { font-size: 0.92rem; padding: 0.75rem; }
+  .step { font-size: 0.7rem; }
+  .step-dot { width: 24px; height: 24px; font-size: 0.75rem; }
+  .done-icon { font-size: 2.5rem; }
+  .done-text { font-size: 1rem; }
 }
 
 @media (max-width: 400px) {
