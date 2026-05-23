@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { deleteDream, getUserDreams } from '@/api/dream'
+import { deleteDream, getUserDreams, triggerAnalyze } from '@/api/dream'
 import { getUserByEmail } from '@/api/user'
 import { useUserStore } from '@/stores'
 import { formatDreamInterpretation } from '@/utils/dreamInterpretation'
@@ -209,13 +209,39 @@ const filteredDreams = computed(() => {
 const selectedInterpretationBlocks = computed(() => formatDreamInterpretation(selectedDream.value?.interpretation))
 
 function getEmotionIcon(emotion: string) {
-  const map: Record<string, string> = { happy: '😊', sad: '😢', scary: '😰', mysterious: '🔮' }
+  const map: Record<string, string> = { happy: '😊', sad: '😢', scary: '😰', mysterious: '🔮', peaceful: '😌', excited: '🤩', angry: '😤' }
   return map[emotion] || '🌙'
 }
 
 function getEmotionLabel(emotion: string) {
-  const map: Record<string, string> = { happy: '开心', sad: '悲伤', scary: '恐惧', mysterious: '神秘' }
+  const map: Record<string, string> = { happy: '开心', sad: '悲伤', scary: '恐惧', mysterious: '神秘', peaceful: '平静', excited: '兴奋', angry: '愤怒' }
   return map[emotion] || '未知'
+}
+
+function getEmotionColor(emotion: string): string {
+  const map: Record<string, string> = {
+    happy: '#4caf50', sad: '#64b5f6', scary: '#e53935', mysterious: '#9c27b0',
+    peaceful: '#7C6FE0', excited: '#FFB347', angry: '#ff9800'
+  }
+  return map[emotion] || '#7C6FE0'
+}
+
+function needsAnalysis(dream: Dream): boolean {
+  if (!dream.interpretation) return true
+  if (isPendingInterpretation(dream.interpretation)) return false
+  if (dream.interpretation === '暂无解析' || dream.interpretation === '暂无解析内容') return true
+  return false
+}
+
+async function handleAnalyze(dream: Dream) {
+  try {
+    const { data } = await triggerAnalyze(dream.id)
+    if (data.code === 200) {
+      dream.interpretation = '梦境解析中，请稍候...'
+    }
+  } catch {
+    // 静默失败
+  }
 }
 
 function openDetail(dream: Dream) {
@@ -339,40 +365,49 @@ function goBack() {
       </div>
 
       <div v-else-if="filteredDreams.length === 0" class="empty-state glass">
-        <div class="empty-icon">🌙</div>
+        <div class="empty-visual">
+          <span class="empty-star s1">✨</span>
+          <span class="empty-icon">🌙</span>
+          <span class="empty-star s2">⭐</span>
+          <span class="empty-star s3">💫</span>
+        </div>
         <p class="empty-text">暂无梦境记录</p>
         <p class="empty-hint">开始记录你的第一个梦吧</p>
+        <button class="empty-cta" @click="router.push('/record-dream')">✨ 开始记录</button>
       </div>
 
       <div v-else class="dreams-grid">
         <div
-          v-for="dream in filteredDreams"
+          v-for="(dream, index) in filteredDreams"
           :key="dream.id"
-          class="dream-card glass"
+          class="dream-card glass card-enter"
+          :style="{ animationDelay: Math.min(index * 0.06, 0.6) + 's' }"
           @click="openDetail(dream)"
         >
           <div class="card-top">
             <div class="card-badges">
-              <span class="emotion-badge">{{ getEmotionIcon(dream.emotion) }} {{ getEmotionLabel(dream.emotion) }}</span>
-              <span v-if="isPendingInterpretation(dream.interpretation)" class="analysis-badge">AI 解析中</span>
+              <span class="emotion-badge" :style="{ background: getEmotionColor(dream.emotion) + '18', color: getEmotionColor(dream.emotion) }">{{ getEmotionIcon(dream.emotion) }} {{ getEmotionLabel(dream.emotion) }}</span>
+              <span v-if="isPendingInterpretation(dream.interpretation)" class="analysis-badge">🔮 解析中</span>
             </div>
-            <div class="card-actions">
-              <span class="dream-date">{{ dream.createdAt }}</span>
-              <button
-                class="card-delete-btn"
-                title="删除梦境"
-                @click.stop="askDeleteDream(dream)"
-              >
-                <span>🗑</span>
-                <span>删除</span>
-              </button>
-            </div>
+            <span class="dream-date">{{ dream.createdAt }}</span>
           </div>
           <h3 class="dream-title">{{ dream.title }}</h3>
           <p class="dream-preview">{{ dream.content.slice(0, 80) }}...</p>
           <div class="card-bottom">
             <span class="dream-meta">📍 {{ dream.place }}</span>
             <span class="dream-meta">🕐 {{ dream.time }}</span>
+          </div>
+          <div class="card-footer-actions">
+            <button
+              v-if="needsAnalysis(dream)"
+              class="card-action-btn analyze"
+              @click.stop="handleAnalyze(dream)"
+            >🔮 AI 解析</button>
+            <span v-else></span>
+            <button
+              class="card-action-btn delete"
+              @click.stop="askDeleteDream(dream)"
+            >🗑 删除</button>
           </div>
         </div>
       </div>
@@ -401,7 +436,7 @@ function goBack() {
               <h3 class="section-title">🔮 AI 解析</h3>
               <div v-if="isPendingInterpretation(selectedDream.interpretation)" class="analysis-refresh-status">
                 <span class="analysis-spinner"></span>
-                <span>AI 正在后台解析，结果会自动刷新</span>
+                <span>正在解读梦境，稍等片刻...</span>
               </div>
               <div class="interpretation">
                 <div v-if="selectedInterpretationBlocks.length" class="interpretation-content">
@@ -419,7 +454,7 @@ function goBack() {
                     <p v-else class="interpretation-paragraph">{{ block.content }}</p>
                   </template>
                 </div>
-                <p v-else class="section-text">暂无解析</p>
+                <p v-else class="section-text">暂无解析内容</p>
               </div>
             </div>
           </div>
@@ -532,7 +567,7 @@ function goBack() {
 .filter-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .filter-tab {
   display: flex; align-items: center; gap: 0.3rem;
-  padding: 0.5rem 1rem; border: 1.5px solid var(--glass-border);
+  padding: 0.55rem 1rem; min-height: 44px; border: 1.5px solid var(--glass-border);
   border-radius: 50px; background: var(--glass-bg); backdrop-filter: blur(10px);
   color: var(--text-light); font-size: 0.85rem; cursor: pointer;
   transition: all 0.3s ease; font-family: 'Noto Sans SC', sans-serif;
@@ -552,8 +587,14 @@ function goBack() {
 .dream-card {
   padding: 1.5rem; border-radius: 18px; cursor: pointer;
   transition: all 0.3s ease;
+  display: flex; flex-direction: column;
+  position: relative;
 }
-.dream-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
+.dream-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 50px rgba(107,140,255,0.2), 0 0 0 2px rgba(107,140,255,0.2);
+  background: rgba(255,255,255,0.55);
+}
 .glass {
   background: rgba(255,255,255,0.35); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255,255,255,0.5);
@@ -578,31 +619,53 @@ function goBack() {
   background: rgba(124,111,224,0.13);
   color: var(--primary);
   font-weight: 600;
+  animation: badge-pulse 2s ease-in-out infinite;
 }
+@keyframes badge-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 .card-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 .dream-date { font-size: 0.8rem; color: var(--text-light); }
-.card-delete-btn {
+.card-footer-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(124,111,224,0.08);
+  justify-content: space-between;
+  min-height: 38px;
+  align-items: center;
+}
+.card-action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.6rem;
-  border: 1px solid rgba(229,57,53,0.22);
-  border-radius: 999px;
-  background: rgba(255,255,255,0.5);
-  color: #c62828;
-  font-size: 0.75rem;
+  gap: 0.3rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Noto Sans SC', sans-serif;
 }
-.card-delete-btn:hover {
-  background: rgba(229,57,53,0.12);
-  border-color: rgba(229,57,53,0.45);
-  transform: translateY(-1px);
+.card-action-btn.analyze {
+  border: 1px solid rgba(124,111,224,0.2);
+  background: rgba(124,111,224,0.06);
+  color: var(--primary);
+}
+.card-action-btn.analyze:hover {
+  background: rgba(124,111,224,0.15);
+  border-color: rgba(124,111,224,0.4);
+}
+.card-action-btn.delete {
+  border: 1px solid rgba(229,57,53,0.18);
+  background: rgba(229,57,53,0.04);
+  color: #c62828;
+}
+.card-action-btn.delete:hover {
+  background: rgba(229,57,53,0.1);
+  border-color: rgba(229,57,53,0.35);
 }
 .dream-title { font-size: 1.15rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem; }
 .dream-preview { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.75rem; }
@@ -611,6 +674,22 @@ function goBack() {
 
 /* 空状态 */
 .empty-state { text-align: center; padding: 3rem; border-radius: 20px; }
+.empty-visual { position: relative; display: inline-block; margin-bottom: 1.25rem; }
+.empty-visual .empty-icon { font-size: 4rem; display: block; animation: gentle-bob 3s ease-in-out infinite; }
+.empty-star { position: absolute; font-size: 1.2rem; animation: twinkle-float 2.5s ease-in-out infinite; }
+.empty-star.s1 { top: -8px; left: -28px; animation-delay: 0s; }
+.empty-star.s2 { top: -4px; right: -24px; animation-delay: 0.8s; }
+.empty-star.s3 { bottom: 2px; left: 50%; animation-delay: 1.6s; }
+@keyframes gentle-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes twinkle-float { 0%,100% { opacity: 0.4; transform: scale(0.8) translateY(0); } 50% { opacity: 1; transform: scale(1.1) translateY(-6px); } }
+.empty-cta {
+  margin-top: 1.25rem; padding: 0.75rem 2rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white; border: none; border-radius: 50px; font-size: 0.95rem; font-weight: 600;
+  cursor: pointer; transition: all 0.3s ease; font-family: 'Noto Sans SC', sans-serif;
+  box-shadow: 0 4px 15px rgba(124,111,224,0.3);
+}
+.empty-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(124,111,224,0.45); }
 
 /* 加载状态 */
 .loading-state {
@@ -842,9 +921,10 @@ function goBack() {
   .search-box { max-width: 100%; }
   .dreams-container { padding: 0 1rem; }
   .dreams-grid { grid-template-columns: 1fr; }
-  .card-top { align-items: flex-start; gap: 0.5rem; }
-  .card-badges { align-items: flex-start; }
-  .card-actions { align-items: flex-end; flex-direction: column; gap: 0.35rem; }
+  .card-top { gap: 0.35rem; margin-bottom: 0.5rem; }
+  .card-badges { flex: 1; min-width: 0; }
+  .card-footer-actions { gap: 0.4rem; }
+  .card-action-btn { padding: 0.35rem 0.6rem; font-size: 0.72rem; }
   .modal-card { padding: 1.5rem; }
   .confirm-card { padding: 1.5rem; }
   .confirm-actions { flex-direction: column; }
@@ -852,6 +932,23 @@ function goBack() {
   .confirm-delete { width: 100%; }
   .page-title { font-size: 1.1rem; }
   .nav-placeholder { display: none; }
+}
+
+@media (max-width: 480px) {
+  .page-nav { padding: 0.75rem; }
+  .toolbar { padding: 0 0.75rem; }
+  .dreams-container { padding: 0 0.75rem; }
+  .dream-card { padding: 1rem; }
+  .dream-title { font-size: 1rem; }
+  .dream-preview { font-size: 0.82rem; }
+  .filter-tab { padding: 0.45rem 0.8rem; font-size: 0.78rem; }
+  .search-box input { font-size: 0.88rem; padding: 0.6rem 0.8rem; }
+  .empty-state { padding: 2rem 1rem; }
+  .empty-icon { font-size: 2.5rem; }
+  .empty-title { font-size: 1.1rem; }
+  .empty-desc { font-size: 0.82rem; }
+  .modal-card { padding: 1.25rem; }
+  .confirm-card { padding: 1.25rem; }
 }
 
 @media (min-width: 1024px) {

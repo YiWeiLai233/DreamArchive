@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { register, sendRegisterCode } from '@/api/user'
 import { useUserStore } from '@/stores'
+import { syncGuestDreams } from '@/utils/guestDreams'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -99,10 +100,12 @@ async function handleRegister() {
         user.role || 'USER',
         user.token || ''
       )
-      successMsg.value = '注册成功！正在跳转...'
-      setTimeout(() => {
-        router.push('/')
-      }, 1000)
+      successMsg.value = '注册成功！正在同步数据...'
+      syncGuestDreams(user.id).finally(() => {
+        setTimeout(() => {
+          router.push('/')
+        }, 1000)
+      })
     } else {
       errorMsg.value = data.message || '注册失败，请稍后重试'
     }
@@ -770,6 +773,25 @@ function goHome() {
   .float-icon {
     font-size: 1.2rem;
   }
+
+  .code-row {
+    flex-wrap: wrap;
+  }
+
+  .send-code-btn {
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
+    font-size: 0.8rem;
+    padding: 0 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-subtitle { font-size: 0.82rem; }
+  .form-group label { font-size: 0.8rem; }
+  .input-wrapper input { font-size: 0.9rem; padding: 0.7rem 0.9rem; }
+  .submit-btn { font-size: 0.92rem; padding: 0.75rem; }
 }
 
 @media (max-width: 400px) {
@@ -779,7 +801,7 @@ function goHome() {
   }
 }
 
-.code-row { display: flex; gap: 0.75rem; align-items: stretch; }
+.code-row { display: flex; gap: 0.75rem; align-items: stretch; min-width: 0; }
 .code-input { flex: 1; }
 .code-input input { width: 100%; }
 .send-code-btn {

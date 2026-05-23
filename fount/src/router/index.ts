@@ -61,8 +61,7 @@ const router = createRouter({
     {
       path: '/record-dream',
       name: 'record-dream',
-      component: () => import('@/views/RecordDreamView.vue'),
-      meta: { requiresAuth: true }
+      component: () => import('@/views/RecordDreamView.vue')
     },
     {
       path: '/learn-more',

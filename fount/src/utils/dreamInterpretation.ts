@@ -27,6 +27,7 @@ export function formatDreamInterpretation(raw?: string | null): DreamInterpretat
 
   let text = raw
     .replace(/\*\*/g, '')
+    .replace(/[\[\]\u3010\u3011]/g, '')
     .replace(/\r\n/g, '\n')
     .replace(/\t/g, ' ')
     .replace(/[ \u00a0]+/g, ' ')
