@@ -9,6 +9,7 @@ final class SecurityPaths {
             "/api/reset-password",
             "/api/reset-password/**",
             "/api/hello",
+            "/api/guest/**",
             "/v3/api-docs",
             "/v3/api-docs/**",
             "/swagger-ui.html",
@@ -26,6 +27,7 @@ final class SecurityPaths {
                 || "/api/reset-password".equals(path)
                 || path.startsWith("/api/reset-password/")
                 || "/api/hello".equals(path)
+                || path.startsWith("/api/guest/")
                 || "/v3/api-docs".equals(path)
                 || path.startsWith("/v3/api-docs/")
                 || "/swagger-ui.html".equals(path)

@@ -2,10 +2,11 @@ package com.yiweilai.DreamArchive.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yiweilai.DreamArchive.DTO.AiProvider;
 import com.yiweilai.DreamArchive.DTO.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -14,6 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,14 +23,8 @@ import java.util.Map;
 public class AiService {
     private static final Logger log = LoggerFactory.getLogger(AiService.class);
 
-    @Value("${ai.api.url}")
-    private String url;
-
-    @Value("${ai.api.key}")
-    private String apiKey;
-
-    @Value("${ai.api.model}")
-    private String model;
+    @Autowired
+    private AiProviderPool providerPool;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -39,45 +35,15 @@ public class AiService {
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("梦境内容不能为空");
         }
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException("AI API Key 未配置");
-        }
-        if (model == null || model.isBlank()) {
-            throw new IllegalStateException("AI 模型未配置");
-        }
 
         List<Message> requestMessages = new ArrayList<>();
         requestMessages.add(new Message(
                 "system",
-                "你是一名温和、专业的梦境分析助手。请用中文按“整体解读、情绪层面、象征层面、现实启发”四个小标题分析梦境，避免绝对化判断，不要使用 ** 等 Markdown 符号。"
+                "你是一名温和、专业的梦境分析助手。请用中文按[整体解读、情绪层面、象征层面、现实启发]四个小标题分析梦境，避免绝对化判断，不要使用 ** 等 Markdown 符号。"
         ));
         requestMessages.add(new Message("user", content));
 
-        try {
-            String json = objectMapper.writeValueAsString(Map.of(
-                    "model", model,
-                    "temperature", 0.5,
-                    "messages", requestMessages
-            ));
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(normalizeUrl(url)))
-                    .timeout(Duration.ofSeconds(60))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + apiKey)
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info("AI response status: {}", response.statusCode());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new RuntimeException("AI 接口返回异常: " + response.statusCode());
-            }
-            return extractContent(response.body());
-        } catch (Exception e) {
-            log.error("AI dream analysis failed", e);
-            throw new RuntimeException("AI 解析失败: " + e.getMessage(), e);
-        }
+        return callAi(requestMessages, 0.3, 30, 600);
     }
 
     public String aiSerice(String content) {
@@ -97,29 +63,50 @@ public class AiService {
         requestMessages.add(new Message("user", content));
 
         try {
-            String json = objectMapper.writeValueAsString(Map.of(
-                    "model", model,
-                    "temperature", 0.4,
-                    "messages", requestMessages
-            ));
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(normalizeUrl(url)))
-                    .timeout(Duration.ofSeconds(45))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + apiKey)
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info("AI title response status: {}", response.statusCode());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new RuntimeException("AI 标题接口返回异常: " + response.statusCode());
-            }
-            return cleanGeneratedTitle(extractContent(response.body()), content);
+            return cleanGeneratedTitle(callAi(requestMessages, 0.4, 45), content);
         } catch (Exception e) {
             log.warn("AI dream title generation failed, using fallback title", e);
             return fallbackTitle(content);
+        }
+    }
+
+    private String callAi(List<Message> messages, double temperature, int timeoutSeconds) {
+        return callAi(messages, temperature, timeoutSeconds, null);
+    }
+
+    private String callAi(List<Message> messages, double temperature, int timeoutSeconds, Integer maxTokens) {
+        AiProvider provider = providerPool.acquire();
+        try {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("model", provider.getModel());
+            body.put("temperature", temperature);
+            body.put("messages", messages);
+            if (maxTokens != null) {
+                body.put("max_tokens", maxTokens);
+            }
+            String json = objectMapper.writeValueAsString(body);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(normalizeUrl(provider.getUrl())))
+                    .timeout(Duration.ofSeconds(timeoutSeconds))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + provider.getApiKey())
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+
+            long startMs = System.currentTimeMillis();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            long elapsedMs = System.currentTimeMillis() - startMs;
+            providerPool.reportLatency(provider, elapsedMs);
+            log.info("AI [{}] response status: {}, latency: {}ms", provider.getName(), response.statusCode(), elapsedMs);
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new RuntimeException("AI 接口返回异常: " + response.statusCode());
+            }
+            providerPool.reportSuccess(provider);
+            return extractContent(response.body());
+        } catch (Exception e) {
+            providerPool.reportFailure(provider, e);
+            throw new RuntimeException("AI 解析失败: " + e.getMessage(), e);
         }
     }
 
@@ -151,11 +138,7 @@ public class AiService {
                 .replace("《", "")
                 .replace("》", "")
                 .replace("\"", "")
-                .replace("“", "")
-                .replace("”", "")
                 .replace("'", "")
-                .replace("‘", "")
-                .replace("’", "")
                 .replaceAll("[\\r\\n]+", " ")
                 .trim();
 

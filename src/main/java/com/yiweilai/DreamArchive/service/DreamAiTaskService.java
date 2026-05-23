@@ -33,7 +33,7 @@ public class DreamAiTaskService {
                 dreamService.updateInterpretation(dreamId, interpretation);
             } catch (Exception e) {
                 log.warn("Background dream analysis failed for {}", dreamId, e);
-                dreamService.updateInterpretation(dreamId, "AI 解析失败，你可以稍后重新保存并解析。");
+                dreamService.updateInterpretation(dreamId, "AI 解析失败，你可以稍后重新解析。");
             }
         }
     }
