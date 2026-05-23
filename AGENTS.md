@@ -286,3 +286,41 @@ JAVA_HOME=C:\Program Files\Java\jdk-17.0.4.1
 - 数据库：MySQL 192.168.199.136:3306
 - Redis：192.168.199.136:6379
 - 邮件：QQ 邮箱 859399899@qq.com
+
+---
+
+## 2026-05-23 改动
+
+### 密码加密：BCrypt
+- 将密码加密方式从 SHA-256+盐值 改为 BCrypt
+- BCrypt 自带盐值，安全性更高
+
+### 游客模式
+- 未登录可记录梦境，数据存 localStorage (`guest_dreams`)
+- `GuestController` — `/api/guest/analyze` 接口，Redis+设备ID限制每设备3次
+- `SecurityPaths` — `/api/guest/**` 加入公开接口白名单
+- 登录/注册后自动同步游客梦境到后端（含解析结果）
+- `utils/guestDreams.ts` — 抽离游客梦境工具函数（getDeviceId、saveGuestDream、syncGuestDreams 等）
+
+### AI 解析优化
+- 添加 `max_tokens: 600` 限制输出长度
+- temperature 从 0.5 降到 0.3
+- timeout 从 60s 降到 30s
+
+### 前端修复
+- `dreamInterpretation.ts` — 清理 `[]` 和 `【】` 括号
+- `errorHandler.ts` — 游客接口 `/api/guest/*` 不走全局错误跳转
+- `RecordDreamView` — 游客解析完成后创建新对象赋值，修复 Vue 响应式问题
+
+### 路由调整
+- `/record-dream` 移除 `requiresAuth`，游客可直接访问
+
+---
+
+## 本地协作约定
+
+- 本机 Java 17 路径：`C:\Program Files\Java\jdk-17.0.4.1`
+- 上传 GitHub 时不要加入所有 `.md` 文档文件。
+- 上传 GitHub 时不要加入配置文件信息、密钥、账号、服务器连接等敏感信息。
+- 以后写入本地 `AGENTS.md` 的协作说明，也同步追加到 `CLAUDE.md`。
+- 同步到 `CLAUDE.md` 时只添加新内容，不删除已有内容。

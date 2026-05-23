@@ -45,6 +45,7 @@ export function formatDreamInterpretation(raw?: string | null): DreamInterpretat
   const blocks: DreamInterpretationBlock[] = []
   const lines = text.split(/\n+/).map(line => line.trim()).filter(Boolean)
 
+  let itemCounter = 0
   for (const line of lines) {
     if (line.startsWith('@@heading::')) {
       const content = line.replace('@@heading::', '').trim()
@@ -57,10 +58,10 @@ export function formatDreamInterpretation(raw?: string | null): DreamInterpretat
     if (line.startsWith('@@item::')) {
       const item = line.replace('@@item::', '')
       const separatorIndex = item.indexOf('::')
-      const marker = separatorIndex >= 0 ? item.slice(0, separatorIndex).trim() : ''
       const content = separatorIndex >= 0 ? item.slice(separatorIndex + 2).trim() : item.trim()
       if (content) {
-        blocks.push({ type: 'item', marker, content })
+        itemCounter++
+        blocks.push({ type: 'item', marker: String(itemCounter), content })
       }
       continue
     }
