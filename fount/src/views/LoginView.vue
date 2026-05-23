@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { login, loginByCode, sendLoginCode, setupAccount } from '@/api/user'
 import { useUserStore } from '@/stores'
+import { syncGuestDreams } from '@/utils/guestDreams'
 
 const router = useRouter()
 const route = useRoute()
@@ -35,8 +36,10 @@ function afterLogin(data: any) {
   if (data.needsSetup) {
     showSetup.value = true
   } else {
-    successMsg.value = '登录成功！正在跳转...'
-    setTimeout(() => router.replace(getRedirectPath()), 1000)
+    successMsg.value = '登录成功！正在同步数据...'
+    syncGuestDreams(data.id).finally(() => {
+      setTimeout(() => router.replace(getRedirectPath()), 1000)
+    })
   }
 }
 
@@ -51,8 +54,10 @@ async function handleSetup() {
     if (data.code === 200) {
       userStore.updateProfile(setupForm.value.username, userStore.email)
       showSetup.value = false
-      successMsg.value = '设置成功！正在跳转...'
-      setTimeout(() => router.replace(getRedirectPath()), 1000)
+      successMsg.value = '设置成功！正在同步数据...'
+      syncGuestDreams(Number(userStore.userId)).finally(() => {
+        setTimeout(() => router.replace(getRedirectPath()), 1000)
+      })
     } else {
       setupError.value = data.message || '设置失败'
     }
@@ -501,7 +506,7 @@ function goResetPassword() { router.push('/reset-password') }
 }
 
 /* 验证码行 */
-.code-row { display: flex; gap: 0.75rem; align-items: stretch; }
+.code-row { display: flex; gap: 0.75rem; align-items: stretch; min-width: 0; }
 .code-input { flex: 1; }
 .send-code-btn {
   flex-shrink: 0; padding: 0 1.2rem; height: auto;
@@ -787,6 +792,27 @@ function goResetPassword() { router.push('/reset-password') }
   .float-icon {
     font-size: 1.2rem;
   }
+
+  .code-row {
+    flex-wrap: wrap;
+  }
+
+  .send-code-btn {
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
+    font-size: 0.8rem;
+    padding: 0 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-subtitle { font-size: 0.82rem; }
+  .mode-tab { font-size: 0.82rem; padding: 0.45rem 1rem; }
+  .form-group label { font-size: 0.8rem; }
+  .input-wrapper input { font-size: 0.9rem; padding: 0.7rem 0.9rem; }
+  .submit-btn { font-size: 0.92rem; padding: 0.75rem; }
+  .modal-overlay { padding: 1rem; }
 }
 
 @media (max-width: 400px) {

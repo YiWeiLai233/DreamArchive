@@ -43,13 +43,19 @@ export function handleApiError(status: number, message?: string) {
  */
 export function onAxiosError(error: any) {
   if (error.response) {
-    // 服务器返回了错误状态码
+    const url = error.config?.url || ''
+    // 游客接口由调用方自行处理，不走全局跳转
+    if (url.startsWith('/api/guest/')) {
+      return
+    }
     handleApiError(error.response.status, error.response.data?.message)
   } else if (error.request) {
-    // 请求已发送但没有收到响应
+    const url = error.config?.url || ''
+    if (url.startsWith('/api/guest/')) {
+      return
+    }
     handleApiError(502, '无法连接到服务器')
   } else {
-    // 请求配置出错
     console.error('请求配置错误:', error.message)
   }
 }

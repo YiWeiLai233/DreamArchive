@@ -8,6 +8,7 @@ export interface DreamForm {
   place?: string
   time?: string
   analyze?: boolean
+  interpretation?: string
 }
 
 export interface DreamContent {
@@ -56,6 +57,10 @@ export function analyzeDreamContent(content: string) {
   return api.post<ApiResult<DreamAnalysisResult>>('/api/dream/analyze', { content })
 }
 
+export function guestAnalyzeDream(content: string, deviceId: string) {
+  return api.post<ApiResult<DreamAnalysisResult>>('/api/guest/analyze', { content, deviceId }, { timeout: 120000 })
+}
+
 export function getDreamById(id: string) {
   return api.get<ApiResult<DreamContent>>(`/api/dream/${id}`)
 }
@@ -65,5 +70,9 @@ export function getUserDreams(userId: number) {
 }
 
 export function deleteDream(id: string) {
-  return api.delete<ApiResult<void>>(`/api/dream/${id}`)
+  return api.post<ApiResult<void>>(`/api/dream/${id}/delete`)
+}
+
+export function triggerAnalyze(id: string) {
+  return api.post<ApiResult<void>>(`/api/dream/${id}/analyze`)
 }
