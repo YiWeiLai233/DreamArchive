@@ -2,7 +2,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
-import { getDreamTotal, getStreak, getLongestDream } from '@/api/user'
+import { getDreamTotal, getStreak, getLongestDream, updateAvatarUrl } from '@/api/user'
+import { uploadImage } from '@/api/dream'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -73,7 +74,7 @@ function triggerAvatarUpload() {
   avatarInput.value?.click()
 }
 
-function handleAvatarChange(event: Event) {
+async function handleAvatarChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
@@ -89,17 +90,26 @@ function handleAvatarChange(event: Event) {
     return
   }
 
-  const reader = new FileReader()
-  reader.onload = () => {
-    userStore.updateAvatar(String(reader.result || ''))
+  errorMsg.value = ''
+  successMsg.value = ''
+  try {
+    // 上传到 MinIO
+    const uploadRes = await uploadImage(file)
+    if (uploadRes.data.code !== 200 || !uploadRes.data.data) {
+      errorMsg.value = uploadRes.data.message || '头像上传失败'
+      input.value = ''
+      return
+    }
+    const url = uploadRes.data.data.url
+    // 保存 URL 到后端
+    await updateAvatarUrl(url)
+    // 更新本地 store
+    userStore.updateAvatar(url)
     successMsg.value = '头像已更新'
-    errorMsg.value = ''
     setTimeout(() => { successMsg.value = '' }, 2500)
+  } catch {
+    errorMsg.value = '头像上传失败，请重试'
   }
-  reader.onerror = () => {
-    errorMsg.value = '头像读取失败，请换一张图片'
-  }
-  reader.readAsDataURL(file)
   input.value = ''
 }
 
@@ -160,6 +170,7 @@ function goBack() { router.push('/') }
             <div class="avatar-actions">
               <button type="button" class="avatar-action" @click="triggerAvatarUpload">更换头像</button>
             </div>
+            <p class="avatar-hint">支持 JPG / PNG / WebP，最大 2MB</p>
           </div>
           <div v-if="!isEditing" class="profile-info">
             <h2 class="profile-name">{{ profileUsername }}</h2>
@@ -327,6 +338,10 @@ function goBack() { router.push('/') }
   min-height: 44px; cursor: pointer; font-family: 'Noto Sans SC', sans-serif;
 }
 .avatar-action:hover { background: rgba(124,111,224,0.16); }
+.avatar-hint {
+  font-size: 0.68rem; color: var(--text-light); text-align: center;
+  margin-top: 0.15rem; white-space: nowrap;
+}
 .profile-name {
   font-size: 1.4rem; font-weight: 700;
   background: linear-gradient(135deg, #6B8CFF, #FF8FAB);

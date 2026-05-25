@@ -5,6 +5,7 @@ import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.service.DreamAiTaskService;
 import com.yiweilai.DreamArchive.service.AiService;
 import com.yiweilai.DreamArchive.service.DreamService;
+import com.yiweilai.DreamArchive.service.MinioService;
 import com.yiweilai.DreamArchive.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -31,6 +32,9 @@ public class DreamController {
 
     @Autowired
     private DreamAiTaskService dreamAiTaskService;
+
+    @Autowired
+    private MinioService minioService;
 
     @PostMapping("/dream/analyze")
     public Result<Map<String, String>> analyzeDreamOnly(@RequestBody Map<String, Object> request) {
@@ -63,6 +67,7 @@ public class DreamController {
             if (!canAccessDream(dream)) {
                 return Result.error(403, "\u6743\u9650\u4e0d\u8db3");
             }
+            enrichImageUrl(dream);
             return Result.success(dream);
         } catch (Exception e) {
             return Result.error("查询梦境失败: " + e.getMessage());
@@ -76,6 +81,7 @@ public class DreamController {
                 return Result.error(403, "\u6743\u9650\u4e0d\u8db3");
             }
             List<DreamContent> dreams = dreamService.getDreamsWithDetailsByUserId(userId);
+            enrichImageUrls(dreams);
             return Result.success(dreams);
         } catch (Exception e) {
             return Result.error("查询梦境列表失败: " + e.getMessage());
@@ -114,7 +120,7 @@ public class DreamController {
             }
             String pending = "梦境解析中，请稍候...";
             dreamService.updateInterpretation(id, pending);
-            dreamAiTaskService.completeDreamAiFields(id, dream.getContent(), false, true);
+            dreamAiTaskService.completeDreamAiFields(id, dream.getContent(), dream.getImageUrl(), false, true);
             return Result.success("已提交解析", null);
         } catch (Exception e) {
             return Result.error("提交解析失败: " + e.getMessage());
@@ -134,12 +140,14 @@ public class DreamController {
             String place = toStringValue(request.getOrDefault("place", "未知"));
             String time = toStringValue(request.getOrDefault("time", ""));
             String interpretation = toStringValue(request.getOrDefault("interpretation", ""));
+            String imageUrl = toStringValue(request.getOrDefault("imageUrl", ""));
+            if (imageUrl.isBlank()) imageUrl = null;
             boolean shouldGenerateTitle = title.isBlank();
             if (shouldGenerateTitle) {
                 title = fallbackTitle(content);
             }
 
-            DreamContent result = dreamService.saveDream(userId, title, content, emotion, place, time);
+            DreamContent result = dreamService.saveDream(userId, title, content, emotion, place, time, imageUrl);
             if (!interpretation.isBlank()) {
                 dreamService.updateInterpretation(result.getId(), interpretation);
                 result.setInterpretation(interpretation);
@@ -149,11 +157,30 @@ public class DreamController {
                 result.setInterpretation(pending);
             }
             if (shouldGenerateTitle || analyze) {
-                dreamAiTaskService.completeDreamAiFields(result.getId(), content, shouldGenerateTitle, analyze);
+                dreamAiTaskService.completeDreamAiFields(result.getId(), content, imageUrl, shouldGenerateTitle, analyze);
             }
+            enrichImageUrl(result);
             return Result.success(result);
         } catch (Exception e) {
             return Result.error("保存梦境失败: " + e.getMessage());
+        }
+    }
+
+    private void enrichImageUrl(DreamContent dream) {
+        if (dream != null && dream.getImageUrl() != null && !dream.getImageUrl().isEmpty()) {
+            String objectName = minioService.extractObjectName(dream.getImageUrl());
+            String url = minioService.getPresignedUrl(objectName);
+            if (url != null) {
+                dream.setImageUrl(url);
+            }
+        }
+    }
+
+    private void enrichImageUrls(List<DreamContent> dreams) {
+        if (dreams != null) {
+            for (DreamContent d : dreams) {
+                enrichImageUrl(d);
+            }
         }
     }
 

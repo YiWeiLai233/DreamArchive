@@ -100,6 +100,9 @@ async function handleRegister() {
         user.role || 'USER',
         user.token || ''
       )
+      if (user.avatarUrl) {
+        userStore.updateAvatar(user.avatarUrl)
+      }
       successMsg.value = '注册成功！正在同步数据...'
       syncGuestDreams(user.id).finally(() => {
         setTimeout(() => {

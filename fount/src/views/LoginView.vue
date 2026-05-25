@@ -33,6 +33,9 @@ const setupError = ref('')
 
 function afterLogin(data: any) {
   userStore.login(data.username, data.email, data.createdAt || '', data.id, data.role, data.token)
+  if (data.avatarUrl) {
+    userStore.updateAvatar(data.avatarUrl)
+  }
   if (data.needsSetup) {
     showSetup.value = true
   } else {

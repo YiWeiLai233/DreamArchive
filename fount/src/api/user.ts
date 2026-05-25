@@ -19,6 +19,7 @@ export interface UserInfo {
   status?: 'ACTIVE' | 'BANNED'
   createdAt?: string
   token?: string
+  avatarUrl?: string
 }
 
 export interface ApiResult<T> {
@@ -104,4 +105,8 @@ export function getLongestDream(userId: string | number) {
 // 通过邮箱获取用户信息
 export function getUserByEmail(email: string) {
   return api.get<ApiResult<UserInfo>>(`/api/user/by-email?email=${encodeURIComponent(email)}`)
+}
+
+export function updateAvatarUrl(avatarUrl: string) {
+  return api.post<ApiResult<string>>('/api/user/avatar', { avatarUrl })
 }

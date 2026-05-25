@@ -17,7 +17,7 @@ public class DreamAiTaskService {
     private DreamService dreamService;
 
     @Async
-    public void completeDreamAiFields(String dreamId, String content, boolean generateTitle, boolean analyze) {
+    public void completeDreamAiFields(String dreamId, String content, String imageUrl, boolean generateTitle, boolean analyze) {
         if (generateTitle) {
             try {
                 String title = aiService.generateDreamTitle(content);
@@ -29,7 +29,7 @@ public class DreamAiTaskService {
 
         if (analyze) {
             try {
-                String interpretation = aiService.analyzeDream(content);
+                String interpretation = aiService.analyzeDream(content, imageUrl);
                 dreamService.updateInterpretation(dreamId, interpretation);
             } catch (Exception e) {
                 log.warn("Background dream analysis failed for {}", dreamId, e);

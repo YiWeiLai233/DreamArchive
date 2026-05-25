@@ -1,8 +1,11 @@
 package com.yiweilai.DreamArchive.DTO;
 
+import java.util.List;
+import java.util.Map;
+
 public class Message {
     private String role;
-    private String content;
+    private Object content;
 
     public Message() {
     }
@@ -12,35 +15,24 @@ public class Message {
         this.content = content;
     }
 
-    /**
-     * 获取
-     * @return role
-     */
+    public Message(String role, List<Map<String, Object>> contentParts) {
+        this.role = role;
+        this.content = contentParts;
+    }
+
     public String getRole() {
         return role;
     }
 
-    /**
-     * 设置
-     * @param role
-     */
     public void setRole(String role) {
         this.role = role;
     }
 
-    /**
-     * 获取
-     * @return content
-     */
-    public String getContent() {
+    public Object getContent() {
         return content;
     }
 
-    /**
-     * 设置
-     * @param content
-     */
-    public void setContent(String content) {
+    public void setContent(Object content) {
         this.content = content;
     }
 

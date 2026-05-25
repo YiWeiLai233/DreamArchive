@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS dream_content (
     place VARCHAR(100) DEFAULT '未知' COMMENT '梦境地点',
     time VARCHAR(50) DEFAULT '' COMMENT '梦境时间',
     interpretation TEXT COMMENT 'AI解析结果',
+    image_url TEXT COMMENT '梦境图片访问地址',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
 
     INDEX idx_user_id (user_id),

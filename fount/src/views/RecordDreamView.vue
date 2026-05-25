@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
-import { getDreamById, saveAndAnalyzeDream, saveDream, guestAnalyzeDream } from '@/api/dream'
+import { getDreamById, saveAndAnalyzeDream, saveDream, guestAnalyzeDream, uploadImage } from '@/api/dream'
 import type { DreamContent } from '@/api/dream'
 import { formatDreamInterpretation } from '@/utils/dreamInterpretation'
 import { getDeviceId, saveGuestDream, updateGuestDreamInterpretation } from '@/utils/guestDreams'
@@ -20,6 +20,14 @@ const form = ref({
   place: '',
   time: ''
 })
+
+const imageFile = ref<File | null>(null)
+const imagePreview = ref<string>('')
+const imageObjectName = ref<string>('')
+const imageUrl = ref<string>('')
+const isUploadingImage = ref(false)
+const imageError = ref('')
+const imageInputRef = ref<HTMLInputElement | null>(null)
 
 const writingTips = [
   '梦中有哪些人或动物？',
@@ -88,6 +96,57 @@ const formattedInterpretation = computed(() => formatDreamInterpretation(result.
 
 function selectEmotion(key: string) {
   form.value.emotion = key
+}
+
+function handleImageSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  imageError.value = ''
+  if (!file.type.startsWith('image/')) {
+    imageError.value = '请选择图片文件'
+    input.value = ''
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    imageError.value = '图片大小不能超过 5MB'
+    input.value = ''
+    return
+  }
+  imageFile.value = file
+  const reader = new FileReader()
+  reader.onload = () => { imagePreview.value = String(reader.result || '') }
+  reader.readAsDataURL(file)
+}
+
+function removeImage() {
+  imageFile.value = null
+  imagePreview.value = ''
+  imageObjectName.value = ''
+  imageUrl.value = ''
+  imageError.value = ''
+}
+
+async function doUploadImage(): Promise<boolean> {
+  if (!imageFile.value) return true
+  isUploadingImage.value = true
+  imageError.value = ''
+  try {
+    const res = await uploadImage(imageFile.value)
+    if (res.data.code === 200 && res.data.data) {
+      imageObjectName.value = res.data.data.objectName
+      imageUrl.value = res.data.data.url || ''
+      return true
+    } else {
+      imageError.value = res.data.message || '图片上传失败'
+      return false
+    }
+  } catch (e: any) {
+    imageError.value = '图片上传失败，请重试'
+    return false
+  } finally {
+    isUploadingImage.value = false
+  }
 }
 
 function getEmotionIcon(emotion: string) {
@@ -179,13 +238,26 @@ async function handleSubmit(mode: 'save' | 'analyze') {
   submitMode.value = mode
 
   try {
-    const dreamData = {
+    // 先上传图片（仅登录用户）
+    if (userStore.isLoggedIn && imageFile.value && !imageUrl.value) {
+      const uploaded = await doUploadImage()
+      if (!uploaded) {
+        isSubmitting.value = false
+        submitMode.value = null
+        return
+      }
+    }
+
+    const dreamData: any = {
       userId: parseInt(userStore.userId) || 0,
       title: form.value.title,
       content: form.value.content,
       emotion: form.value.emotion,
       place: form.value.place || '未知',
       time: form.value.time || new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    }
+    if (imageObjectName.value) {
+      dreamData.imageUrl = imageObjectName.value
     }
 
     if (!userStore.isLoggedIn) {
@@ -247,6 +319,7 @@ function recordAnother() {
   result.value = null
   step.value = 'form'
   formStep.value = 1
+  removeImage()
 }
 
 onMounted(() => {
@@ -296,6 +369,7 @@ onBeforeUnmount(() => {
 
     <!-- 第一步：填写表单 -->
     <div v-if="step === 'form'" class="page-body">
+      <input v-if="userStore.isLoggedIn" ref="imageInputRef" type="file" accept="image/*" style="display:none" @change="handleImageSelect" />
       <div class="form-layout">
 
         <!-- ========== PC 端：左右分栏 ========== -->
@@ -366,6 +440,25 @@ onBeforeUnmount(() => {
                   {{ p }}
                 </button>
               </div>
+            </div>
+
+            <div v-if="userStore.isLoggedIn" class="form-section">
+              <label class="section-label">
+                <span class="label-icon">🖼️</span>
+                <span>手绘图片</span>
+                <span class="optional-tag">可选</span>
+              </label>
+              <div v-if="!imagePreview" class="image-upload-area" @click="imageInputRef?.click()">
+                <span class="upload-icon">📎</span>
+                <span class="upload-text">点击上传手绘图片</span>
+                <span class="upload-hint">支持 JPG / PNG / WebP，最大 5MB，服务端校验格式</span>
+              </div>
+              <div v-else class="image-preview-area">
+                <img :src="imagePreview" class="image-preview" />
+                <button class="image-remove-btn" @click="removeImage">✕</button>
+                <span v-if="isUploadingImage" class="image uploading">上传中...</span>
+              </div>
+              <p v-if="imageError" class="image-error">{{ imageError }}</p>
             </div>
           </aside>
 
@@ -520,6 +613,25 @@ onBeforeUnmount(() => {
                 </button>
               </div>
 
+              <div v-if="userStore.isLoggedIn" class="meta-field">
+                <label class="section-label">
+                  <span class="label-icon">🖼️</span>
+                  <span>手绘图片</span>
+                  <span class="optional-tag">可选</span>
+                </label>
+                <div v-if="!imagePreview" class="image-upload-area" @click="imageInputRef?.click()">
+                  <span class="upload-icon">📎</span>
+                  <span class="upload-text">点击上传手绘图片</span>
+                  <span class="upload-hint">支持 JPG / PNG / WebP，最大 5MB，服务端校验格式</span>
+                </div>
+                <div v-else class="image-preview-area">
+                  <img :src="imagePreview" class="image-preview" />
+                  <button class="image-remove-btn" @click="removeImage">✕</button>
+                  <span v-if="isUploadingImage" class="image-uploading">上传中...</span>
+                </div>
+                <p v-if="imageError" class="image-error">{{ imageError }}</p>
+              </div>
+
               <div class="card-footer">
                 <span></span>
                 <button class="nav-btn next-btn" :class="{ disabled: !form.emotion }" :disabled="!form.emotion" @click="formStep = 2">
@@ -617,6 +729,7 @@ onBeforeUnmount(() => {
             <div class="result-section">
               <h3 class="result-section-title">📖 梦境内容</h3>
               <p class="result-section-text">{{ result?.content }}</p>
+              <img v-if="result?.imageUrl" :src="result.imageUrl" class="result-image" />
             </div>
 
             <div class="result-section">
@@ -1245,9 +1358,49 @@ onBeforeUnmount(() => {
   .side-panel { width: 380px; }
 }
 
-/* 超宽屏 */
-@media (min-width: 1440px) {
-  .page-nav { padding: 0.75rem 3rem; }
-  .page-body { padding: 0 3rem 1rem; }
+/* 图片上传 */
+.optional-tag {
+  font-size: 0.7rem; color: var(--text-light); font-weight: 400;
+  margin-left: 0.3rem;
+}
+.image-upload-area {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.4rem; padding: 1.2rem;
+  border: 2px dashed rgba(124,111,224,0.3); border-radius: 12px;
+  background: rgba(124,111,224,0.04);
+  cursor: pointer; transition: all 0.3s ease;
+}
+.image-upload-area:hover {
+  border-color: var(--primary); background: rgba(124,111,224,0.08);
+}
+.upload-icon { font-size: 1.6rem; }
+.upload-text { font-size: 0.85rem; color: var(--text-dark); font-weight: 500; }
+.upload-hint { font-size: 0.72rem; color: var(--text-light); }
+.image-preview-area {
+  position: relative; border-radius: 12px; overflow: hidden;
+  border: 1px solid rgba(124,111,224,0.2);
+}
+.image-preview {
+  width: 100%; max-height: 200px; object-fit: cover; display: block;
+  border-radius: 12px;
+}
+.image-remove-btn {
+  position: absolute; top: 0.4rem; right: 0.4rem;
+  width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  background: rgba(0,0,0,0.5); color: white; border: none;
+  font-size: 0.7rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+}
+.image-remove-btn:hover { background: rgba(0,0,0,0.7); }
+.image-uploading {
+  position: absolute; bottom: 0.4rem; left: 50%; transform: translateX(-50%);
+  font-size: 0.72rem; color: white; background: rgba(0,0,0,0.5);
+  padding: 0.2rem 0.6rem; border-radius: 10px;
+}
+.image-error { font-size: 0.75rem; color: #FF6B6B; margin-top: 0.3rem; }
+.result-image {
+  width: 100%; max-height: 300px; object-fit: contain;
+  border-radius: 12px; margin-top: 0.8rem;
+  border: 1px solid rgba(124,111,224,0.15);
 }
 </style>
