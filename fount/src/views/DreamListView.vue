@@ -28,6 +28,7 @@ interface Dream {
   place: string
   time: string
   interpretation: string
+  imageUrl?: string
   createdAt: string
 }
 
@@ -150,6 +151,7 @@ async function loadDreams(options: { silent?: boolean } = {}) {
         place: d.place || '未知',
         time: d.time || '',
         interpretation: d.interpretation || '暂无解析',
+        imageUrl: d.imageUrl || '',
         createdAt: formatCreatedAt(d.createdAt)
       }))
       dreams.value = nextDreams
@@ -392,6 +394,7 @@ function goBack() {
             <span class="dream-date">{{ dream.createdAt }}</span>
           </div>
           <h3 class="dream-title">{{ dream.title }}</h3>
+          <img v-if="dream.imageUrl" :src="dream.imageUrl" class="dream-card-image" />
           <p class="dream-preview">{{ dream.content.slice(0, 80) }}...</p>
           <div class="card-bottom">
             <span class="dream-meta">📍 {{ dream.place }}</span>
@@ -431,6 +434,7 @@ function goBack() {
             <div class="section">
               <h3 class="section-title">梦境内容</h3>
               <p class="section-text">{{ selectedDream.content }}</p>
+              <img v-if="selectedDream.imageUrl" :src="selectedDream.imageUrl" class="detail-image" />
             </div>
             <div class="section">
               <h3 class="section-title">🔮 AI 解析</h3>
@@ -978,5 +982,17 @@ function goBack() {
   .interpretation-number { width: 2rem; height: 2rem; font-size: 0.85rem; }
   .modal-actions { margin-top: 2rem; }
   .delete-detail-btn { font-size: 0.95rem; padding: 0.7rem 1.2rem; }
+}
+
+/* 梦境图片 */
+.dream-card-image {
+  width: 100%; max-height: 140px; object-fit: cover;
+  border-radius: 8px; margin: 0.5rem 0;
+  border: 1px solid rgba(124,111,224,0.12);
+}
+.detail-image {
+  width: 100%; max-height: 400px; object-fit: contain;
+  border-radius: 12px; margin-top: 0.8rem;
+  border: 1px solid rgba(124,111,224,0.15);
 }
 </style>

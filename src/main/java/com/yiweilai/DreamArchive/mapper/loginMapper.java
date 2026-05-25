@@ -13,4 +13,6 @@ public interface LoginMapper {
     User selectByUsername(@Param("username") String username);
 
     User selectByEmail(@Param("email") String email);
+
+    void updateAvatarUrl(@Param("id") Integer id, @Param("avatarUrl") String avatarUrl);
 }

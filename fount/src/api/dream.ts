@@ -9,6 +9,7 @@ export interface DreamForm {
   time?: string
   analyze?: boolean
   interpretation?: string
+  imageUrl?: string
 }
 
 export interface DreamContent {
@@ -20,6 +21,7 @@ export interface DreamContent {
   place: string
   time: string
   interpretation: string
+  imageUrl?: string
   createdAt: string
 }
 
@@ -32,6 +34,7 @@ export interface DreamDetail {
   place: string
   time: string
   interpretation: string
+  imageUrl?: string
   createdAt: string
 }
 
@@ -75,4 +78,13 @@ export function deleteDream(id: string) {
 
 export function triggerAnalyze(id: string) {
   return api.post<ApiResult<void>>(`/api/dream/${id}/analyze`)
+}
+
+export function uploadImage(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post<ApiResult<{ objectName: string; url: string }>>('/api/upload/image', formData, {
+    timeout: 30000,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
 }

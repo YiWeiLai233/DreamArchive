@@ -14,10 +14,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;;
 
 @Service
 public class AiService {
@@ -26,28 +23,46 @@ public class AiService {
     @Autowired
     private AiProviderPool providerPool;
 
+    @Autowired
+    private MinioService minioService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
             .build();
 
     public String analyzeDream(String content) {
+        return analyzeDream(content, null);
+    }
+
+    public String analyzeDream(String content, String imageUrl) {
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("梦境内容不能为空");
         }
 
+        boolean hasImage = imageUrl != null && !imageUrl.isBlank();
+        String systemPrompt = hasImage
+                ? "你是一名温和、专业的梦境分析助手。用户会提供一幅手绘梦境画和文字描述。请综合图片中的画面元素（场景、人物、色彩、构图）和文字描述来分析梦境。用中文按[整体解读、情绪层面、象征层面、现实启发]四个小标题分析，避免绝对化判断，不要使用 ** 等 Markdown 符号。"
+                : "你是一名温和、专业的梦境分析助手。请用中文按[整体解读、情绪层面、象征层面、现实启发]四个小标题分析梦境，避免绝对化判断，不要使用 ** 等 Markdown 符号。";
+
         List<Message> requestMessages = new ArrayList<>();
-        requestMessages.add(new Message(
-                "system",
-                "你是一名温和、专业的梦境分析助手。请用中文按[整体解读、情绪层面、象征层面、现实启发]四个小标题分析梦境，避免绝对化判断，不要使用 ** 等 Markdown 符号。"
-        ));
-        requestMessages.add(new Message("user", content));
+        requestMessages.add(new Message("system", systemPrompt));
 
-        return callAi(requestMessages, 0.3, 30, 600);
-    }
+        if (hasImage) {
+            String presignedUrl = minioService.getPresignedUrl(minioService.extractObjectName(imageUrl));
+            if (presignedUrl != null) {
+                List<Map<String, Object>> contentParts = new ArrayList<>();
+                contentParts.add(Map.of("type", "text", "text", content));
+                contentParts.add(Map.of("type", "image_url", "image_url", Map.of("url", presignedUrl)));
+                requestMessages.add(new Message("user", contentParts));
+            } else {
+                requestMessages.add(new Message("user", content));
+            }
+        } else {
+            requestMessages.add(new Message("user", content));
+        }
 
-    public String aiSerice(String content) {
-        return analyzeDream(content);
+        return callAi(requestMessages, 0.3, 60, 600);
     }
 
     public String generateDreamTitle(String content) {

@@ -11,6 +11,7 @@ public class LoginResponse {
     private LocalDateTime createdAt;
     private String token;
     private boolean needsSetup;
+    private String avatarUrl;
 
     public LoginResponse() {
     }
@@ -22,6 +23,7 @@ public class LoginResponse {
         this.role = user.getRole();
         this.status = user.getStatus();
         this.createdAt = user.getCreatedAt();
+        this.avatarUrl = user.getAvatarUrl();
         this.token = token;
         this.needsSetup = false;
     }
@@ -94,4 +96,7 @@ public class LoginResponse {
     public void setNeedsSetup(boolean needsSetup) {
         this.needsSetup = needsSetup;
     }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }

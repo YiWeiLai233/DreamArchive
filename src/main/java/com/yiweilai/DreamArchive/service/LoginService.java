@@ -27,6 +27,19 @@ public class LoginService {
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private MinioService minioService;
+
+    private void enrichAvatarUrl(User user) {
+        if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+            String objectName = minioService.extractObjectName(user.getAvatarUrl());
+            String url = minioService.getPresignedUrl(objectName);
+            if (url != null) {
+                user.setAvatarUrl(url);
+            }
+        }
+    }
+
     public Result<LoginResponse> login(String username, String password) {
         if (username == null || username.trim().isEmpty()) {
             return Result.error("用户名不能为空");
@@ -55,6 +68,7 @@ public class LoginService {
         // 登录成功，返回用户信息（不包含密码）
         String token = tokenService.generateToken(user);
         user.setPassword(null);
+        enrichAvatarUrl(user);
         return Result.success("登录成功", new LoginResponse(user, token));
     }
 
@@ -74,6 +88,7 @@ public class LoginService {
             user = loginMapper.selectByEmail(email);
             String token = tokenService.generateToken(user);
             user.setPassword(null);
+            enrichAvatarUrl(user);
             return Result.success("注册成功，请设置用户名和密码", new LoginResponse(user, token, true));
         }
 
@@ -85,6 +100,7 @@ public class LoginService {
         }
         String token = tokenService.generateToken(user);
         user.setPassword(null);
+        enrichAvatarUrl(user);
         return Result.success("登录成功", new LoginResponse(user, token));
     }
 

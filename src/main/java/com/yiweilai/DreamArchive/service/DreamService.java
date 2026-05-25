@@ -19,6 +19,9 @@ public class DreamService {
     @Autowired
     private StatsService statsService;
 
+    @Autowired
+    private MinioService minioService;
+
     /**
      * 保存梦境并更新统计数据
      * 1. 保存梦境内容到 dream_content 表
@@ -27,7 +30,7 @@ public class DreamService {
      */
     @Transactional
     public DreamContent saveDream(Integer userId, String title, String content,
-                                   String emotion, String place, String time) {
+                                   String emotion, String place, String time, String imageUrl) {
         String dreamId = UUID.randomUUID().toString();
 
         // 1. 保存梦境内容
@@ -40,6 +43,7 @@ public class DreamService {
         dreamContent.setPlace(place);
         dreamContent.setTime(time);
         dreamContent.setInterpretation("");
+        dreamContent.setImageUrl(imageUrl);
         dreamContentMapper.insertDreamContent(dreamContent);
 
         // 2. 更新统计表（情绪 + 地点）
@@ -93,6 +97,11 @@ public class DreamService {
                     ? LocalDate.now()
                     : existingDream.getCreatedAt().toLocalDate();
             statsService.rebuildStatsAfterDreamDeleted(existingDream.getUserId(), statDate);
+            // 删除 MinIO 中的图片
+            if (existingDream.getImageUrl() != null && !existingDream.getImageUrl().isEmpty()) {
+                String objectName = minioService.extractObjectName(existingDream.getImageUrl());
+                minioService.deleteObject(objectName);
+            }
         }
         return deleted;
     }

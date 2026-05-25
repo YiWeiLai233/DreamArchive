@@ -30,6 +30,8 @@ public class User {
 
     private Boolean deleted = false;
 
+    private String avatarUrl;
+
     public User() {
     }
 
@@ -71,6 +73,9 @@ public class User {
     public void setDeleted(Boolean deleted) {
         this.deleted = deleted != null && deleted;
     }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     public int getId() {
         return id;
