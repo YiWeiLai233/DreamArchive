@@ -46,7 +46,7 @@ const userForm = ref<{
   username: string
   email: string
   password: string
-  role: 'USER' | 'ADMIN'
+  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
   status: 'ACTIVE' | 'BANNED'
 }>({
   username: '',
@@ -563,8 +563,8 @@ onMounted(loadOverview)
                     <td class="name-cell">{{ user.username }}</td>
                     <td class="email-cell">{{ user.email }}</td>
                     <td>
-                      <span class="badge" :class="user.role === 'ADMIN' ? 'badge-purple' : 'badge-gray'">
-                        {{ user.role === 'ADMIN' ? '管理员' : '用户' }}
+                      <span class="badge" :class="user.role === 'SUPER_ADMIN' ? 'badge-gold' : user.role === 'ADMIN' ? 'badge-purple' : 'badge-gray'">
+                        {{ user.role === 'SUPER_ADMIN' ? '超级管理员' : user.role === 'ADMIN' ? '管理员' : '用户' }}
                       </span>
                     </td>
                     <td>
@@ -575,13 +575,13 @@ onMounted(loadOverview)
                     <td class="count-cell">{{ user.dreamCount }}</td>
                     <td class="date-cell">{{ formatDate(user.createdAt) }}</td>
                     <td class="action-cell">
-                      <button class="action-btn small" type="button" :disabled="isSubmitting" @click="openEditUser(user)">
+                      <button class="action-btn small" type="button" :disabled="isSubmitting || user.role === 'SUPER_ADMIN'" @click="openEditUser(user)">
                         编辑
                       </button>
                       <button
                         class="action-btn small warning"
                         type="button"
-                        :disabled="isSubmitting || isCurrentUser(user)"
+                        :disabled="isSubmitting || isCurrentUser(user) || user.role === 'SUPER_ADMIN'"
                         @click="toggleUserBan(user)"
                       >
                         {{ user.status === 'BANNED' ? '解封' : '封禁' }}
@@ -589,7 +589,7 @@ onMounted(loadOverview)
                       <button
                         class="action-btn small danger"
                         type="button"
-                        :disabled="isSubmitting || isCurrentUser(user)"
+                        :disabled="isSubmitting || isCurrentUser(user) || user.role === 'SUPER_ADMIN'"
                         @click="deleteUser(user)"
                       >
                         删除
@@ -747,9 +747,10 @@ onMounted(loadOverview)
             <div class="form-group">
               <label class="form-label">角色</label>
               <div class="select-wrap">
-                <select v-model="userForm.role" :disabled="isSubmitting">
+                <select v-model="userForm.role" :disabled="isSubmitting || editingUser?.role === 'SUPER_ADMIN'">
                   <option value="USER">普通用户</option>
                   <option value="ADMIN">管理员</option>
+                  <option v-if="editingUser?.role === 'SUPER_ADMIN'" value="SUPER_ADMIN">超级管理员</option>
                 </select>
               </div>
             </div>
@@ -1377,6 +1378,7 @@ onMounted(loadOverview)
 
 .badge-gray { background: #f1f5f9; color: #475569; }
 .badge-purple { background: #eef2ff; color: #4338ca; }
+.badge-gold { background: #fef9c3; color: #92400e; border: 1px solid #fbbf24; }
 .badge-green { background: #ecfdf5; color: #065f46; }
 .badge-red { background: #fef2f2; color: #991b1b; }
 .badge-blue { background: #eff6ff; color: #1e40af; }
@@ -1641,6 +1643,25 @@ onMounted(loadOverview)
   display: flex;
   gap: 0.75rem;
   justify-content: center;
+}
+
+.ghost-btn {
+  height: 2.4rem;
+  padding: 0 1.5rem;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ghost-btn:hover {
+  border-color: #cbd5e1;
+  color: #334155;
+  background: #f8fafc;
 }
 
 .confirm-btn {

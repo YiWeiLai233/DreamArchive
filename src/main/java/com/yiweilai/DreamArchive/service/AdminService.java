@@ -117,7 +117,7 @@ public class AdminService {
         if ("BANNED".equalsIgnoreCase(user.getStatus())) {
             return Result.error(403, "账号已被封禁");
         }
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"ADMIN".equalsIgnoreCase(user.getRole()) && !"SUPER_ADMIN".equalsIgnoreCase(user.getRole())) {
             return Result.error(403, "需要管理员权限");
         }
         return Result.success(user);
@@ -212,6 +212,9 @@ public class AdminService {
         if (target == null) {
             return Result.error(404, "账号不存在或已被删除");
         }
+        if (isSuperAdmin(target)) {
+            return Result.error(403, "超级管理员不可编辑");
+        }
 
         String username = trim(request.getUsername());
         String email = trim(request.getEmail());
@@ -254,6 +257,9 @@ public class AdminService {
         if (target == null) {
             return Result.error(404, "账号不存在或已被删除");
         }
+        if (isSuperAdmin(target)) {
+            return Result.error(403, "超级管理员不可删除");
+        }
         if (target.getId() == currentAdmin.getId()) {
             return Result.error(400, "不能删除自己的账号");
         }
@@ -266,6 +272,9 @@ public class AdminService {
         User target = findExistingTarget(request.getId());
         if (target == null) {
             return Result.error(404, "账号不存在或已被删除");
+        }
+        if (isSuperAdmin(target)) {
+            return Result.error(403, "超级管理员不可封禁");
         }
         if (target.getId() == currentAdmin.getId() && "BANNED".equalsIgnoreCase(status)) {
             return Result.error(400, "不能封禁自己的账号");
@@ -303,11 +312,16 @@ public class AdminService {
     }
 
     private String normalizeRole(String role) {
+        if ("SUPER_ADMIN".equalsIgnoreCase(trim(role))) return "SUPER_ADMIN";
         return "ADMIN".equalsIgnoreCase(trim(role)) ? "ADMIN" : "USER";
     }
 
     private String normalizeStatus(String status) {
         return "BANNED".equalsIgnoreCase(trim(status)) ? "BANNED" : "ACTIVE";
+    }
+
+    private boolean isSuperAdmin(User user) {
+        return user != null && "SUPER_ADMIN".equalsIgnoreCase(user.getRole());
     }
 
     private boolean hasText(String value) {

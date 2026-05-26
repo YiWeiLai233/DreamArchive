@@ -83,6 +83,10 @@ public class LoginService {
             newUser.setUsername(tempUsername);
             newUser.setEmail(email);
             newUser.setPassword(tempPassword);
+            // 第一个注册的用户自动成为超级管理员
+            if (registerMapper.countUsers() == 0) {
+                newUser.setRole("SUPER_ADMIN");
+            }
             registerMapper.newUser(newUser);
             // 查询刚创建的用户（获取自增ID）
             user = loginMapper.selectByEmail(email);

@@ -104,7 +104,7 @@ router.beforeEach((to) => {
     return '/'
   }
 
-  if (to.meta.requiresAdmin && role !== 'ADMIN') {
+  if (to.meta.requiresAdmin && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
     return '/error/403'
   }
 })
