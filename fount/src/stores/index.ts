@@ -31,7 +31,7 @@ export const useUserStore = defineStore('user', () => {
   const avatar = ref(localStorage.getItem('avatar') || '')
   const role = ref(localStorage.getItem('role') || 'USER')
   const token = ref(localStorage.getItem('authToken') || '')
-  const isAdmin = computed(() => role.value === 'ADMIN')
+  const isAdmin = computed(() => role.value === 'ADMIN' || role.value === 'SUPER_ADMIN')
 
   function login(name: string, mail?: string, joinDate?: string, id?: string | number, userRole?: string, authToken?: string) {
     isLoggedIn.value = true

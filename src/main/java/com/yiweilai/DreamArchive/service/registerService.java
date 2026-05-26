@@ -29,6 +29,10 @@ public class RegisterService {
         user.setUsername(username);
         user.setPassword(password);
         user.setEmail(email);
+        // 第一个注册的用户自动成为超级管理员
+        if (registerMapper.countUsers() == 0) {
+            user.setRole("SUPER_ADMIN");
+        }
 
         int result = registerMapper.newUser(user);
         if (result > 0) {

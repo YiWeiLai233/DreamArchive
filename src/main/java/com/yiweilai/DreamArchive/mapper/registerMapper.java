@@ -18,4 +18,7 @@ public interface RegisterMapper {
 
     @Update("UPDATE user SET username = #{username}, password = #{password} WHERE id = #{id}")
     int updateUsernameAndPassword(@Param("id") int id, @Param("username") String username, @Param("password") String password);
+
+    @Select("SELECT COUNT(*) FROM user")
+    int countUsers();
 }

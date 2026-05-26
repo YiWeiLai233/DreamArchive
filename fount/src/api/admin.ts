@@ -10,7 +10,7 @@ export interface AdminUserSummary {
   id: number
   username: string
   email: string
-  role: 'USER' | 'ADMIN'
+  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
   status: 'ACTIVE' | 'BANNED'
   deleted: boolean
   createdAt: string
@@ -73,7 +73,7 @@ export interface AdminUserActionRequest {
   username?: string
   password?: string
   email?: string
-  role?: 'USER' | 'ADMIN'
+  role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
   status?: 'ACTIVE' | 'BANNED'
 }
 
