@@ -22,6 +22,7 @@ public class AiProviderPool {
 
     private List<AiProvider> providers = new CopyOnWriteArrayList<>();
     private final Map<String, Integer> currentWeight = new ConcurrentHashMap<>();
+    private String visionProvider;
 
     public List<AiProvider> getProviders() {
         return Collections.unmodifiableList(providers);
@@ -29,6 +30,14 @@ public class AiProviderPool {
 
     public void setProviders(List<AiProvider> providers) {
         this.providers = providers != null ? new CopyOnWriteArrayList<>(providers) : new CopyOnWriteArrayList<>();
+    }
+
+    public String getVisionProvider() {
+        return visionProvider;
+    }
+
+    public void setVisionProvider(String visionProvider) {
+        this.visionProvider = visionProvider;
     }
 
     @PostConstruct
@@ -52,6 +61,28 @@ public class AiProviderPool {
             }
         }
         return smoothWeightedSelect(available);
+    }
+
+    public synchronized AiProvider acquire(String providerName) {
+        if (providerName == null || providerName.isBlank()) {
+            return acquire();
+        }
+        for (AiProvider p : providers) {
+            if (p.getName().equals(providerName)) {
+                if (!p.isEnabled()) {
+                    throw new RuntimeException("AI provider [" + providerName + "] is disabled");
+                }
+                if (p.isCircuitOpen()) {
+                    long now = System.currentTimeMillis();
+                    if (now - p.getLastFailTime() >= CIRCUIT_OPEN_DURATION_MS) {
+                        return p;
+                    }
+                    throw new RuntimeException("AI provider [" + providerName + "] circuit is open");
+                }
+                return p;
+            }
+        }
+        throw new RuntimeException("AI provider [" + providerName + "] not found");
     }
 
     public void reportSuccess(AiProvider provider) {
