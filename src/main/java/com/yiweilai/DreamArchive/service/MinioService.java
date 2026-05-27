@@ -106,6 +106,30 @@ public class MinioService {
         }
     }
 
+    /**
+     * 下载图片并返回 base64 data URL（供多模态 AI 使用）
+     */
+    public String getImageAsBase64(String objectName) {
+        try (var stream = minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucket)
+                        .object(objectName)
+                        .build())) {
+            byte[] bytes = stream.readAllBytes();
+            String base64 = java.util.Base64.getEncoder().encodeToString(bytes);
+            // 根据 objectName 扩展名推断 MIME 类型
+            String mime = "image/jpeg";
+            String lower = objectName.toLowerCase();
+            if (lower.endsWith(".png")) mime = "image/png";
+            else if (lower.endsWith(".gif")) mime = "image/gif";
+            else if (lower.endsWith(".webp")) mime = "image/webp";
+            return "data:" + mime + ";base64," + base64;
+        } catch (Exception e) {
+            log.error("Failed to download image for base64: {}", e.getMessage());
+            return null;
+        }
+    }
+
     public void deleteObject(String objectName) {
         try {
             minioClient.removeObject(
