@@ -32,10 +32,14 @@ public class AiService {
             .build();
 
     public String analyzeDream(String content) {
-        return analyzeDream(content, null);
+        return analyzeDream(content, null, null, null, null);
     }
 
     public String analyzeDream(String content, String imageUrl) {
+        return analyzeDream(content, imageUrl, null, null, null);
+    }
+
+    public String analyzeDream(String content, String imageUrl, String emotion, String place, String time) {
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("梦境内容不能为空");
         }
@@ -44,28 +48,31 @@ public class AiService {
 
         if (hasImage) {
             try {
-                return analyzeDreamWithImage(content, imageUrl);
+                return analyzeDreamWithImage(content, imageUrl, emotion, place, time);
             } catch (Exception e) {
                 log.warn("图片分析失败，降级为纯文字分析: {}", e.getMessage());
             }
         }
 
         // 纯文字分析（无图片 or 图片分析失败降级）
+        String userMessage = buildUserMessage(content, emotion, place, time);
         List<Message> requestMessages = new ArrayList<>();
         requestMessages.add(new Message(
                 "system",
                 "你是一名温和、专业的梦境分析助手。请用中文按[整体解读、情绪层面、象征层面、现实启发]四个小标题分析梦境，避免绝对化判断，不要使用 ** 等 Markdown 符号。"
         ));
-        requestMessages.add(new Message("user", content));
-        return callAi(requestMessages, 0.3, 30, 600);
+        requestMessages.add(new Message("user", userMessage));
+        return callAi(requestMessages, 0.3, 30, 2000);
     }
 
-    private String analyzeDreamWithImage(String content, String imageUrl) {
-        String presignedUrl = minioService.getPresignedUrl(minioService.extractObjectName(imageUrl));
-        if (presignedUrl == null) {
-            throw new RuntimeException("无法生成图片链接");
+    private String analyzeDreamWithImage(String content, String imageUrl, String emotion, String place, String time) {
+        String objectName = minioService.extractObjectName(imageUrl);
+        String base64Url = minioService.getImageAsBase64(objectName);
+        if (base64Url == null) {
+            throw new RuntimeException("无法下载图片进行分析");
         }
 
+        String textContent = buildUserMessage(content, emotion, place, time);
         List<Message> requestMessages = new ArrayList<>();
         requestMessages.add(new Message(
                 "system",
@@ -73,11 +80,25 @@ public class AiService {
         ));
 
         List<Map<String, Object>> contentParts = new ArrayList<>();
-        contentParts.add(Map.of("type", "text", "text", content));
-        contentParts.add(Map.of("type", "image_url", "image_url", Map.of("url", presignedUrl)));
+        contentParts.add(Map.of("type", "text", "text", textContent));
+        contentParts.add(Map.of("type", "image_url", "image_url", Map.of("url", base64Url)));
         requestMessages.add(new Message("user", contentParts));
 
-        return callAi(requestMessages, 0.3, 60, 600);
+        return callAi(requestMessages, 0.3, 60, 2000, providerPool.getVisionProvider());
+    }
+
+    private String buildUserMessage(String content, String emotion, String place, String time) {
+        StringBuilder sb = new StringBuilder(content);
+        if (emotion != null && !emotion.isBlank()) {
+            sb.append("\n\n").append("心情：").append(emotion);
+        }
+        if (place != null && !place.isBlank()) {
+            sb.append("\n").append("地点：").append(place);
+        }
+        if (time != null && !time.isBlank()) {
+            sb.append("\n").append("时间：").append(time);
+        }
+        return sb.toString();
     }
 
     public String generateDreamTitle(String content) {
@@ -105,7 +126,11 @@ public class AiService {
     }
 
     private String callAi(List<Message> messages, double temperature, int timeoutSeconds, Integer maxTokens) {
-        AiProvider provider = providerPool.acquire();
+        return callAi(messages, temperature, timeoutSeconds, maxTokens, null);
+    }
+
+    private String callAi(List<Message> messages, double temperature, int timeoutSeconds, Integer maxTokens, String providerName) {
+        AiProvider provider = providerName != null ? providerPool.acquire(providerName) : providerPool.acquire();
         try {
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("model", provider.getModel());

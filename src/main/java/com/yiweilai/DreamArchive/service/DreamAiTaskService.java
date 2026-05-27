@@ -16,8 +16,12 @@ public class DreamAiTaskService {
     @Autowired
     private DreamService dreamService;
 
-    @Async
     public void completeDreamAiFields(String dreamId, String content, String imageUrl, boolean generateTitle, boolean analyze) {
+        completeDreamAiFields(dreamId, content, imageUrl, null, null, null, generateTitle, analyze);
+    }
+
+    @Async
+    public void completeDreamAiFields(String dreamId, String content, String imageUrl, String emotion, String place, String time, boolean generateTitle, boolean analyze) {
         if (generateTitle) {
             try {
                 String title = aiService.generateDreamTitle(content);
@@ -29,7 +33,7 @@ public class DreamAiTaskService {
 
         if (analyze) {
             try {
-                String interpretation = aiService.analyzeDream(content, imageUrl);
+                String interpretation = aiService.analyzeDream(content, imageUrl, emotion, place, time);
                 dreamService.updateInterpretation(dreamId, interpretation);
             } catch (Exception e) {
                 log.warn("Background dream analysis failed for {}", dreamId, e);
