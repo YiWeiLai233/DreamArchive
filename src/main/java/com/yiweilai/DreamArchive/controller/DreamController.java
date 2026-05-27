@@ -120,7 +120,7 @@ public class DreamController {
             }
             String pending = "梦境解析中，请稍候...";
             dreamService.updateInterpretation(id, pending);
-            dreamAiTaskService.completeDreamAiFields(id, dream.getContent(), dream.getImageUrl(), false, true);
+            dreamAiTaskService.completeDreamAiFields(id, dream.getContent(), dream.getImageUrl(), dream.getEmotion(), dream.getPlace(), dream.getTime(), false, true);
             return Result.success("已提交解析", null);
         } catch (Exception e) {
             return Result.error("提交解析失败: " + e.getMessage());
@@ -157,7 +157,7 @@ public class DreamController {
                 result.setInterpretation(pending);
             }
             if (shouldGenerateTitle || analyze) {
-                dreamAiTaskService.completeDreamAiFields(result.getId(), content, imageUrl, shouldGenerateTitle, analyze);
+                dreamAiTaskService.completeDreamAiFields(result.getId(), content, imageUrl, emotion, place, time, shouldGenerateTitle, analyze);
             }
             enrichImageUrl(result);
             return Result.success(result);
