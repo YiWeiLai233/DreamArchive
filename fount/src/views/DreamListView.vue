@@ -672,7 +672,7 @@ function goBack() {
   border-color: rgba(229,57,53,0.35);
 }
 .dream-title { font-size: 1.15rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem; }
-.dream-preview { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.75rem; }
+.dream-preview { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.75rem; flex: 1; }
 .card-bottom { display: flex; gap: 1rem; }
 .dream-meta { font-size: 0.8rem; color: var(--text-light); }
 
@@ -986,9 +986,10 @@ function goBack() {
 
 /* 梦境图片 */
 .dream-card-image {
-  width: 100%; max-height: 140px; object-fit: cover;
+  width: 100%; height: 140px; object-fit: cover;
   border-radius: 8px; margin: 0.5rem 0;
   border: 1px solid rgba(124,111,224,0.12);
+  flex-shrink: 0;
 }
 .detail-image {
   width: 100%; max-height: 400px; object-fit: contain;
