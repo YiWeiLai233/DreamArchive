@@ -999,9 +999,9 @@ function goBack() {
 
 /* 深夜模式 */
 html.dark .glass {
-  background: rgba(20, 17, 38, 0.7);
-  border-color: rgba(155, 143, 255, 0.28);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  background: rgba(28, 24, 45, 0.86);
+  border-color: rgba(184, 174, 255, 0.42);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
 }
 html.dark .stars {
   background-image:
@@ -1017,83 +1017,85 @@ html.dark .glow-2 { background: rgba(255, 179, 71, 0.08); }
 html.dark .back-btn:hover { background: rgba(155, 143, 255, 0.15); }
 html.dark .page-title { color: #E8E4F0; }
 html.dark .page-subtitle { color: #A9A3C0; }
-html.dark .search-bar {
-  background: rgba(30, 27, 46, 0.5);
-  border-color: rgba(155, 143, 255, 0.15);
+html.dark .search-box input {
+  background: rgba(34, 29, 54, 0.7);
+  border-color: rgba(184, 174, 255, 0.24);
   color: #E8E4F0;
 }
-html.dark .search-bar:focus {
-  background: rgba(30, 27, 46, 0.7);
+html.dark .search-box:focus-within {
+  background: rgba(39, 33, 62, 0.9);
   border-color: var(--primary);
 }
-html.dark .search-bar::placeholder { color: rgba(169, 163, 192, 0.5); }
-html.dark .filter-btn { border-color: rgba(155, 143, 255, 0.15); color: #A9A3C0; }
-html.dark .filter-btn:hover { background: rgba(155, 143, 255, 0.1); }
-html.dark .filter-btn.active {
+html.dark .search-box input::placeholder { color: rgba(169, 163, 192, 0.58); }
+html.dark .filter-tab { border-color: rgba(184, 174, 255, 0.28); color: #C6C0DA; }
+html.dark .filter-tab:hover { background: rgba(155, 143, 255, 0.16); }
+html.dark .filter-tab.active {
   background: var(--primary);
   box-shadow: 0 2px 10px rgba(155, 143, 255, 0.25);
 }
 html.dark .dream-card {
-  background: rgba(30, 27, 46, 0.55);
-  border-color: rgba(155, 143, 255, 0.18);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  background: rgba(31, 27, 49, 0.88);
+  border-color: rgba(184, 174, 255, 0.34);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.36), 0 0 0 1px rgba(184, 174, 255, 0.06) inset;
 }
 html.dark .dream-card:hover {
-  background: rgba(30, 27, 46, 0.7);
-  box-shadow: 0 12px 40px rgba(155, 143, 255, 0.12);
+  background: rgba(39, 33, 62, 0.94);
+  border-color: rgba(184, 174, 255, 0.52);
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.44), 0 0 28px rgba(155, 143, 255, 0.12);
 }
-html.dark .card-title { color: #E8E4F0; }
-html.dark .card-date { color: #A9A3C0; }
-html.dark .card-content { color: #A9A3C0; }
+html.dark .dream-title { color: #F1EEFA; }
+html.dark .dream-date { color: #BFB8D5; }
+html.dark .dream-preview { color: #C6C0DA; }
+html.dark .dream-meta { color: #BFB8D5; }
 html.dark .emotion-badge { background: rgba(155, 143, 255, 0.12); }
 html.dark .analysis-badge { background: rgba(155, 143, 255, 0.15); color: #B8AEFF; }
-html.dark .card-footer { border-color: rgba(155, 143, 255, 0.1); }
-html.dark .analyze-btn {
+html.dark .card-footer-actions { border-color: rgba(184, 174, 255, 0.16); }
+html.dark .card-action-btn.analyze {
   border-color: rgba(155, 143, 255, 0.2);
   background: rgba(155, 143, 255, 0.06);
   color: #B8AEFF;
 }
-html.dark .analyze-btn:hover {
+html.dark .card-action-btn.analyze:hover {
   background: rgba(155, 143, 255, 0.15);
   border-color: rgba(155, 143, 255, 0.35);
 }
-html.dark .delete-btn {
+html.dark .card-action-btn.delete {
   border-color: rgba(255, 82, 82, 0.2);
   background: rgba(255, 82, 82, 0.06);
   color: #FF6B6B;
 }
-html.dark .delete-btn:hover {
+html.dark .card-action-btn.delete:hover {
   background: rgba(255, 82, 82, 0.12);
   border-color: rgba(255, 82, 82, 0.3);
 }
-html.dark .empty-card {
-  background: rgba(30, 27, 46, 0.5);
-  border-color: rgba(155, 143, 255, 0.15);
+html.dark .empty-state {
+  background: rgba(31, 27, 49, 0.86);
+  border-color: rgba(184, 174, 255, 0.32);
 }
 html.dark .empty-icon { opacity: 0.6; }
-html.dark .empty-title { color: #E8E4F0; }
 html.dark .empty-text { color: #A9A3C0; }
+html.dark .empty-hint { color: #A9A3C0; }
 html.dark .empty-cta { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.25); }
 html.dark .spinner { border-color: rgba(155, 143, 255, 0.2); border-top-color: #B8AEFF; }
-html.dark .error-text { color: #FF6B6B; }
+html.dark .error-state p { color: #FF6B6B; }
 html.dark .retry-btn { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.25); }
 html.dark .modal-card {
-  background: rgba(30, 27, 46, 0.92);
-  border-color: rgba(155, 143, 255, 0.2);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  background: rgba(31, 27, 49, 0.96);
+  border-color: rgba(184, 174, 255, 0.42);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
 }
-html.dark .close-btn { background: rgba(155, 143, 255, 0.1); }
-html.dark .close-btn:hover { background: rgba(155, 143, 255, 0.2); }
-html.dark .detail-title { color: #E8E4F0; }
-html.dark .detail-meta { color: #A9A3C0; }
-html.dark .detail-section-text { color: #A9A3C0; }
-html.dark .analysis-status { background: rgba(155, 143, 255, 0.12); }
+html.dark .modal-close { background: rgba(155, 143, 255, 0.12); }
+html.dark .modal-close:hover { background: rgba(155, 143, 255, 0.22); }
+html.dark .modal-title { color: #F1EEFA; }
+html.dark .modal-meta span { color: #BFB8D5; }
+html.dark .section-text { color: #C6C0DA; }
+html.dark .analysis-refresh-status { background: rgba(155, 143, 255, 0.14); }
 html.dark .analysis-spinner { border-color: rgba(155, 143, 255, 0.2); border-top-color: #B8AEFF; }
-html.dark .interpretation-box { background: rgba(155, 143, 255, 0.08); }
+html.dark .interpretation { background: rgba(155, 143, 255, 0.1); }
 html.dark .interpretation-heading { background: rgba(155, 143, 255, 0.12); }
-html.dark .interpretation-item { background: rgba(30, 27, 46, 0.4); }
-html.dark .interpretation-text { color: #A9A3C0; }
-html.dark .interpretation-item-text { color: #A9A3C0; }
+html.dark .interpretation-item { background: rgba(24, 20, 39, 0.62); }
+html.dark .interpretation-paragraph { color: #C6C0DA; }
+html.dark .interpretation-item p { color: #C6C0DA; }
 html.dark .delete-detail-btn {
   border-color: rgba(255, 82, 82, 0.25);
   background: rgba(255, 82, 82, 0.08);
@@ -1101,8 +1103,9 @@ html.dark .delete-detail-btn {
 }
 html.dark .delete-detail-btn:hover { background: rgba(255, 82, 82, 0.15); }
 html.dark .confirm-card {
-  background: rgba(30, 27, 46, 0.95);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  background: rgba(31, 27, 49, 0.97);
+  border-color: rgba(184, 174, 255, 0.36);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
 }
 html.dark .confirm-text { color: #A9A3C0; }
 html.dark .confirm-cancel {
@@ -1111,6 +1114,6 @@ html.dark .confirm-cancel {
   border-color: rgba(155, 143, 255, 0.15);
 }
 html.dark .confirm-cancel:hover { background: rgba(30, 27, 46, 0.8); }
-html.dark .card-image { border-color: rgba(155, 143, 255, 0.12); }
+html.dark .dream-card-image { border-color: rgba(184, 174, 255, 0.22); }
 html.dark .detail-image { border-color: rgba(155, 143, 255, 0.15); }
 </style>

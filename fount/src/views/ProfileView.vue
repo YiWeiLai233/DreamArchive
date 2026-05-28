@@ -495,9 +495,9 @@ function goBack() { router.push('/') }
 
 /* 深夜模式 */
 html.dark .glass {
-  background: rgba(20, 17, 38, 0.7);
-  border-color: rgba(155, 143, 255, 0.28);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  background: rgba(28, 24, 45, 0.86);
+  border-color: rgba(184, 174, 255, 0.42);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
 }
 html.dark .stars {
   background-image:
@@ -513,9 +513,9 @@ html.dark .glow-2 { background: rgba(255, 179, 71, 0.08); }
 html.dark .back-btn:hover { background: rgba(155, 143, 255, 0.15); }
 html.dark .page-title { color: #E8E4F0; }
 html.dark .profile-card {
-  background: rgba(30, 27, 46, 0.6);
-  border-color: rgba(155, 143, 255, 0.2);
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+  background: rgba(31, 27, 49, 0.88);
+  border-color: rgba(184, 174, 255, 0.36);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
 }
 html.dark .avatar-large {
   border-color: rgba(155, 143, 255, 0.3);
@@ -534,9 +534,9 @@ html.dark .detail-value { color: #E8E4F0; }
 html.dark .edit-btn { background: rgba(155, 143, 255, 0.08); color: #B8AEFF; }
 html.dark .edit-btn:hover { background: rgba(155, 143, 255, 0.15); }
 html.dark .section-card {
-  background: rgba(30, 27, 46, 0.5);
-  border-color: rgba(155, 143, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  background: rgba(31, 27, 49, 0.84);
+  border-color: rgba(184, 174, 255, 0.32);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(184, 174, 255, 0.06) inset;
 }
 html.dark .section-title { color: #E8E4F0; }
 html.dark .input-wrapper input,
@@ -571,9 +571,9 @@ html.dark .success-msg {
   border-color: rgba(76, 175, 80, 0.25);
 }
 html.dark .stat-card {
-  background: rgba(20, 17, 38, 0.7);
-  border-color: rgba(155, 143, 255, 0.28);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  background: rgba(28, 24, 45, 0.86);
+  border-color: rgba(184, 174, 255, 0.38);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
 }
 html.dark .stat-card:hover { box-shadow: 0 12px 30px rgba(155, 143, 255, 0.15); }
 html.dark .stat-icon-wrap.si-0 { background: linear-gradient(135deg, rgba(155,143,255,0.2), rgba(155,143,255,0.08)); }

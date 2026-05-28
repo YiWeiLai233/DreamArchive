@@ -15,14 +15,14 @@
   --primary: #9B8FFF;
   --primary-light: #B8AEFF;
   --secondary: #FFB347;
-  --bg-start: #0F0C29;
-  --bg-end: #1A1145;
+  --bg-start: #070615;
+  --bg-end: #130C32;
   --text-dark: #E8E4F0;
   --text-light: #A9A3C0;
-  --white: #1E1B2E;
-  --glass-bg: rgba(20, 17, 38, 0.7);
-  --glass-border: rgba(155, 143, 255, 0.28);
-  --glass-shadow: rgba(0, 0, 0, 0.25);
+  --white: #201C34;
+  --glass-bg: rgba(28, 24, 45, 0.86);
+  --glass-border: rgba(184, 174, 255, 0.42);
+  --glass-shadow: rgba(0, 0, 0, 0.42);
 }
 
 * {

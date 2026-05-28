@@ -636,13 +636,13 @@ html.dark .back-btn:hover { background: rgba(155, 143, 255, 0.15); }
 html.dark .page-title { color: #E8E4F0; }
 html.dark .page-subtitle { color: #A9A3C0; }
 html.dark .glass {
-  background: rgba(30, 27, 46, 0.6);
-  border-color: rgba(155, 143, 255, 0.2);
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+  background: rgba(31, 27, 49, 0.86);
+  border-color: rgba(184, 174, 255, 0.38);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
 }
 html.dark .section-title { color: #E8E4F0; }
 html.dark .overview-card:hover {
-  box-shadow: 0 12px 30px rgba(155, 143, 255, 0.12);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.38), 0 0 26px rgba(155, 143, 255, 0.14);
 }
 html.dark .ov-label { color: #A9A3C0; }
 html.dark .ov-sub { color: #A9A3C0; }

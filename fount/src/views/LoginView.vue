@@ -863,9 +863,9 @@ html.dark .glow-2 { background: rgba(255, 179, 71, 0.08); }
 html.dark .glow-3 { background: rgba(155, 143, 255, 0.1); }
 html.dark .back-btn:hover { background: rgba(155, 143, 255, 0.15); }
 html.dark .login-card {
-  background: rgba(30, 27, 46, 0.65);
-  border-color: rgba(155, 143, 255, 0.2);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  background: rgba(31, 27, 49, 0.9);
+  border-color: rgba(184, 174, 255, 0.4);
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
 }
 html.dark .mode-tabs { background: rgba(155, 143, 255, 0.08); }
 html.dark .mode-tab.active { background: rgba(155, 143, 255, 0.2); }
@@ -897,9 +897,9 @@ html.dark .success-msg {
   border-color: rgba(76, 175, 80, 0.25);
 }
 html.dark .glass {
-  background: rgba(20, 17, 38, 0.7);
-  border-color: rgba(155, 143, 255, 0.28);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  background: rgba(28, 24, 45, 0.86);
+  border-color: rgba(184, 174, 255, 0.42);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
 }
 html.dark .submit-btn { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.3); }
 html.dark .submit-btn:hover { box-shadow: 0 8px 25px rgba(155, 143, 255, 0.4); }

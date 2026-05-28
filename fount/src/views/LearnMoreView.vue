@@ -799,21 +799,21 @@ html.dark .secondary-btn:hover { background: rgba(155, 143, 255, 0.12); }
 html.dark .section-title { color: #E8E4F0; }
 html.dark .feature-card {
   background: var(--glass-bg);
-  border-color: rgba(155, 143, 255, 0.15);
+  border-color: rgba(184, 174, 255, 0.34);
 }
-html.dark .feature-card:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2); }
+html.dark .feature-card:hover { box-shadow: 0 16px 42px rgba(0, 0, 0, 0.38), 0 0 26px rgba(155, 143, 255, 0.12); }
 html.dark .feature-card h3 { color: #E8E4F0; }
 html.dark .feature-card p { color: #A9A3C0; }
 html.dark .about-card {
   background: var(--glass-bg);
-  border-color: rgba(155, 143, 255, 0.15);
+  border-color: rgba(184, 174, 255, 0.34);
 }
 html.dark .about-card h2 { color: #E8E4F0; }
 html.dark .about-card p { color: #A9A3C0; }
-html.dark .glass { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
+html.dark .glass { box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(184, 174, 255, 0.08) inset; }
 html.dark .step {
   background: var(--glass-bg);
-  border-color: rgba(155, 143, 255, 0.12);
+  border-color: rgba(184, 174, 255, 0.3);
 }
 html.dark .step-content h3 { color: #E8E4F0; }
 html.dark .step-content p { color: #A9A3C0; }
@@ -825,7 +825,7 @@ html.dark .tech-tag {
 html.dark .tech-tag:hover { background: rgba(155, 143, 255, 0.2); }
 html.dark .cta-content {
   background: var(--glass-bg);
-  border-color: rgba(155, 143, 255, 0.15);
+  border-color: rgba(184, 174, 255, 0.34);
 }
 html.dark .cta-content h2 { color: #E8E4F0; }
 html.dark .cta-content p { color: #A9A3C0; }

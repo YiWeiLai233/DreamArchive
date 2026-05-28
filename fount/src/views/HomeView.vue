@@ -3,11 +3,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
 import { getDreamStats } from '@/api/user'
-import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
 const userStore = useUserStore()
-const { theme, toggleTheme } = useTheme()
 
 // 统计数据
 const totalDreams = ref(0)
@@ -152,10 +150,6 @@ function goLearnMore() {
         <span class="brand-icon">🌙</span>
         <span class="brand-text">梦境档案</span>
       </div>
-      <button class="theme-toggle" @click="toggleTheme" :title="theme === 'light' ? '切换深色模式' : '切换浅色模式'">
-        <span v-if="theme === 'dark'">☀️</span>
-        <span v-else>🌙</span>
-      </button>
       <div class="nav-auth">
         <!-- 未登录：显示登录注册按钮 -->
         <template v-if="!userStore.isLoggedIn">
@@ -404,37 +398,6 @@ function goLearnMore() {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-dark);
-}
-
-/* 主题切换按钮 */
-.theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(124, 111, 224, 0.25);
-  background: rgba(124, 111, 224, 0.08);
-  backdrop-filter: blur(10px);
-  cursor: pointer;
-  font-size: 1.35rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 0 2px rgba(124, 111, 224, 0.1);
-}
-.theme-toggle:hover {
-  transform: translateY(-2px);
-  background: rgba(124, 111, 224, 0.15);
-  box-shadow: 0 0 0 2px rgba(124, 111, 224, 0.2), 0 4px 15px rgba(124, 111, 224, 0.15);
-}
-html.dark .theme-toggle {
-  border-color: rgba(155, 143, 255, 0.3);
-  background: rgba(155, 143, 255, 0.1);
-  box-shadow: 0 0 0 2px rgba(155, 143, 255, 0.12);
-}
-html.dark .theme-toggle:hover {
-  background: rgba(155, 143, 255, 0.18);
-  box-shadow: 0 0 0 2px rgba(155, 143, 255, 0.2), 0 4px 15px rgba(155, 143, 255, 0.12);
 }
 
 .nav-auth {
@@ -1186,31 +1149,33 @@ html.dark .btn-login {
 }
 html.dark .btn-login:hover { background: rgba(155, 143, 255, 0.12); }
 html.dark .glass {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
 }
 html.dark .feature-card h3 { color: #E8E4F0; }
 html.dark .quick-card.qc-purple {
-  background: linear-gradient(135deg, rgba(155,143,255,0.12), rgba(30,27,46,0.5));
+  background: linear-gradient(135deg, rgba(155,143,255,0.18), rgba(28,24,45,0.88));
+  border-color: rgba(184, 174, 255, 0.34);
 }
 html.dark .quick-card.qc-purple:hover {
-  background: linear-gradient(135deg, rgba(155,143,255,0.22), rgba(184,174,255,0.12));
+  background: linear-gradient(135deg, rgba(155,143,255,0.28), rgba(184,174,255,0.16));
 }
 html.dark .quick-card.qc-orange {
-  background: linear-gradient(135deg, rgba(255,179,71,0.12), rgba(30,27,46,0.5));
+  background: linear-gradient(135deg, rgba(255,179,71,0.18), rgba(28,24,45,0.88));
+  border-color: rgba(255, 179, 71, 0.3);
 }
 html.dark .quick-card.qc-orange:hover {
-  background: linear-gradient(135deg, rgba(255,179,71,0.22), rgba(255,210,138,0.12));
+  background: linear-gradient(135deg, rgba(255,179,71,0.28), rgba(255,210,138,0.16));
 }
 html.dark .stat-card:hover {
-  box-shadow: 0 12px 30px rgba(155,143,255,0.15);
-  background: linear-gradient(135deg, rgba(155,143,255,0.1), rgba(255,143,171,0.06));
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.38), 0 0 28px rgba(155,143,255,0.14);
+  background: linear-gradient(135deg, rgba(155,143,255,0.14), rgba(255,143,171,0.08));
 }
 html.dark .learn-more-card {
-  border-color: rgba(155, 143, 255, 0.2);
-  background: linear-gradient(135deg, rgba(155, 143, 255, 0.08) 0%, rgba(255, 179, 71, 0.05) 100%);
+  border-color: rgba(184, 174, 255, 0.34);
+  background: linear-gradient(135deg, rgba(155, 143, 255, 0.13) 0%, rgba(255, 179, 71, 0.08) 100%);
 }
 html.dark .learn-more-card:hover {
-  box-shadow: 0 12px 40px rgba(155, 143, 255, 0.12);
-  border-color: rgba(155, 143, 255, 0.3);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.38), 0 0 28px rgba(155, 143, 255, 0.14);
+  border-color: rgba(184, 174, 255, 0.48);
 }
 </style>

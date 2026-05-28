@@ -1319,6 +1319,23 @@ onMounted(loadOverview)
   font-size: 0.82rem;
 }
 
+.data-table th:nth-child(4),
+.data-table td:nth-child(4),
+.data-table th:nth-child(5),
+.data-table td:nth-child(5) {
+  white-space: nowrap;
+}
+
+.data-table th:nth-child(4),
+.data-table td:nth-child(4) {
+  min-width: 6.25rem;
+}
+
+.data-table th:nth-child(5),
+.data-table td:nth-child(5) {
+  min-width: 4.75rem;
+}
+
 .data-table th {
   color: #64748b;
   background: #f8fafc;
@@ -1368,12 +1385,17 @@ onMounted(loadOverview)
 .badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   height: 1.5rem;
+  min-width: max-content;
   padding: 0 0.5rem;
   border-radius: 6px;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: keep-all;
 }
 
 .badge-gray { background: #f1f5f9; color: #475569; }

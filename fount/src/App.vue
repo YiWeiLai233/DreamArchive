@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useTheme } from '@/composables/useTheme'
-useTheme()
+import ThemeToggle from '@/components/ThemeToggle.vue'
 </script>
 
 <template>
   <router-view />
+  <ThemeToggle />
 </template>
 
 <style>
