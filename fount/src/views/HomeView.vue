@@ -3,9 +3,11 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
 import { getDreamStats } from '@/api/user'
+import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { theme, toggleTheme } = useTheme()
 
 // 统计数据
 const totalDreams = ref(0)
@@ -150,6 +152,10 @@ function goLearnMore() {
         <span class="brand-icon">🌙</span>
         <span class="brand-text">梦境档案</span>
       </div>
+      <button class="theme-toggle" @click="toggleTheme" :title="theme === 'light' ? '切换深色模式' : '切换浅色模式'">
+        <span v-if="theme === 'dark'">☀️</span>
+        <span v-else>🌙</span>
+      </button>
       <div class="nav-auth">
         <!-- 未登录：显示登录注册按钮 -->
         <template v-if="!userStore.isLoggedIn">
@@ -411,6 +417,37 @@ function goLearnMore() {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-dark);
+}
+
+/* 主题切换按钮 */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(124, 111, 224, 0.25);
+  background: rgba(124, 111, 224, 0.08);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  font-size: 1.35rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 0 2px rgba(124, 111, 224, 0.1);
+}
+.theme-toggle:hover {
+  transform: translateY(-2px);
+  background: rgba(124, 111, 224, 0.15);
+  box-shadow: 0 0 0 2px rgba(124, 111, 224, 0.2), 0 4px 15px rgba(124, 111, 224, 0.15);
+}
+html.dark .theme-toggle {
+  border-color: rgba(155, 143, 255, 0.3);
+  background: rgba(155, 143, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(155, 143, 255, 0.12);
+}
+html.dark .theme-toggle:hover {
+  background: rgba(155, 143, 255, 0.18);
+  box-shadow: 0 0 0 2px rgba(155, 143, 255, 0.2), 0 4px 15px rgba(155, 143, 255, 0.12);
 }
 
 .nav-auth {
@@ -1129,5 +1166,64 @@ function goLearnMore() {
   .sd-7  { right: 10%; font-size: 2.6rem; }
   .sd-8  { right: 4%; font-size: 3.2rem; }
   .dashboard { max-width: 960px; }
+}
+
+/* 深夜模式 */
+html.dark .stars {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, rgba(155,143,255,0.6), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(155,143,255,0.5), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(155,143,255,0.5), transparent);
+}
+html.dark .cloud { background: rgba(155, 143, 255, 0.12); }
+html.dark .glow-1 { background: rgba(124, 111, 224, 0.2); }
+html.dark .glow-2 { background: rgba(255, 179, 71, 0.1); }
+html.dark .sd { opacity: 0.15; }
+html.dark .user-dropdown {
+  background: rgba(30, 27, 46, 0.9);
+  border-color: rgba(155, 143, 255, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+html.dark .dropdown-username { color: #E8E4F0; }
+html.dark .dropdown-divider { background: rgba(155, 143, 255, 0.15); }
+html.dark .dropdown-item { color: #E8E4F0; }
+html.dark .dropdown-item:hover { background: rgba(155, 143, 255, 0.12); }
+html.dark .admin-item { color: #B8AEFF; }
+html.dark .admin-item:hover { background: rgba(155, 143, 255, 0.15); }
+html.dark .logout-item:hover { background: rgba(255, 82, 82, 0.15); }
+html.dark .btn-login {
+  color: #E8E4F0;
+  border-color: rgba(155, 143, 255, 0.25);
+}
+html.dark .btn-login:hover { background: rgba(155, 143, 255, 0.12); }
+html.dark .glass {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+html.dark .feature-card h3 { color: #E8E4F0; }
+html.dark .quick-card.qc-purple {
+  background: linear-gradient(135deg, rgba(155,143,255,0.12), rgba(30,27,46,0.5));
+}
+html.dark .quick-card.qc-purple:hover {
+  background: linear-gradient(135deg, rgba(155,143,255,0.22), rgba(184,174,255,0.12));
+}
+html.dark .quick-card.qc-orange {
+  background: linear-gradient(135deg, rgba(255,179,71,0.12), rgba(30,27,46,0.5));
+}
+html.dark .quick-card.qc-orange:hover {
+  background: linear-gradient(135deg, rgba(255,179,71,0.22), rgba(255,210,138,0.12));
+}
+html.dark .stat-card:hover {
+  box-shadow: 0 12px 30px rgba(155,143,255,0.15);
+  background: linear-gradient(135deg, rgba(155,143,255,0.1), rgba(255,143,171,0.06));
+}
+html.dark .learn-more-card {
+  border-color: rgba(155, 143, 255, 0.2);
+  background: linear-gradient(135deg, rgba(155, 143, 255, 0.08) 0%, rgba(255, 179, 71, 0.05) 100%);
+}
+html.dark .learn-more-card:hover {
+  box-shadow: 0 12px 40px rgba(155, 143, 255, 0.12);
+  border-color: rgba(155, 143, 255, 0.3);
 }
 </style>

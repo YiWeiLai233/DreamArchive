@@ -772,4 +772,62 @@ function goDreamList() {
   .step-content h3 { font-size: 1.15rem; }
   .step-content p { font-size: 0.92rem; line-height: 1.7; }
 }
+
+/* 深夜模式 */
+html.dark .stars {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, rgba(155,143,255,0.6), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(155,143,255,0.5), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(155,143,255,0.5), transparent);
+}
+html.dark .cloud { background: rgba(155, 143, 255, 0.12); }
+html.dark .glow-1 { background: rgba(124, 111, 224, 0.2); }
+html.dark .glow-2 { background: rgba(255, 179, 71, 0.1); }
+html.dark .brand-text { color: #E8E4F0; }
+html.dark .nav-auth .btn-login {
+  color: #E8E4F0;
+  border-color: rgba(155, 143, 255, 0.25);
+}
+html.dark .hero-subtitle { color: #A9A3C0; }
+html.dark .register-btn { box-shadow: 0 4px 20px rgba(155, 143, 255, 0.3); }
+html.dark .register-btn:hover { box-shadow: 0 8px 30px rgba(155, 143, 255, 0.4); }
+html.dark .primary-btn { box-shadow: 0 4px 20px rgba(155, 143, 255, 0.3); }
+html.dark .primary-btn:hover { box-shadow: 0 8px 30px rgba(155, 143, 255, 0.4); }
+html.dark .secondary-btn:hover { background: rgba(155, 143, 255, 0.12); }
+html.dark .section-title { color: #E8E4F0; }
+html.dark .feature-card {
+  background: var(--glass-bg);
+  border-color: rgba(155, 143, 255, 0.15);
+}
+html.dark .feature-card:hover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2); }
+html.dark .feature-card h3 { color: #E8E4F0; }
+html.dark .feature-card p { color: #A9A3C0; }
+html.dark .about-card {
+  background: var(--glass-bg);
+  border-color: rgba(155, 143, 255, 0.15);
+}
+html.dark .about-card h2 { color: #E8E4F0; }
+html.dark .about-card p { color: #A9A3C0; }
+html.dark .glass { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
+html.dark .step {
+  background: var(--glass-bg);
+  border-color: rgba(155, 143, 255, 0.12);
+}
+html.dark .step-content h3 { color: #E8E4F0; }
+html.dark .step-content p { color: #A9A3C0; }
+html.dark .tech-tag {
+  background: rgba(155, 143, 255, 0.12);
+  border-color: rgba(155, 143, 255, 0.25);
+  color: #B8AEFF;
+}
+html.dark .tech-tag:hover { background: rgba(155, 143, 255, 0.2); }
+html.dark .cta-content {
+  background: var(--glass-bg);
+  border-color: rgba(155, 143, 255, 0.15);
+}
+html.dark .cta-content h2 { color: #E8E4F0; }
+html.dark .cta-content p { color: #A9A3C0; }
+html.dark .footer-content p { color: #A9A3C0; }
 </style>

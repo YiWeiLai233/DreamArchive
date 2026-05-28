@@ -395,7 +395,7 @@ function goBack() {
           </div>
           <h3 class="dream-title">{{ dream.title }}</h3>
           <img v-if="dream.imageUrl" :src="dream.imageUrl" class="dream-card-image" />
-          <p class="dream-preview">{{ dream.content.slice(0, 80) }}...</p>
+          <p v-else class="dream-preview">{{ dream.content.slice(0, 80) }}...</p>
           <div class="card-bottom">
             <span class="dream-meta">📍 {{ dream.place }}</span>
             <span class="dream-meta">🕐 {{ dream.time }}</span>
@@ -996,4 +996,121 @@ function goBack() {
   border-radius: 12px; margin-top: 0.8rem;
   border: 1px solid rgba(124,111,224,0.15);
 }
+
+/* 深夜模式 */
+html.dark .glass {
+  background: rgba(20, 17, 38, 0.7);
+  border-color: rgba(155, 143, 255, 0.28);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+html.dark .stars {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, rgba(155,143,255,0.6), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(155,143,255,0.5), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(155,143,255,0.5), transparent);
+}
+html.dark .cloud { background: rgba(155, 143, 255, 0.12); }
+html.dark .glow-1 { background: rgba(124, 111, 224, 0.15); }
+html.dark .glow-2 { background: rgba(255, 179, 71, 0.08); }
+html.dark .back-btn:hover { background: rgba(155, 143, 255, 0.15); }
+html.dark .page-title { color: #E8E4F0; }
+html.dark .page-subtitle { color: #A9A3C0; }
+html.dark .search-bar {
+  background: rgba(30, 27, 46, 0.5);
+  border-color: rgba(155, 143, 255, 0.15);
+  color: #E8E4F0;
+}
+html.dark .search-bar:focus {
+  background: rgba(30, 27, 46, 0.7);
+  border-color: var(--primary);
+}
+html.dark .search-bar::placeholder { color: rgba(169, 163, 192, 0.5); }
+html.dark .filter-btn { border-color: rgba(155, 143, 255, 0.15); color: #A9A3C0; }
+html.dark .filter-btn:hover { background: rgba(155, 143, 255, 0.1); }
+html.dark .filter-btn.active {
+  background: var(--primary);
+  box-shadow: 0 2px 10px rgba(155, 143, 255, 0.25);
+}
+html.dark .dream-card {
+  background: rgba(30, 27, 46, 0.55);
+  border-color: rgba(155, 143, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+html.dark .dream-card:hover {
+  background: rgba(30, 27, 46, 0.7);
+  box-shadow: 0 12px 40px rgba(155, 143, 255, 0.12);
+}
+html.dark .card-title { color: #E8E4F0; }
+html.dark .card-date { color: #A9A3C0; }
+html.dark .card-content { color: #A9A3C0; }
+html.dark .emotion-badge { background: rgba(155, 143, 255, 0.12); }
+html.dark .analysis-badge { background: rgba(155, 143, 255, 0.15); color: #B8AEFF; }
+html.dark .card-footer { border-color: rgba(155, 143, 255, 0.1); }
+html.dark .analyze-btn {
+  border-color: rgba(155, 143, 255, 0.2);
+  background: rgba(155, 143, 255, 0.06);
+  color: #B8AEFF;
+}
+html.dark .analyze-btn:hover {
+  background: rgba(155, 143, 255, 0.15);
+  border-color: rgba(155, 143, 255, 0.35);
+}
+html.dark .delete-btn {
+  border-color: rgba(255, 82, 82, 0.2);
+  background: rgba(255, 82, 82, 0.06);
+  color: #FF6B6B;
+}
+html.dark .delete-btn:hover {
+  background: rgba(255, 82, 82, 0.12);
+  border-color: rgba(255, 82, 82, 0.3);
+}
+html.dark .empty-card {
+  background: rgba(30, 27, 46, 0.5);
+  border-color: rgba(155, 143, 255, 0.15);
+}
+html.dark .empty-icon { opacity: 0.6; }
+html.dark .empty-title { color: #E8E4F0; }
+html.dark .empty-text { color: #A9A3C0; }
+html.dark .empty-cta { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.25); }
+html.dark .spinner { border-color: rgba(155, 143, 255, 0.2); border-top-color: #B8AEFF; }
+html.dark .error-text { color: #FF6B6B; }
+html.dark .retry-btn { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.25); }
+html.dark .modal-card {
+  background: rgba(30, 27, 46, 0.92);
+  border-color: rgba(155, 143, 255, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+html.dark .close-btn { background: rgba(155, 143, 255, 0.1); }
+html.dark .close-btn:hover { background: rgba(155, 143, 255, 0.2); }
+html.dark .detail-title { color: #E8E4F0; }
+html.dark .detail-meta { color: #A9A3C0; }
+html.dark .detail-section-text { color: #A9A3C0; }
+html.dark .analysis-status { background: rgba(155, 143, 255, 0.12); }
+html.dark .analysis-spinner { border-color: rgba(155, 143, 255, 0.2); border-top-color: #B8AEFF; }
+html.dark .interpretation-box { background: rgba(155, 143, 255, 0.08); }
+html.dark .interpretation-heading { background: rgba(155, 143, 255, 0.12); }
+html.dark .interpretation-item { background: rgba(30, 27, 46, 0.4); }
+html.dark .interpretation-text { color: #A9A3C0; }
+html.dark .interpretation-item-text { color: #A9A3C0; }
+html.dark .delete-detail-btn {
+  border-color: rgba(255, 82, 82, 0.25);
+  background: rgba(255, 82, 82, 0.08);
+  color: #FF6B6B;
+}
+html.dark .delete-detail-btn:hover { background: rgba(255, 82, 82, 0.15); }
+html.dark .confirm-card {
+  background: rgba(30, 27, 46, 0.95);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+html.dark .confirm-text { color: #A9A3C0; }
+html.dark .confirm-cancel {
+  background: rgba(30, 27, 46, 0.6);
+  color: #E8E4F0;
+  border-color: rgba(155, 143, 255, 0.15);
+}
+html.dark .confirm-cancel:hover { background: rgba(30, 27, 46, 0.8); }
+html.dark .card-image { border-color: rgba(155, 143, 255, 0.12); }
+html.dark .detail-image { border-color: rgba(155, 143, 255, 0.15); }
 </style>

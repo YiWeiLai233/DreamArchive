@@ -492,4 +492,94 @@ function goBack() { router.push('/') }
   .stat-value { font-size: 1.6rem; }
   .stat-label { font-size: 0.88rem; }
 }
+
+/* 深夜模式 */
+html.dark .glass {
+  background: rgba(20, 17, 38, 0.7);
+  border-color: rgba(155, 143, 255, 0.28);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+html.dark .stars {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, rgba(155,143,255,0.6), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(155,143,255,0.5), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(155,143,255,0.5), transparent);
+}
+html.dark .cloud { background: rgba(155, 143, 255, 0.12); }
+html.dark .glow-1 { background: rgba(124, 111, 224, 0.15); }
+html.dark .glow-2 { background: rgba(255, 179, 71, 0.08); }
+html.dark .back-btn:hover { background: rgba(155, 143, 255, 0.15); }
+html.dark .page-title { color: #E8E4F0; }
+html.dark .profile-card {
+  background: rgba(30, 27, 46, 0.6);
+  border-color: rgba(155, 143, 255, 0.2);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+}
+html.dark .avatar-large {
+  border-color: rgba(155, 143, 255, 0.3);
+  box-shadow: 0 4px 20px rgba(155, 143, 255, 0.2);
+}
+html.dark .avatar-large:hover { box-shadow: 0 6px 25px rgba(155, 143, 255, 0.3); }
+html.dark .avatar-action { background: rgba(155, 143, 255, 0.12); }
+html.dark .avatar-action:hover { background: rgba(155, 143, 255, 0.2); }
+html.dark .profile-name { color: #E8E4F0; }
+html.dark .profile-email { color: #A9A3C0; }
+html.dark .profile-bio { color: #A9A3C0; border-color: rgba(155, 143, 255, 0.2); }
+html.dark .detail-row { border-color: rgba(155, 143, 255, 0.08); }
+html.dark .detail-row:hover { background: rgba(155, 143, 255, 0.06); }
+html.dark .detail-label { color: #A9A3C0; }
+html.dark .detail-value { color: #E8E4F0; }
+html.dark .edit-btn { background: rgba(155, 143, 255, 0.08); color: #B8AEFF; }
+html.dark .edit-btn:hover { background: rgba(155, 143, 255, 0.15); }
+html.dark .section-card {
+  background: rgba(30, 27, 46, 0.5);
+  border-color: rgba(155, 143, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+html.dark .section-title { color: #E8E4F0; }
+html.dark .input-wrapper input,
+html.dark .input-wrapper textarea {
+  background: rgba(30, 27, 46, 0.5);
+  border-color: rgba(155, 143, 255, 0.15);
+  color: #E8E4F0;
+}
+html.dark .input-wrapper input:focus,
+html.dark .input-wrapper textarea:focus {
+  background: rgba(30, 27, 46, 0.7);
+  box-shadow: 0 0 0 3px rgba(155, 143, 255, 0.15);
+}
+html.dark .input-wrapper input::placeholder,
+html.dark .input-wrapper textarea::placeholder { color: rgba(169, 163, 192, 0.5); }
+html.dark .readonly-field {
+  background: rgba(30, 27, 46, 0.35);
+  border-color: rgba(155, 143, 255, 0.1);
+  color: #A9A3C0;
+}
+html.dark .cancel-btn:hover { background: rgba(155, 143, 255, 0.12); }
+html.dark .save-btn { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.25); }
+html.dark .save-btn:hover { box-shadow: 0 8px 25px rgba(155, 143, 255, 0.35); }
+html.dark .error-msg {
+  background: rgba(255, 82, 82, 0.12);
+  color: #FF6B6B;
+  border-color: rgba(255, 82, 82, 0.25);
+}
+html.dark .success-msg {
+  background: rgba(76, 175, 80, 0.12);
+  color: #81C784;
+  border-color: rgba(76, 175, 80, 0.25);
+}
+html.dark .stat-card {
+  background: rgba(20, 17, 38, 0.7);
+  border-color: rgba(155, 143, 255, 0.28);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+html.dark .stat-card:hover { box-shadow: 0 12px 30px rgba(155, 143, 255, 0.15); }
+html.dark .stat-icon-wrap.si-0 { background: linear-gradient(135deg, rgba(155,143,255,0.2), rgba(155,143,255,0.08)); }
+html.dark .stat-icon-wrap.si-1 { background: linear-gradient(135deg, rgba(255,143,171,0.2), rgba(255,143,171,0.08)); }
+html.dark .stat-icon-wrap.si-2 { background: linear-gradient(135deg, rgba(155,143,255,0.15), rgba(255,143,171,0.12)); }
+html.dark .back-link { color: #A9A3C0; }
+html.dark .back-link:hover { color: #B8AEFF; }
+html.dark .label-small { background: rgba(155, 143, 255, 0.1); }
 </style>
