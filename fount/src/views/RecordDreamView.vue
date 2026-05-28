@@ -1301,8 +1301,10 @@ onBeforeUnmount(() => {
   .page-body { padding: 0 0.75rem 0.75rem; overflow: visible; }
   .form-layout { flex-direction: column; height: auto; gap: 0.75rem; }
   .form-card { flex: none; }
-  .form-card-main { flex: none; }
+  .form-card-main { flex: 1; min-height: 0; }
   .card-body { padding: 0.75rem; }
+  .card-body-content { flex: 1; min-height: 0; }
+  .dream-textarea { min-height: 280px; }
   .page-title { font-size: 1rem; }
   .nav-placeholder { display: none; }
   .meta-row-pair { flex-direction: column; gap: 0.5rem; }
@@ -1326,7 +1328,7 @@ onBeforeUnmount(() => {
   .page-nav { padding: 0.5rem 0.75rem; }
   .page-body { padding: 0 0.5rem 0.5rem; }
   .card-body { padding: 0.5rem; }
-  .dream-textarea { min-height: 200px; }
+  .dream-textarea { min-height: 240px; }
   .form-input { font-size: 0.88rem; padding: 0.5rem 0.7rem; }
   .dream-textarea { font-size: 0.88rem; padding: 0.5rem 0.7rem; }
   .emotion-btn { flex: 1; min-width: 0; padding: 0.35rem 0.25rem; }
