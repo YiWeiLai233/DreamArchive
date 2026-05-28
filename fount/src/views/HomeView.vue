@@ -262,19 +262,6 @@ function goLearnMore() {
         </div>
       </div>
 
-      <!-- 了解更多 -->
-      <div class="learn-more-card glass" @click="goLearnMore">
-        <div class="learn-more-content">
-          <div class="learn-more-left">
-            <span class="learn-more-icon">✨</span>
-            <div class="learn-more-text">
-              <h3>探索梦境的奥秘</h3>
-              <p>了解梦境解析的原理，发现潜意识中的秘密</p>
-            </div>
-          </div>
-          <span class="learn-more-arrow">→</span>
-        </div>
-      </div>
     </section>
 
     <!-- 未登录时只展示了解更多 -->
