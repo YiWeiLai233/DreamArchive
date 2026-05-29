@@ -127,6 +127,18 @@ function changeDreamPage(nextPage: number) {
   loadOverview()
 }
 
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | string)[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  if (start > 2) pages.push('...')
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (end < total - 1) pages.push('...')
+  pages.push(total)
+  return pages
+}
+
 function changeUserPageSize() {
   userPage.value = 1
   loadOverview()
@@ -615,11 +627,12 @@ onMounted(loadOverview)
                   </select>
                 </div>
                 <div class="page-btns">
-                  <button class="page-btn" type="button" :disabled="userPage <= 1 || isLoading" @click="changeUserPage(1)">&#x23EE;</button>
                   <button class="page-btn" type="button" :disabled="userPage <= 1 || isLoading" @click="changeUserPage(userPage - 1)">&#x276E;</button>
-                  <span class="page-current">{{ userPage }}</span>
+                  <template v-for="(p, i) in getPageNumbers(userPage, userTotalPages)" :key="i">
+                    <span v-if="p === '...'" class="page-ellipsis">...</span>
+                    <button v-else class="page-btn" :class="{ active: p === userPage }" type="button" :disabled="isLoading" @click="changeUserPage(p as number)">{{ p }}</button>
+                  </template>
                   <button class="page-btn" type="button" :disabled="userPage >= userTotalPages || isLoading" @click="changeUserPage(userPage + 1)">&#x276F;</button>
-                  <button class="page-btn" type="button" :disabled="userPage >= userTotalPages || isLoading" @click="changeUserPage(userTotalPages)">&#x23ED;</button>
                 </div>
               </div>
             </div>
@@ -681,11 +694,12 @@ onMounted(loadOverview)
                   </select>
                 </div>
                 <div class="page-btns">
-                  <button class="page-btn" type="button" :disabled="dreamPage <= 1 || isLoading" @click="changeDreamPage(1)">&#x23EE;</button>
                   <button class="page-btn" type="button" :disabled="dreamPage <= 1 || isLoading" @click="changeDreamPage(dreamPage - 1)">&#x276E;</button>
-                  <span class="page-current">{{ dreamPage }}</span>
+                  <template v-for="(p, i) in getPageNumbers(dreamPage, dreamTotalPages)" :key="i">
+                    <span v-if="p === '...'" class="page-ellipsis">...</span>
+                    <button v-else class="page-btn" :class="{ active: p === dreamPage }" type="button" :disabled="isLoading" @click="changeDreamPage(p as number)">{{ p }}</button>
+                  </template>
                   <button class="page-btn" type="button" :disabled="dreamPage >= dreamTotalPages || isLoading" @click="changeDreamPage(dreamPage + 1)">&#x276F;</button>
-                  <button class="page-btn" type="button" :disabled="dreamPage >= dreamTotalPages || isLoading" @click="changeDreamPage(dreamTotalPages)">&#x23ED;</button>
                 </div>
               </div>
             </div>
@@ -1543,17 +1557,21 @@ onMounted(loadOverview)
   cursor: not-allowed;
 }
 
-.page-current {
+.page-btn.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: white;
+  font-weight: 700;
+}
+
+.page-ellipsis {
   min-width: 1.8rem;
   height: 1.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  background: #6366f1;
-  color: white;
+  color: #94a3b8;
   font-size: 0.75rem;
-  font-weight: 700;
 }
 
 /* ===== Empty / State ===== */
@@ -2359,10 +2377,12 @@ html.dark .page-btn:hover {
   background: #32324A;
   border-color: #3A3A52;
 }
-html.dark .page-current {
+html.dark .page-btn.active {
   background: #7C73E8;
+  border-color: #7C73E8;
   color: white;
 }
+html.dark .page-ellipsis { color: #6B6B80; }
 html.dark .empty-row { color: #6B6B80; }
 html.dark .state-section { color: #8B8BA0; }
 html.dark .state-section.error { color: #FF6B6B; }

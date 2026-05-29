@@ -762,6 +762,7 @@ onBeforeUnmount(() => {
                   </template>
                 </div>
                 <p class="result-section-text placeholder-text" v-else>梦境已成功保存，你可以在梦境列表中查看。</p>
+                <p class="ai-disclaimer" v-if="formattedInterpretation.length">以上内容由 AI 生成，仅供娱乐参考，不构成专业心理或医学建议。</p>
               </div>
             </div>
           </div>
@@ -1281,6 +1282,14 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
   line-height: 1.8;
 }
+.ai-disclaimer {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(124, 111, 224, 0.15);
+  font-size: 0.75rem;
+  color: #9994B8;
+  text-align: center;
+}
 .placeholder-text { color: var(--text-light); font-style: italic; }
 
 .result-actions { display: flex; gap: 1rem; justify-content: center; }
@@ -1557,6 +1566,7 @@ html.dark .interpretation-heading { background: rgba(155, 143, 255, 0.12); }
 html.dark .interpretation-item { background: rgba(155, 143, 255, 0.08); }
 html.dark .interpretation-paragraph { color: #C6C0DA; }
 html.dark .interpretation-item p { color: #C6C0DA; }
+html.dark .ai-disclaimer { color: #8A84A8; border-top-color: rgba(155, 143, 255, 0.15); }
 html.dark .image-upload-area {
   border-color: rgba(184, 174, 255, 0.34);
   background: rgba(155, 143, 255, 0.08);

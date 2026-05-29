@@ -395,7 +395,7 @@ function goBack() {
           </div>
           <h3 class="dream-title">{{ dream.title }}</h3>
           <img v-if="dream.imageUrl" :src="dream.imageUrl" class="dream-card-image" />
-          <p v-else class="dream-preview">{{ dream.content.slice(0, 80) }}...</p>
+          <p v-else class="dream-preview">{{ dream.content }}</p>
           <div class="card-bottom">
             <span class="dream-meta">📍 {{ dream.place }}</span>
             <span class="dream-meta">🕐 {{ dream.time }}</span>
@@ -459,6 +459,7 @@ function goBack() {
                   </template>
                 </div>
                 <p v-else class="section-text">暂无解析内容</p>
+                <p class="ai-disclaimer" v-if="selectedInterpretationBlocks.length">以上内容由 AI 生成，仅供娱乐参考，不构成专业心理或医学建议。</p>
               </div>
             </div>
           </div>
@@ -672,7 +673,11 @@ function goBack() {
   border-color: rgba(229,57,53,0.35);
 }
 .dream-title { font-size: 1.15rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem; }
-.dream-preview { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.75rem; flex: 1; }
+.dream-preview {
+  font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.75rem;
+  flex: 1; min-height: 0;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
 .card-bottom { display: flex; gap: 1rem; }
 .dream-meta { font-size: 0.8rem; color: var(--text-light); }
 
@@ -825,6 +830,14 @@ function goBack() {
   font-size: 0.92rem;
   line-height: 1.8;
 }
+.ai-disclaimer {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(124, 111, 224, 0.15);
+  font-size: 0.75rem;
+  color: #9994B8;
+  text-align: center;
+}
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -944,7 +957,7 @@ function goBack() {
   .dreams-container { padding: 0 0.75rem; }
   .dream-card { padding: 1rem; }
   .dream-title { font-size: 1rem; }
-  .dream-preview { font-size: 0.82rem; }
+  .dream-preview { font-size: 0.82rem; -webkit-line-clamp: 2; }
   .filter-tab { padding: 0.45rem 0.8rem; font-size: 0.78rem; }
   .search-box input { font-size: 0.88rem; padding: 0.6rem 0.8rem; }
   .empty-state { padding: 2rem 1rem; }
@@ -963,7 +976,7 @@ function goBack() {
   .dreams-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
   .dream-card { padding: 1.75rem; }
   .dream-title { font-size: 1.25rem; }
-  .dream-preview { font-size: 0.95rem; }
+  .dream-preview { font-size: 0.95rem; -webkit-line-clamp: 4; }
   .modal-card { max-width: 1100px; padding: 3rem 4rem; }
   .modal-overlay { padding: 1.5rem; }
   .modal-close { top: 1.25rem; right: 1.25rem; width: 36px; height: 36px; font-size: 1.1rem; }
@@ -1096,6 +1109,7 @@ html.dark .interpretation-heading { background: rgba(155, 143, 255, 0.12); }
 html.dark .interpretation-item { background: rgba(24, 20, 39, 0.62); }
 html.dark .interpretation-paragraph { color: #C6C0DA; }
 html.dark .interpretation-item p { color: #C6C0DA; }
+html.dark .ai-disclaimer { color: #8A84A8; border-top-color: rgba(155, 143, 255, 0.15); }
 html.dark .delete-detail-btn {
   border-color: rgba(255, 82, 82, 0.25);
   background: rgba(255, 82, 82, 0.08);
