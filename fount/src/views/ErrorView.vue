@@ -181,4 +181,26 @@ function goBack() { router.go(-1) }
   .error-title { font-size: 2rem; }
   .error-desc { font-size: 1.1rem; }
 }
+
+/* 深夜模式 */
+html.dark .stars {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, rgba(155,143,255,0.6), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(155,143,255,0.5), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(155,143,255,0.5), transparent);
+}
+html.dark .glow-1 { background: rgba(124, 111, 224, 0.15); }
+html.dark .glow-2 { background: rgba(255, 179, 71, 0.08); }
+html.dark .error-code { text-shadow: 0 0 40px rgba(155, 143, 255, 0.2); }
+html.dark .error-title { color: #E8E4F0; }
+html.dark .error-desc { color: #A9A3C0; }
+html.dark .btn-back {
+  color: #E8E4F0;
+  border-color: rgba(155, 143, 255, 0.25);
+}
+html.dark .btn-back:hover { background: rgba(155, 143, 255, 0.15); }
+html.dark .btn-home { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.25); }
+html.dark .btn-home:hover { box-shadow: 0 6px 20px rgba(155, 143, 255, 0.35); }
 </style>

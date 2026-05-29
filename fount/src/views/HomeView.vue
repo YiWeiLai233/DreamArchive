@@ -1117,4 +1117,65 @@ function goLearnMore() {
   .sd-8  { right: 4%; font-size: 3.2rem; }
   .dashboard { max-width: 960px; }
 }
+
+/* 深夜模式 */
+html.dark .stars {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, rgba(155,143,255,0.6), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(155,143,255,0.5), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(155,143,255,0.5), transparent);
+}
+html.dark .cloud { background: rgba(155, 143, 255, 0.12); }
+html.dark .glow-1 { background: rgba(124, 111, 224, 0.2); }
+html.dark .glow-2 { background: rgba(255, 179, 71, 0.1); }
+html.dark .sd { opacity: 0.15; }
+html.dark .user-dropdown {
+  background: rgba(30, 27, 46, 0.9);
+  border-color: rgba(155, 143, 255, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+html.dark .dropdown-username { color: #E8E4F0; }
+html.dark .dropdown-divider { background: rgba(155, 143, 255, 0.15); }
+html.dark .dropdown-item { color: #E8E4F0; }
+html.dark .dropdown-item:hover { background: rgba(155, 143, 255, 0.12); }
+html.dark .admin-item { color: #B8AEFF; }
+html.dark .admin-item:hover { background: rgba(155, 143, 255, 0.15); }
+html.dark .logout-item:hover { background: rgba(255, 82, 82, 0.15); }
+html.dark .btn-login {
+  color: #E8E4F0;
+  border-color: rgba(155, 143, 255, 0.25);
+}
+html.dark .btn-login:hover { background: rgba(155, 143, 255, 0.12); }
+html.dark .glass {
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
+}
+html.dark .feature-card h3 { color: #E8E4F0; }
+html.dark .quick-card.qc-purple {
+  background: linear-gradient(135deg, rgba(155,143,255,0.18), rgba(28,24,45,0.88));
+  border-color: rgba(184, 174, 255, 0.34);
+}
+html.dark .quick-card.qc-purple:hover {
+  background: linear-gradient(135deg, rgba(155,143,255,0.28), rgba(184,174,255,0.16));
+}
+html.dark .quick-card.qc-orange {
+  background: linear-gradient(135deg, rgba(255,179,71,0.18), rgba(28,24,45,0.88));
+  border-color: rgba(255, 179, 71, 0.3);
+}
+html.dark .quick-card.qc-orange:hover {
+  background: linear-gradient(135deg, rgba(255,179,71,0.28), rgba(255,210,138,0.16));
+}
+html.dark .stat-card:hover {
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.38), 0 0 28px rgba(155,143,255,0.14);
+  background: linear-gradient(135deg, rgba(155,143,255,0.14), rgba(255,143,171,0.08));
+}
+html.dark .learn-more-card {
+  border-color: rgba(184, 174, 255, 0.34);
+  background: linear-gradient(135deg, rgba(155, 143, 255, 0.13) 0%, rgba(255, 179, 71, 0.08) 100%);
+}
+html.dark .learn-more-card:hover {
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.38), 0 0 28px rgba(155, 143, 255, 0.14);
+  border-color: rgba(184, 174, 255, 0.48);
+}
 </style>

@@ -395,7 +395,7 @@ function goBack() {
           </div>
           <h3 class="dream-title">{{ dream.title }}</h3>
           <img v-if="dream.imageUrl" :src="dream.imageUrl" class="dream-card-image" />
-          <p class="dream-preview">{{ dream.content.slice(0, 80) }}...</p>
+          <p v-else class="dream-preview">{{ dream.content }}</p>
           <div class="card-bottom">
             <span class="dream-meta">📍 {{ dream.place }}</span>
             <span class="dream-meta">🕐 {{ dream.time }}</span>
@@ -459,6 +459,7 @@ function goBack() {
                   </template>
                 </div>
                 <p v-else class="section-text">暂无解析内容</p>
+                <p class="ai-disclaimer" v-if="selectedInterpretationBlocks.length">以上内容由 AI 生成，仅供娱乐参考，不构成专业心理或医学建议。</p>
               </div>
             </div>
           </div>
@@ -672,7 +673,11 @@ function goBack() {
   border-color: rgba(229,57,53,0.35);
 }
 .dream-title { font-size: 1.15rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem; }
-.dream-preview { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.75rem; flex: 1; }
+.dream-preview {
+  font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.75rem;
+  flex: 1; min-height: 0;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
 .card-bottom { display: flex; gap: 1rem; }
 .dream-meta { font-size: 0.8rem; color: var(--text-light); }
 
@@ -825,6 +830,14 @@ function goBack() {
   font-size: 0.92rem;
   line-height: 1.8;
 }
+.ai-disclaimer {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(124, 111, 224, 0.15);
+  font-size: 0.75rem;
+  color: #9994B8;
+  text-align: center;
+}
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -944,7 +957,7 @@ function goBack() {
   .dreams-container { padding: 0 0.75rem; }
   .dream-card { padding: 1rem; }
   .dream-title { font-size: 1rem; }
-  .dream-preview { font-size: 0.82rem; }
+  .dream-preview { font-size: 0.82rem; -webkit-line-clamp: 2; }
   .filter-tab { padding: 0.45rem 0.8rem; font-size: 0.78rem; }
   .search-box input { font-size: 0.88rem; padding: 0.6rem 0.8rem; }
   .empty-state { padding: 2rem 1rem; }
@@ -963,7 +976,7 @@ function goBack() {
   .dreams-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
   .dream-card { padding: 1.75rem; }
   .dream-title { font-size: 1.25rem; }
-  .dream-preview { font-size: 0.95rem; }
+  .dream-preview { font-size: 0.95rem; -webkit-line-clamp: 4; }
   .modal-card { max-width: 1100px; padding: 3rem 4rem; }
   .modal-overlay { padding: 1.5rem; }
   .modal-close { top: 1.25rem; right: 1.25rem; width: 36px; height: 36px; font-size: 1.1rem; }
@@ -996,4 +1009,125 @@ function goBack() {
   border-radius: 12px; margin-top: 0.8rem;
   border: 1px solid rgba(124,111,224,0.15);
 }
+
+/* 深夜模式 */
+html.dark .glass {
+  background: rgba(28, 24, 45, 0.86);
+  border-color: rgba(184, 174, 255, 0.42);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
+}
+html.dark .stars {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, rgba(155,143,255,0.6), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(155,143,255,0.5), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(155,143,255,0.5), transparent);
+}
+html.dark .cloud { background: rgba(155, 143, 255, 0.12); }
+html.dark .glow-1 { background: rgba(124, 111, 224, 0.15); }
+html.dark .glow-2 { background: rgba(255, 179, 71, 0.08); }
+html.dark .back-btn:hover { background: rgba(155, 143, 255, 0.15); }
+html.dark .page-title { color: #E8E4F0; }
+html.dark .page-subtitle { color: #A9A3C0; }
+html.dark .search-box input {
+  background: rgba(34, 29, 54, 0.7);
+  border-color: rgba(184, 174, 255, 0.24);
+  color: #E8E4F0;
+}
+html.dark .search-box:focus-within {
+  background: rgba(39, 33, 62, 0.9);
+  border-color: var(--primary);
+}
+html.dark .search-box input::placeholder { color: rgba(169, 163, 192, 0.58); }
+html.dark .filter-tab { border-color: rgba(184, 174, 255, 0.28); color: #C6C0DA; }
+html.dark .filter-tab:hover { background: rgba(155, 143, 255, 0.16); }
+html.dark .filter-tab.active {
+  background: var(--primary);
+  box-shadow: 0 2px 10px rgba(155, 143, 255, 0.25);
+}
+html.dark .dream-card {
+  background: rgba(31, 27, 49, 0.88);
+  border-color: rgba(184, 174, 255, 0.34);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.36), 0 0 0 1px rgba(184, 174, 255, 0.06) inset;
+}
+html.dark .dream-card:hover {
+  background: rgba(39, 33, 62, 0.94);
+  border-color: rgba(184, 174, 255, 0.52);
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.44), 0 0 28px rgba(155, 143, 255, 0.12);
+}
+html.dark .dream-title { color: #F1EEFA; }
+html.dark .dream-date { color: #BFB8D5; }
+html.dark .dream-preview { color: #C6C0DA; }
+html.dark .dream-meta { color: #BFB8D5; }
+html.dark .emotion-badge { background: rgba(155, 143, 255, 0.12); }
+html.dark .analysis-badge { background: rgba(155, 143, 255, 0.15); color: #B8AEFF; }
+html.dark .card-footer-actions { border-color: rgba(184, 174, 255, 0.16); }
+html.dark .card-action-btn.analyze {
+  border-color: rgba(155, 143, 255, 0.2);
+  background: rgba(155, 143, 255, 0.06);
+  color: #B8AEFF;
+}
+html.dark .card-action-btn.analyze:hover {
+  background: rgba(155, 143, 255, 0.15);
+  border-color: rgba(155, 143, 255, 0.35);
+}
+html.dark .card-action-btn.delete {
+  border-color: rgba(255, 82, 82, 0.2);
+  background: rgba(255, 82, 82, 0.06);
+  color: #FF6B6B;
+}
+html.dark .card-action-btn.delete:hover {
+  background: rgba(255, 82, 82, 0.12);
+  border-color: rgba(255, 82, 82, 0.3);
+}
+html.dark .empty-state {
+  background: rgba(31, 27, 49, 0.86);
+  border-color: rgba(184, 174, 255, 0.32);
+}
+html.dark .empty-icon { opacity: 0.6; }
+html.dark .empty-text { color: #A9A3C0; }
+html.dark .empty-hint { color: #A9A3C0; }
+html.dark .empty-cta { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.25); }
+html.dark .spinner { border-color: rgba(155, 143, 255, 0.2); border-top-color: #B8AEFF; }
+html.dark .error-state p { color: #FF6B6B; }
+html.dark .retry-btn { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.25); }
+html.dark .modal-card {
+  background: rgba(31, 27, 49, 0.96);
+  border-color: rgba(184, 174, 255, 0.42);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
+}
+html.dark .modal-close { background: rgba(155, 143, 255, 0.12); }
+html.dark .modal-close:hover { background: rgba(155, 143, 255, 0.22); }
+html.dark .modal-title { color: #F1EEFA; }
+html.dark .modal-meta span { color: #BFB8D5; }
+html.dark .section-text { color: #C6C0DA; }
+html.dark .analysis-refresh-status { background: rgba(155, 143, 255, 0.14); }
+html.dark .analysis-spinner { border-color: rgba(155, 143, 255, 0.2); border-top-color: #B8AEFF; }
+html.dark .interpretation { background: rgba(155, 143, 255, 0.1); }
+html.dark .interpretation-heading { background: rgba(155, 143, 255, 0.12); }
+html.dark .interpretation-item { background: rgba(24, 20, 39, 0.62); }
+html.dark .interpretation-paragraph { color: #C6C0DA; }
+html.dark .interpretation-item p { color: #C6C0DA; }
+html.dark .ai-disclaimer { color: #8A84A8; border-top-color: rgba(155, 143, 255, 0.15); }
+html.dark .delete-detail-btn {
+  border-color: rgba(255, 82, 82, 0.25);
+  background: rgba(255, 82, 82, 0.08);
+  color: #FF6B6B;
+}
+html.dark .delete-detail-btn:hover { background: rgba(255, 82, 82, 0.15); }
+html.dark .confirm-card {
+  background: rgba(31, 27, 49, 0.97);
+  border-color: rgba(184, 174, 255, 0.36);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+html.dark .confirm-text { color: #A9A3C0; }
+html.dark .confirm-cancel {
+  background: rgba(30, 27, 46, 0.6);
+  color: #E8E4F0;
+  border-color: rgba(155, 143, 255, 0.15);
+}
+html.dark .confirm-cancel:hover { background: rgba(30, 27, 46, 0.8); }
+html.dark .dream-card-image { border-color: rgba(184, 174, 255, 0.22); }
+html.dark .detail-image { border-color: rgba(155, 143, 255, 0.15); }
 </style>

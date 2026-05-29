@@ -347,4 +347,60 @@ function goBack() { router.push('/') }
   .input-wrapper input { padding: 0.85rem 1.1rem; font-size: 1rem; }
   .submit-btn { padding: 0.95rem; font-size: 1.05rem; }
 }
+
+/* 深夜模式 */
+html.dark .stars {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, rgba(155,143,255,0.6), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(155,143,255,0.5), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(155,143,255,0.4), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(155,143,255,0.5), transparent);
+}
+html.dark .cloud { background: rgba(155, 143, 255, 0.12); }
+html.dark .glow-1 { background: rgba(124, 111, 224, 0.15); }
+html.dark .glow-2 { background: rgba(255, 179, 71, 0.08); }
+html.dark .back-btn:hover { background: rgba(155, 143, 255, 0.15); }
+html.dark .page-title { color: #E8E4F0; }
+html.dark .pwd-card {
+  background: rgba(31, 27, 49, 0.9);
+  border-color: rgba(184, 174, 255, 0.4);
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
+}
+html.dark .card-title { color: #E8E4F0; }
+html.dark .card-subtitle { color: #A9A3C0; }
+html.dark .form-group label { color: #A9A3C0; }
+html.dark .input-wrapper input {
+  background: rgba(30, 27, 46, 0.5);
+  border-color: rgba(155, 143, 255, 0.15);
+  color: #E8E4F0;
+}
+html.dark .input-wrapper input:focus {
+  background: rgba(30, 27, 46, 0.7);
+  box-shadow: 0 0 0 3px rgba(155, 143, 255, 0.15);
+}
+html.dark .input-wrapper input::placeholder { color: rgba(169, 163, 192, 0.5); }
+html.dark .strength-track { background: rgba(155, 143, 255, 0.1); }
+html.dark .error-msg {
+  background: rgba(255, 82, 82, 0.12);
+  color: #FF6B6B;
+  border-color: rgba(255, 82, 82, 0.25);
+}
+html.dark .success-msg {
+  background: rgba(76, 175, 80, 0.12);
+  color: #81C784;
+  border-color: rgba(76, 175, 80, 0.25);
+}
+html.dark .glass {
+  background: rgba(28, 24, 45, 0.86);
+  border-color: rgba(184, 174, 255, 0.42);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
+}
+html.dark .submit-btn { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.3); }
+html.dark .submit-btn:hover { box-shadow: 0 8px 25px rgba(155, 143, 255, 0.4); }
+html.dark .spinner { border-color: rgba(155, 143, 255, 0.2); border-top-color: #B8AEFF; }
+html.dark .send-code-btn { box-shadow: 0 2px 8px rgba(155, 143, 255, 0.25); }
+html.dark .send-code-btn:hover:not(:disabled) { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.3); }
+html.dark .back-link { color: #A9A3C0; }
+html.dark .back-link:hover { color: #B8AEFF; }
 </style>

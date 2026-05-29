@@ -127,6 +127,18 @@ function changeDreamPage(nextPage: number) {
   loadOverview()
 }
 
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | string)[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  if (start > 2) pages.push('...')
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (end < total - 1) pages.push('...')
+  pages.push(total)
+  return pages
+}
+
 function changeUserPageSize() {
   userPage.value = 1
   loadOverview()
@@ -615,11 +627,12 @@ onMounted(loadOverview)
                   </select>
                 </div>
                 <div class="page-btns">
-                  <button class="page-btn" type="button" :disabled="userPage <= 1 || isLoading" @click="changeUserPage(1)">&#x23EE;</button>
                   <button class="page-btn" type="button" :disabled="userPage <= 1 || isLoading" @click="changeUserPage(userPage - 1)">&#x276E;</button>
-                  <span class="page-current">{{ userPage }}</span>
+                  <template v-for="(p, i) in getPageNumbers(userPage, userTotalPages)" :key="i">
+                    <span v-if="p === '...'" class="page-ellipsis">...</span>
+                    <button v-else class="page-btn" :class="{ active: p === userPage }" type="button" :disabled="isLoading" @click="changeUserPage(p as number)">{{ p }}</button>
+                  </template>
                   <button class="page-btn" type="button" :disabled="userPage >= userTotalPages || isLoading" @click="changeUserPage(userPage + 1)">&#x276F;</button>
-                  <button class="page-btn" type="button" :disabled="userPage >= userTotalPages || isLoading" @click="changeUserPage(userTotalPages)">&#x23ED;</button>
                 </div>
               </div>
             </div>
@@ -681,11 +694,12 @@ onMounted(loadOverview)
                   </select>
                 </div>
                 <div class="page-btns">
-                  <button class="page-btn" type="button" :disabled="dreamPage <= 1 || isLoading" @click="changeDreamPage(1)">&#x23EE;</button>
                   <button class="page-btn" type="button" :disabled="dreamPage <= 1 || isLoading" @click="changeDreamPage(dreamPage - 1)">&#x276E;</button>
-                  <span class="page-current">{{ dreamPage }}</span>
+                  <template v-for="(p, i) in getPageNumbers(dreamPage, dreamTotalPages)" :key="i">
+                    <span v-if="p === '...'" class="page-ellipsis">...</span>
+                    <button v-else class="page-btn" :class="{ active: p === dreamPage }" type="button" :disabled="isLoading" @click="changeDreamPage(p as number)">{{ p }}</button>
+                  </template>
                   <button class="page-btn" type="button" :disabled="dreamPage >= dreamTotalPages || isLoading" @click="changeDreamPage(dreamPage + 1)">&#x276F;</button>
-                  <button class="page-btn" type="button" :disabled="dreamPage >= dreamTotalPages || isLoading" @click="changeDreamPage(dreamTotalPages)">&#x23ED;</button>
                 </div>
               </div>
             </div>
@@ -1319,6 +1333,23 @@ onMounted(loadOverview)
   font-size: 0.82rem;
 }
 
+.data-table th:nth-child(4),
+.data-table td:nth-child(4),
+.data-table th:nth-child(5),
+.data-table td:nth-child(5) {
+  white-space: nowrap;
+}
+
+.data-table th:nth-child(4),
+.data-table td:nth-child(4) {
+  min-width: 6.25rem;
+}
+
+.data-table th:nth-child(5),
+.data-table td:nth-child(5) {
+  min-width: 4.75rem;
+}
+
 .data-table th {
   color: #64748b;
   background: #f8fafc;
@@ -1368,12 +1399,17 @@ onMounted(loadOverview)
 .badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   height: 1.5rem;
+  min-width: max-content;
   padding: 0 0.5rem;
   border-radius: 6px;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: keep-all;
 }
 
 .badge-gray { background: #f1f5f9; color: #475569; }
@@ -1521,17 +1557,21 @@ onMounted(loadOverview)
   cursor: not-allowed;
 }
 
-.page-current {
+.page-btn.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: white;
+  font-weight: 700;
+}
+
+.page-ellipsis {
   min-width: 1.8rem;
   height: 1.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  background: #6366f1;
-  color: white;
+  color: #94a3b8;
   font-size: 0.75rem;
-  font-weight: 700;
 }
 
 /* ===== Empty / State ===== */
@@ -2199,4 +2239,252 @@ onMounted(loadOverview)
     min-width: 700px;
   }
 }
+
+/* 深夜模式 */
+html.dark .admin-page {
+  background: #0E0E14;
+  color: #E0E0E8;
+}
+html.dark .admin-topbar {
+  background: #161620;
+}
+html.dark .topbar-divider { background: rgba(155, 143, 255, 0.12); }
+html.dark .topbar-btn {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+}
+html.dark .topbar-btn:hover { background: rgba(255, 255, 255, 0.12); }
+html.dark .topbar-btn.home { background: rgba(124, 111, 224, 0.2); }
+html.dark .topbar-btn.home:hover { background: rgba(124, 111, 224, 0.35); }
+html.dark .admin-sidebar {
+  background: #161620;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+html.dark .sidebar-label { color: rgba(255, 255, 255, 0.3); }
+html.dark .sidebar-item { color: rgba(255, 255, 255, 0.55); }
+html.dark .sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+}
+html.dark .sidebar-item.active { background: rgba(124, 111, 224, 0.2); }
+html.dark .sidebar-item.active .sidebar-item-text { color: #B8AEFF; }
+html.dark .sidebar-item.active .sidebar-item-icon { background: rgba(124, 111, 224, 0.35); }
+html.dark .sidebar-count { background: rgba(255, 255, 255, 0.08); }
+html.dark .sidebar-item.active .sidebar-count { background: rgba(124, 111, 224, 0.4); }
+html.dark .toast {
+  background: #0D3320;
+  border-color: #155E3C;
+  color: #81C784;
+}
+html.dark .toast.error {
+  background: #3B1212;
+  border-color: #6B2020;
+  color: #FF6B6B;
+}
+html.dark .metric-card {
+  background: #1A1A26;
+  border-color: #32324A;
+}
+html.dark .metric-card:hover { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); }
+html.dark .metric-label { color: #8B8BA0; }
+html.dark .metric-value { color: #E8E4F0; }
+html.dark .metric-icon-wrap.indigo { background: rgba(124, 111, 224, 0.15); }
+html.dark .metric-icon-wrap.blue { background: rgba(96, 165, 250, 0.15); }
+html.dark .metric-icon-wrap.green { background: rgba(129, 199, 132, 0.15); }
+html.dark .metric-icon-wrap.amber { background: rgba(255, 183, 77, 0.15); }
+html.dark .content-card {
+  background: #1A1A26;
+  border-color: #32324A;
+}
+html.dark .card-header { border-color: #32324A; }
+html.dark .card-title-group h2 { color: #E8E4F0; }
+html.dark .card-subtitle { color: #8B8BA0; }
+html.dark .search-input {
+  border-color: #32324A;
+  background: #13131B;
+  color: #E0E0E8;
+}
+html.dark .search-input:focus-within {
+  border-color: #7C73E8;
+  box-shadow: 0 0 0 3px rgba(124, 115, 232, 0.12);
+  background: #1A1A26;
+}
+html.dark .search-input input::placeholder { color: #6B6B80; }
+html.dark .action-btn.primary { box-shadow: 0 2px 8px rgba(124, 111, 224, 0.25); }
+html.dark .action-btn.primary:hover { box-shadow: 0 4px 12px rgba(124, 111, 224, 0.35); }
+html.dark .action-btn.small {
+  background: #32324A;
+  color: #A9A3C0;
+  border-color: #3A3A52;
+}
+html.dark .action-btn.small:hover { background: #3A3A52; }
+html.dark .action-btn.small.warning {
+  background: rgba(255, 183, 77, 0.12);
+  color: #FFB347;
+  border-color: rgba(255, 183, 77, 0.25);
+}
+html.dark .action-btn.small.warning:hover { background: rgba(255, 183, 77, 0.2); }
+html.dark .action-btn.small.danger {
+  background: rgba(255, 82, 82, 0.12);
+  color: #FF6B6B;
+  border-color: rgba(255, 82, 82, 0.25);
+}
+html.dark .action-btn.small.danger:hover { background: rgba(255, 82, 82, 0.2); }
+html.dark .data-table { border-color: #32324A; }
+html.dark .data-table th {
+  color: #8B8BA0;
+  background: #13131B;
+  border-color: #32324A;
+}
+html.dark .data-table tr:hover { background: rgba(155, 143, 255, 0.04); }
+html.dark .data-table td { border-color: #32324A; }
+html.dark .id-cell { color: #6B6B80; }
+html.dark .name-cell { color: #E8E4F0; }
+html.dark .email-cell { color: #8B8BA0; }
+html.dark .count-cell { color: #A9A3C0; }
+html.dark .date-cell { color: #6B6B80; }
+html.dark .badge-gray { background: #32324A; color: #A9A3C0; }
+html.dark .badge-purple { background: rgba(124, 111, 224, 0.2); color: #B8AEFF; }
+html.dark .badge-gold {
+  background: rgba(255, 183, 77, 0.15);
+  color: #FFB347;
+  border-color: rgba(255, 183, 77, 0.3);
+}
+html.dark .badge-green { background: rgba(129, 199, 132, 0.15); color: #81C784; }
+html.dark .badge-red { background: rgba(255, 82, 82, 0.15); color: #FF6B6B; }
+html.dark .badge-blue { background: rgba(96, 165, 250, 0.15); color: #93C5FD; }
+html.dark .dream-item { border-color: #32324A; }
+html.dark .dream-item:hover { background: rgba(155, 143, 255, 0.04); }
+html.dark .dream-item-title strong { color: #E8E4F0; }
+html.dark .dream-item-preview { color: #8B8BA0; }
+html.dark .dream-item-right { color: #6B6B80; }
+html.dark .card-footer {
+  border-color: #32324A;
+  background: #13131B;
+}
+html.dark .footer-info { color: #6B6B80; }
+html.dark .size-select {
+  border-color: #32324A;
+  background: #1A1A26;
+  color: #A9A3C0;
+}
+html.dark .page-btn {
+  border-color: #32324A;
+  background: #1A1A26;
+  color: #A9A3C0;
+}
+html.dark .page-btn:hover {
+  background: #32324A;
+  border-color: #3A3A52;
+}
+html.dark .page-btn.active {
+  background: #7C73E8;
+  border-color: #7C73E8;
+  color: white;
+}
+html.dark .page-ellipsis { color: #6B6B80; }
+html.dark .empty-row { color: #6B6B80; }
+html.dark .state-section { color: #8B8BA0; }
+html.dark .state-section.error { color: #FF6B6B; }
+html.dark .state-spinner {
+  border-color: #32324A;
+  border-top-color: #7C73E8;
+}
+html.dark .modal-mask { background: rgba(0, 0, 0, 0.6); }
+html.dark .confirm-modal {
+  background: #1A1A26;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+html.dark .confirm-icon-wrap.warning {
+  background: rgba(255, 183, 77, 0.12);
+  border-color: rgba(255, 183, 77, 0.3);
+}
+html.dark .confirm-icon-wrap.danger {
+  background: rgba(255, 82, 82, 0.12);
+  border-color: rgba(255, 82, 82, 0.3);
+}
+html.dark .confirm-icon.warning { color: #FFB347; }
+html.dark .confirm-icon.danger { color: #FF6B6B; }
+html.dark .confirm-title { color: #E8E4F0; }
+html.dark .confirm-message { color: #A9A3C0; }
+html.dark .ghost-btn {
+  background: #1A1A26;
+  color: #A9A3C0;
+  border-color: #32324A;
+}
+html.dark .ghost-btn:hover {
+  border-color: #3A3A52;
+  color: #E0E0E8;
+  background: #32324A;
+}
+html.dark .warning-confirm { box-shadow: 0 4px 15px rgba(255, 183, 77, 0.25); }
+html.dark .danger-confirm { box-shadow: 0 4px 15px rgba(255, 82, 82, 0.25); }
+html.dark .user-modal {
+  background: #1A1A26;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+html.dark .modal-hero { background: linear-gradient(135deg, #161620, #2A2A3A); }
+html.dark .modal-hero.edit { background: linear-gradient(135deg, #0E0E14, #161620); }
+html.dark .form-label { color: #A9A3C0; }
+html.dark .input-wrap {
+  border-color: #32324A;
+  background: #13131B;
+}
+html.dark .input-wrap:focus-within {
+  border-color: #7C73E8;
+  box-shadow: 0 0 0 3px rgba(124, 115, 232, 0.12);
+  background: #1A1A26;
+}
+html.dark .input-wrap input,
+html.dark .input-wrap select {
+  color: #E8E4F0;
+}
+html.dark .input-wrap input::placeholder { color: #6B6B80; }
+html.dark .input-wrap select {
+  background: #13131B;
+  color: #E8E4F0;
+}
+html.dark .form-error {
+  background: rgba(255, 82, 82, 0.12);
+  border-color: rgba(255, 82, 82, 0.25);
+  color: #FF6B6B;
+}
+html.dark .cancel-btn {
+  border-color: #32324A;
+  background: #1A1A26;
+  color: #A9A3C0;
+}
+html.dark .cancel-btn:hover { background: #32324A; }
+html.dark .save-btn { box-shadow: 0 4px 15px rgba(124, 111, 224, 0.25); }
+html.dark .save-btn:hover { box-shadow: 0 8px 20px rgba(124, 111, 224, 0.35); }
+html.dark .save-btn.edit { box-shadow: 0 4px 15px rgba(14, 165, 233, 0.25); }
+html.dark .save-btn.edit:hover { box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35); }
+html.dark .btn-spinner {
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+}
+html.dark .dream-modal {
+  background: #1A1A26;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+html.dark .modal-header { border-color: #32324A; }
+html.dark .modal-header h2 { color: #E8E4F0; }
+html.dark .modal-subtitle { color: #8B8BA0; }
+html.dark .icon-btn {
+  background: #32324A;
+  color: #A9A3C0;
+}
+html.dark .icon-btn:hover { background: #3A3A52; }
+html.dark .detail-meta-grid {
+  background: #13131B;
+  color: #A9A3C0;
+}
+html.dark .detail-section h3 { color: #E8E4F0; }
+html.dark .detail-section p { color: #A9A3C0; }
+html.dark .ai-section {
+  background: rgba(96, 165, 250, 0.08);
+  border-color: rgba(96, 165, 250, 0.2);
+}
+html.dark .detail-state { color: #6B6B80; }
+html.dark .detail-state.error { color: #FF6B6B; }
 </style>
