@@ -336,10 +336,3 @@ JAVA_HOME=C:\Program Files\Java\jdk-17.0.4.1
 | `RecordDreamView.vue` | 时间选择器从原生 select 改为标签式，显示具体时间段（00-02、08-10 等）；手机端情绪按钮 flex:1 加宽 |
 | `DreamListView.vue` | AI 解析序号显示改为自动递增 |
 | `dreamInterpretation.ts` | AI 解析序号逻辑：忽略 AI 原始序号，改为 itemCounter 自动递增 1,2,3,4,5 |
-
-### 2026-06-02 部署文档 + 配置模板
-
-| 文件 | 改动 |
-|------|------|
-| `docs/DEPLOYMENT.md` | 新建：完整部署文档（环境要求、MySQL/Redis/MinIO 安装、后端构建、前端构建、Nginx 反代、HTTPS、运维监控、常见问题） |
-| `src/main/resources/application.properties.example` | 新建：配置模板，敏感信息替换为占位符，供上传 GitHub 使用 |
