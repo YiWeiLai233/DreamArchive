@@ -502,6 +502,7 @@ onBeforeUnmount(() => {
 
             <div class="bottom-bar">
               <span class="char-count">{{ form.content.length }} / 2000</span>
+              <p class="submit-disclaimer">AI 解析仅供梦境记录与自我观察参考，不构成医学或心理诊断。如有长期焦虑、失眠等问题请咨询专业人士。</p>
               <div class="submit-actions">
                 <button
                   class="submit-btn secondary"
@@ -688,6 +689,7 @@ onBeforeUnmount(() => {
                 </button>
                 <div class="bottom-right">
                   <span class="char-count">{{ form.content.length }} / 2000</span>
+                  <p class="submit-disclaimer">AI 解析仅供梦境记录与自我观察参考，不构成医学或心理诊断。如有长期焦虑、失眠等问题请咨询专业人士。</p>
                   <div class="submit-actions">
                     <button
                       class="submit-btn secondary"
@@ -762,7 +764,10 @@ onBeforeUnmount(() => {
                   </template>
                 </div>
                 <p class="result-section-text placeholder-text" v-else>梦境已成功保存，你可以在梦境列表中查看。</p>
-                <p class="ai-disclaimer" v-if="formattedInterpretation.length">以上内容由 AI 生成，仅供娱乐参考，不构成专业心理或医学建议。</p>
+                <div class="ai-disclaimer" v-if="formattedInterpretation.length">
+                  <p>本解析仅用于梦境记录和自我观察，不构成医学、心理诊断或治疗建议。</p>
+                  <p>如长期出现严重焦虑、抑郁、失眠或创伤相关梦境，请咨询专业人士。</p>
+                </div>
               </div>
             </div>
           </div>
@@ -1127,6 +1132,14 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   gap: 0.75rem;
 }
+.submit-disclaimer {
+  margin: 0 0 0.6rem;
+  font-size: 0.7rem;
+  color: #9994B8;
+  text-align: center;
+  line-height: 1.5;
+}
+html.dark .submit-disclaimer { color: #8A84A8; }
 
 /* 导航按钮 */
 .nav-btn {
@@ -1289,7 +1302,10 @@ onBeforeUnmount(() => {
   font-size: 0.75rem;
   color: #9994B8;
   text-align: center;
+  line-height: 1.6;
 }
+.ai-disclaimer p { margin: 0; }
+.ai-disclaimer p + p { margin-top: 0.2rem; }
 .placeholder-text { color: var(--text-light); font-style: italic; }
 
 .result-actions { display: flex; gap: 1rem; justify-content: center; }

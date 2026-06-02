@@ -459,7 +459,10 @@ function goBack() {
                   </template>
                 </div>
                 <p v-else class="section-text">暂无解析内容</p>
-                <p class="ai-disclaimer" v-if="selectedInterpretationBlocks.length">以上内容由 AI 生成，仅供娱乐参考，不构成专业心理或医学建议。</p>
+                <div class="ai-disclaimer" v-if="selectedInterpretationBlocks.length">
+                  <p>本解析仅用于梦境记录和自我观察，不构成医学、心理诊断或治疗建议。</p>
+                  <p>如长期出现严重焦虑、抑郁、失眠或创伤相关梦境，请咨询专业人士。</p>
+                </div>
               </div>
             </div>
           </div>
@@ -837,7 +840,10 @@ function goBack() {
   font-size: 0.75rem;
   color: #9994B8;
   text-align: center;
+  line-height: 1.6;
 }
+.ai-disclaimer p { margin: 0; }
+.ai-disclaimer p + p { margin-top: 0.2rem; }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
