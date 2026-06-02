@@ -261,11 +261,15 @@ flowchart TD
 - 密码使用 BCrypt 加密存储。
 - Token 使用 HMAC-SHA256 签名，并设置有效期。
 - 后端每次鉴权都会查询数据库确认用户状态。
-- 管理员接口通过 `ROLE_ADMIN` 控制。
+- 管理员接口通过 `ROLE_ADMIN` / `ROLE_SUPER_ADMIN` 控制。
 - 验证码使用 Redis TTL，校验后立即删除。
 - 验证码发送有频率限制，防止滥用。
 - 游客 AI 解析有设备级次数限制。
 - 图片上传限制大小、类型和文件头。
+- CSP 响应头限制脚本来源（`script-src 'self'`），防止 XSS。
+- X-Frame-Options、X-Content-Type-Options、Referrer-Policy 安全头。
+- 错误响应隐藏异常详情，友好提示给用户，详细信息写服务端日志。
+- CORS 白名单集中配置，部署时需加服务器公网 IP。
 - 敏感配置不应提交到 Git，应通过环境变量或本地配置注入。
 
 ## 工程亮点
@@ -301,6 +305,59 @@ fount/
 ├── src/stores/    # Pinia 状态管理
 └── src/utils/     # 游客数据、错误处理、解析格式化等工具
 ```
+
+## 接口清单
+
+### 公开接口（无需认证）
+
+| 方法 | 路径 | 功能 |
+|------|------|------|
+| POST | `/api/login` | 密码登录 |
+| POST | `/api/login/send-code` | 登录验证码 |
+| POST | `/api/login/code` | 验证码登录（不存在则自动注册） |
+| POST | `/api/register` | 注册（需验证码） |
+| POST | `/api/register/send-code` | 注册验证码 |
+| POST | `/api/reset-password/send-code` | 重置密码验证码 |
+| POST | `/api/reset-password` | 重置密码 |
+| POST | `/api/guest/analyze` | 游客 AI 解析（设备级限流） |
+| GET | `/api/hello` | 健康检查 |
+
+### 需认证接口
+
+| 方法 | 路径 | 功能 |
+|------|------|------|
+| POST | `/api/account/setup` | 新用户设置用户名密码 |
+| POST | `/api/change-password/send-code` | 修改密码验证码 |
+| POST | `/api/change-password` | 修改密码（需验证码） |
+| GET | `/api/dream/{id}` | 查单个梦境 |
+| GET | `/api/dreams/user/{userId}` | 查用户所有梦境 |
+| POST | `/api/analysisDream` | 保存梦境 |
+| POST | `/api/dreams/save-and-analyze` | 保存 + 异步 AI 解析 |
+| POST | `/api/dream/{id}/delete` | 删除梦境 |
+| POST | `/api/dream/{id}/analyze` | 重新 AI 解析 |
+| POST | `/api/upload/image` | 上传图片到 MinIO |
+| GET | `/api/stats/{userId}` | 统计数据 |
+| GET | `/api/stats/{userId}/emotion` | 情绪分布 |
+| GET | `/api/stats/{userId}/place` | 地点分布 |
+| GET | `/api/stats/{userId}/trend` | 趋势数据 |
+| GET | `/api/stats/{userId}/streak` | 连续记录天数 |
+| GET | `/api/user/by-email` | 邮箱查用户 |
+| GET | `/api/user/by-username` | 用户名查用户 |
+| POST | `/api/user/avatar` | 更新头像 |
+
+### 管理员接口（需 ROLE_ADMIN 或 ROLE_SUPER_ADMIN）
+
+| 方法 | 路径 | 功能 |
+|------|------|------|
+| POST | `/api/admin/overview` | 管理总览 |
+| POST | `/api/admin/user-action` | 用户操作 |
+| POST | `/api/admin/delete-user` | 软删除 |
+| POST | `/api/admin/dream-detail` | 梦境详情 |
+| GET | `/api/admin/ai-pool/providers` | 查看所有 AI provider 状态 |
+| POST | `/api/admin/ai-pool/providers` | 添加 provider |
+| POST | `/api/admin/ai-pool/providers/{name}/update` | 更新 provider |
+| POST | `/api/admin/ai-pool/providers/{name}/delete` | 删除 provider |
+| POST | `/api/admin/ai-pool/providers/{name}/reset` | 重置熔断 |
 
 ## 本地运行
 
@@ -356,6 +413,8 @@ cp src/main/resources/application.properties.example src/main/resources/applicat
 | MinIO | `minio.*` | 对象存储，用于图片和头像上传 |
 | 邮件 | `spring.mail.*` | QQ 邮箱 SMTP，用于发送验证码 |
 | AI | `ai.pool.providers[*].*` | AI 模型接口，支持多 provider 配置 |
+| CORS | `app.cors.*` | 跨域白名单，部署时必须加服务器公网 IP |
+| 认证 | `app.auth.secret` | Token 签名密钥（>= 32 字符），生产环境务必修改 |
 
 ## 服务器部署
 
@@ -459,7 +518,7 @@ echo "0 2 * * 1 certbot renew --quiet" | crontab -
 
 ### CORS 白名单
 
-部署新服务器时，需将服务器 IP 加入 CORS 白名单，否则前端请求会返回 403。修改 `SecurityConfig.java` 和 `WebConfig.java` 中的 `ALLOWED_ORIGIN_PATTERNS`。
+部署新服务器时，需将服务器 IP 加入 CORS 白名单，否则前端请求会返回 403。在 `application.properties` 中修改 `app.cors.allowed-origin-patterns`，加入服务器公网 IP。
 
 ### 部署检查清单
 
@@ -501,6 +560,7 @@ echo "0 2 * * 1 certbot renew --quiet" | crontab -
 4. 增加更细粒度的统计分析，如情绪变化趋势、常见符号、关键词云。
 5. 引入单元测试和接口测试，提高登录、权限、AI 池和统计逻辑的回归保障。
 6. 支持 Docker Compose 一键启动 MySQL、Redis、MinIO 和后端服务。
+7. Token 存储从 localStorage 迁移到 HttpOnly Cookie（`feat/httponly-cookie` 分支）。
 
 ## 开源协议
 
