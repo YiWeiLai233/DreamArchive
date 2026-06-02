@@ -15,10 +15,10 @@ import java.util.Base64;
 public class TokenService {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
 
-    @Value("${app.auth.secret:dev-only-change-me}")
+    @Value("${app.auth.secret}")
     private String secret;
 
-    @Value("${app.auth.ttl-seconds:86400}")
+    @Value("${app.auth.ttl-seconds}")
     private long ttlSeconds;
 
     public String generateToken(User user) {
