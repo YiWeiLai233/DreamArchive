@@ -7,6 +7,8 @@ import com.yiweilai.DreamArchive.service.AiService;
 import com.yiweilai.DreamArchive.service.DreamService;
 import com.yiweilai.DreamArchive.service.MinioService;
 import com.yiweilai.DreamArchive.util.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +25,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 public class DreamController {
+
+    private static final Logger log = LoggerFactory.getLogger(DreamController.class);
 
     @Autowired
     private DreamService dreamService;
@@ -43,7 +47,8 @@ public class DreamController {
             String interpretation = aiService.analyzeDream(content);
             return Result.success(Map.of("interpretation", interpretation));
         } catch (Exception e) {
-            return Result.error("AI 解析梦境失败: " + e.getMessage());
+            log.error("AI 解析梦境失败", e);
+            return Result.error("AI 解析失败，请稍后重试");
         }
     }
 
@@ -70,7 +75,8 @@ public class DreamController {
             enrichImageUrl(dream);
             return Result.success(dream);
         } catch (Exception e) {
-            return Result.error("查询梦境失败: " + e.getMessage());
+            log.error("查询梦境失败", e);
+            return Result.error("查询失败，请稍后重试");
         }
     }
 
@@ -84,7 +90,8 @@ public class DreamController {
             enrichImageUrls(dreams);
             return Result.success(dreams);
         } catch (Exception e) {
-            return Result.error("查询梦境列表失败: " + e.getMessage());
+            log.error("查询梦境列表失败", e);
+            return Result.error("查询失败，请稍后重试");
         }
     }
 
@@ -104,7 +111,8 @@ public class DreamController {
             }
             return Result.success("删除成功", null);
         } catch (Exception e) {
-            return Result.error("删除梦境失败: " + e.getMessage());
+            log.error("删除梦境失败", e);
+            return Result.error("删除失败，请稍后重试");
         }
     }
 
@@ -123,7 +131,8 @@ public class DreamController {
             dreamAiTaskService.completeDreamAiFields(id, dream.getContent(), dream.getImageUrl(), dream.getEmotion(), dream.getPlace(), dream.getTime(), false, true);
             return Result.success("已提交解析", null);
         } catch (Exception e) {
-            return Result.error("提交解析失败: " + e.getMessage());
+            log.error("提交解析失败", e);
+            return Result.error("提交失败，请稍后重试");
         }
     }
 
@@ -162,7 +171,8 @@ public class DreamController {
             enrichImageUrl(result);
             return Result.success(result);
         } catch (Exception e) {
-            return Result.error("保存梦境失败: " + e.getMessage());
+            log.error("保存梦境失败", e);
+            return Result.error("保存失败，请稍后重试");
         }
     }
 

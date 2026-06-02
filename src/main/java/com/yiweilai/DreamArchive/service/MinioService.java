@@ -63,8 +63,8 @@ public class MinioService {
 
             return objectName;
         } catch (Exception e) {
-            log.error("Failed to upload image to MinIO: {}", e.getMessage());
-            throw new RuntimeException("图片上传失败: " + e.getMessage());
+            log.error("Failed to upload image to MinIO", e);
+            throw new RuntimeException("图片上传失败");
         }
     }
 

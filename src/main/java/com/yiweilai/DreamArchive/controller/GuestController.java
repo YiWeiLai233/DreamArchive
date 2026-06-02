@@ -2,6 +2,8 @@ package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.service.AiService;
 import com.yiweilai.DreamArchive.util.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/api/guest")
 public class GuestController {
 
+    private static final Logger log = LoggerFactory.getLogger(GuestController.class);
     private static final String GUEST_ANALYZE_KEY_PREFIX = "guest:analyze:";
     private static final int MAX_GUEST_ANALYZES = 3;
 
@@ -50,7 +53,8 @@ public class GuestController {
             redisTemplate.opsForValue().set(redisKey, String.valueOf(currentCount + 1), 365, TimeUnit.DAYS);
             return Result.success(Map.of("interpretation", interpretation));
         } catch (Exception e) {
-            return Result.error("AI 解析失败: " + e.getMessage());
+            log.error("游客 AI 解析失败", e);
+            return Result.error("AI 解析失败，请稍后重试");
         }
     }
 

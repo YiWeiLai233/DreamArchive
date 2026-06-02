@@ -6,6 +6,8 @@ import com.yiweilai.DreamArchive.DTO.DreamPlaceStats;
 import com.yiweilai.DreamArchive.mapper.StatsMapper;
 import com.yiweilai.DreamArchive.mapper.DreamStatsMapper;
 import com.yiweilai.DreamArchive.util.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,8 @@ import java.util.Map;
 
 @Service
 public class StatsService {
+
+    private static final Logger log = LoggerFactory.getLogger(StatsService.class);
 
     @Autowired
     private StatsMapper statsMapper;
@@ -56,7 +60,8 @@ public class StatsService {
             DreamStats stats = new DreamStats(userId, totalDreams, emotionDistribution, placeDistribution, recentTrend);
             return Result.success(stats);
         } catch (Exception e) {
-            return Result.error("获取统计数据失败: " + e.getMessage());
+            log.error("获取统计数据失败", e);
+            return Result.error("获取统计数据失败，请稍后重试");
         }
     }
 
@@ -109,7 +114,8 @@ public class StatsService {
             Integer total = allStats.stream().mapToInt(DreamStatsEntity::getTotalDreams).sum();
             return Result.success(total);
         } catch (Exception e) {
-            return Result.error("获取梦境总数失败: " + e.getMessage());
+            log.error("获取梦境总数失败", e);
+            return Result.error("获取数据失败，请稍后重试");
         }
     }
 
@@ -122,7 +128,8 @@ public class StatsService {
             List<Map<String, Object>> distribution = buildEmotionDistribution(allStats);
             return Result.success(distribution);
         } catch (Exception e) {
-            return Result.error("获取情绪分布失败: " + e.getMessage());
+            log.error("获取情绪分布失败", e);
+            return Result.error("获取数据失败，请稍后重试");
         }
     }
 
@@ -134,7 +141,8 @@ public class StatsService {
             List<Map<String, Object>> distribution = buildPlaceDistribution(userId);
             return Result.success(distribution);
         } catch (Exception e) {
-            return Result.error("获取地点分布失败: " + e.getMessage());
+            log.error("获取地点分布失败", e);
+            return Result.error("获取数据失败，请稍后重试");
         }
     }
 
@@ -154,7 +162,8 @@ public class StatsService {
                     .collect(java.util.stream.Collectors.toList());
             return Result.success(trend);
         } catch (Exception e) {
-            return Result.error("获取趋势数据失败: " + e.getMessage());
+            log.error("获取趋势数据失败", e);
+            return Result.error("获取数据失败，请稍后重试");
         }
     }
 
@@ -206,7 +215,8 @@ public class StatsService {
 
             return Result.success(streak);
         } catch (Exception e) {
-            return Result.error("获取连续记录失败: " + e.getMessage());
+            log.error("获取连续记录失败", e);
+            return Result.error("获取数据失败，请稍后重试");
         }
     }
 
@@ -231,7 +241,8 @@ public class StatsService {
             Integer length = statsMapper.selectLongestDreamContentLength(userId);
             return Result.success(length != null ? length : 0);
         } catch (Exception e) {
-            return Result.error("获取最长梦境失败: " + e.getMessage());
+            log.error("获取最长梦境失败", e);
+            return Result.error("获取数据失败，请稍后重试");
         }
     }
 

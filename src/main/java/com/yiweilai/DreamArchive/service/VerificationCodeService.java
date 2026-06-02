@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -24,7 +24,7 @@ public class VerificationCodeService {
     @Autowired
     private JavaMailSender mailSender;
 
-    private final Random random = new Random();
+    private final SecureRandom random = new SecureRandom();
 
     public void sendCode(String scene, String identifier, String email) {
         String rateKey = "rate:" + scene + ":" + identifier;

@@ -4,11 +4,15 @@ import com.yiweilai.DreamArchive.mapper.ResetPasswordMapper;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
 import com.yiweilai.DreamArchive.util.Result;
 import com.yiweilai.DreamArchive.util.SensitiveDataEncryptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ResetPasswordService {
+
+    private static final Logger log = LoggerFactory.getLogger(ResetPasswordService.class);
 
     @Autowired
     private SensitiveDataEncryptor sensitiveDataEncryptor;
@@ -57,7 +61,8 @@ public class ResetPasswordService {
                 return Result.error("密码重置失败");
             }
         } catch (Exception e) {
-            return Result.error("密码重置失败: " + e.getMessage());
+            log.error("密码重置失败", e);
+            return Result.error("密码重置失败，请稍后重试");
         }
     }
 }

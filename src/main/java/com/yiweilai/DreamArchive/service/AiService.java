@@ -161,7 +161,8 @@ public class AiService {
             return extractContent(response.body());
         } catch (Exception e) {
             providerPool.reportFailure(provider, e);
-            throw new RuntimeException("AI 解析失败: " + e.getMessage(), e);
+            log.error("AI 解析失败", e);
+            throw new RuntimeException("AI 解析失败", e);
         }
     }
 

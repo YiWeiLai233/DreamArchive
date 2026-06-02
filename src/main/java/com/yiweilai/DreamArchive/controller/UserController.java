@@ -4,6 +4,8 @@ import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
 import com.yiweilai.DreamArchive.service.MinioService;
 import com.yiweilai.DreamArchive.util.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +16,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     private LoginMapper loginMapper;
@@ -40,7 +44,8 @@ public class UserController {
             enrichAvatarUrl(user);
             return Result.success(user);
         } catch (Exception e) {
-            return Result.error("查询失败: " + e.getMessage());
+            log.error("查询用户失败", e);
+            return Result.error("查询失败，请稍后重试");
         }
     }
 
@@ -63,7 +68,8 @@ public class UserController {
             enrichAvatarUrl(user);
             return Result.success(user);
         } catch (Exception e) {
-            return Result.error("查询失败: " + e.getMessage());
+            log.error("查询用户失败", e);
+            return Result.error("查询失败，请稍后重试");
         }
     }
     @PostMapping("/avatar")
@@ -77,7 +83,8 @@ public class UserController {
             loginMapper.updateAvatarUrl(currentUser.getId(), avatarUrl);
             return Result.success("头像已更新");
         } catch (Exception e) {
-            return Result.error("更新头像失败: " + e.getMessage());
+            log.error("更新头像失败", e);
+            return Result.error("更新失败，请稍后重试");
         }
     }
 
