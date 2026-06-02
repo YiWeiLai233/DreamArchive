@@ -326,6 +326,155 @@ npm run dev
 npm run build
 ```
 
+## 环境要求
+
+| 组件 | 版本要求 | 说明 |
+|------|---------|------|
+| JDK | 17+ | Spring Boot 3.5.7 最低要求 Java 17 |
+| Maven | 3.8+ | 后端构建工具 |
+| Node.js | 18+ | 前端构建工具 |
+| npm | 9+ | 前端包管理 |
+| MySQL | 8.0+ | 主数据库 |
+| Redis | 6.0+ | 验证码 & 缓存 |
+| MinIO | 最新稳定版 | 对象存储（图片/头像） |
+| Nginx | 1.20+ | 反向代理 & 前端静态资源 |
+
+## 配置说明
+
+项目提供 `application.properties.example` 作为配置模板。首次使用时复制并填入实际值：
+
+```bash
+cp src/main/resources/application.properties.example src/main/resources/application.properties
+```
+
+需要配置的服务：
+
+| 服务 | 配置项 | 说明 |
+|------|--------|------|
+| MySQL | `spring.datasource.*` | 数据库连接地址、用户名、密码 |
+| Redis | `spring.data.redis.*` | 缓存与验证码存储，可选密码认证 |
+| MinIO | `minio.*` | 对象存储，用于图片和头像上传 |
+| 邮件 | `spring.mail.*` | QQ 邮箱 SMTP，用于发送验证码 |
+| AI | `ai.pool.providers[*].*` | AI 模型接口，支持多 provider 配置 |
+
+## 服务器部署
+
+### 数据库
+
+```bash
+# 安装 MySQL 8.0 后，创建数据库并导入
+mysql -u root -p -e "CREATE DATABASE dream DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
+mysql -u root -p dream < dream.sql
+```
+
+完整建表 SQL 包含 `user`、`dream_content`、`dream_stats`、`dream_place_stats` 四张表。首次注册的用户自动成为超级管理员（`SUPER_ADMIN`）。
+
+### Redis
+
+```bash
+# CentOS
+yum install -y redis
+systemctl start redis && systemctl enable redis
+```
+
+配置 `/etc/redis.conf`：设置 `bind 0.0.0.0`（允许远程连接）、`requirepass`（密码认证）、`appendonly yes`（持久化）。
+
+### MinIO
+
+```bash
+# 下载并启动
+wget https://dl.min.io/server/minio/release/linux-amd64/minio
+chmod +x minio && mv minio /usr/local/bin/
+minio server /data/minio --address ":9000" --console-address ":9001"
+```
+
+启动后访问 `http://服务器IP:9001`，创建 Bucket `dream-archive` 并设置公开读取策略。
+
+### 后端
+
+```bash
+# 构建
+mvn clean package -DskipTests
+
+# 运行（生产环境）
+java -jar target/DreamArchive-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+```
+
+推荐使用 Systemd 管理后端服务，配置自动重启和日志轮转。
+
+### 前端
+
+```bash
+cd fount
+npm install
+npm run build    # 产物输出到 fount/dist/
+```
+
+将 `dist/` 目录部署到 Nginx 静态资源目录。
+
+### Nginx 反向代理
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    root /var/www/dream-archive;
+    index index.html;
+
+    # Vue Router history 模式
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API 反向代理
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        client_max_body_size 10m;
+        proxy_read_timeout 120s;    # AI 解析可能较慢
+    }
+
+    # 静态资源缓存
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
+}
+```
+
+### HTTPS（可选）
+
+```bash
+# 使用 Let's Encrypt 免费证书
+yum install -y certbot python3-certbot-nginx
+certbot --nginx -d your-domain.com
+echo "0 2 * * 1 certbot renew --quiet" | crontab -
+```
+
+### CORS 白名单
+
+部署新服务器时，需将服务器 IP 加入 CORS 白名单，否则前端请求会返回 403。修改 `SecurityConfig.java` 和 `WebConfig.java` 中的 `ALLOWED_ORIGIN_PATTERNS`。
+
+### 部署检查清单
+
+- [ ] `http://服务器IP` 能访问前端页面
+- [ ] `http://服务器IP/api/hello` 返回健康检查响应
+- [ ] 注册新用户，收到验证码邮件
+- [ ] 登录后能正常记录梦境
+- [ ] AI 解析功能正常返回
+- [ ] 图片上传功能正常
+- [ ] 管理员后台 `/admin` 可正常访问
+- [ ] 深色模式切换正常
+- [ ] 手机端访问布局正常
+
+> 完整部署文档（含常见问题排查、JVM 调优、数据库备份等）见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
+
 ## 项目关键词
 
 - Spring Boot 3
@@ -352,7 +501,6 @@ npm run build
 4. 增加更细粒度的统计分析，如情绪变化趋势、常见符号、关键词云。
 5. 引入单元测试和接口测试，提高登录、权限、AI 池和统计逻辑的回归保障。
 6. 支持 Docker Compose 一键启动 MySQL、Redis、MinIO 和后端服务。
-7. 增加部署文档，将前端静态资源、后端服务、对象存储和反向代理整理成完整上线方案。
 
 ## 开源协议
 
