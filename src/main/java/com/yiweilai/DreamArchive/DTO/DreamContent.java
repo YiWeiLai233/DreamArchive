@@ -11,6 +11,8 @@ public class DreamContent {
     private String place;
     private String time;
     private String interpretation;
+    private String analysisStatus;
+    private String analysisError;
     private String imageUrl;
     private LocalDateTime createdAt;
 
@@ -39,6 +41,12 @@ public class DreamContent {
 
     public String getInterpretation() { return interpretation; }
     public void setInterpretation(String interpretation) { this.interpretation = interpretation; }
+
+    public String getAnalysisStatus() { return analysisStatus; }
+    public void setAnalysisStatus(String analysisStatus) { this.analysisStatus = analysisStatus; }
+
+    public String getAnalysisError() { return analysisError; }
+    public void setAnalysisError(String analysisError) { this.analysisError = analysisError; }
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }

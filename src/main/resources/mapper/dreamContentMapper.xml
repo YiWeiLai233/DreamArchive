@@ -5,18 +5,18 @@
 <mapper namespace="com.yiweilai.DreamArchive.mapper.DreamContentMapper">
 
     <insert id="insertDreamContent" parameterType="com.yiweilai.DreamArchive.DTO.DreamContent">
-        INSERT INTO dream_content (id, user_id, title, content, emotion, place, time, interpretation, image_url, created_at)
-        VALUES (#{id}, #{userId}, #{title}, #{content}, #{emotion}, #{place}, #{time}, #{interpretation}, #{imageUrl}, NOW())
+        INSERT INTO dream_content (id, user_id, title, content, emotion, place, time, interpretation, analysis_status, analysis_error, image_url, created_at)
+        VALUES (#{id}, #{userId}, #{title}, #{content}, #{emotion}, #{place}, #{time}, #{interpretation}, #{analysisStatus}, #{analysisError}, #{imageUrl}, NOW())
     </insert>
 
     <select id="selectById" resultType="com.yiweilai.DreamArchive.DTO.DreamContent">
-        SELECT id, user_id as userId, title, content, emotion, place, time, interpretation, image_url as imageUrl, created_at as createdAt
+        SELECT id, user_id as userId, title, content, emotion, place, time, interpretation, analysis_status as analysisStatus, analysis_error as analysisError, image_url as imageUrl, created_at as createdAt
         FROM dream_content
         WHERE id = #{id}
     </select>
 
     <select id="selectByUserId" resultType="com.yiweilai.DreamArchive.DTO.DreamContent">
-        SELECT id, user_id as userId, title, content, emotion, place, time, interpretation, image_url as imageUrl, created_at as createdAt
+        SELECT id, user_id as userId, title, content, emotion, place, time, interpretation, analysis_status as analysisStatus, analysis_error as analysisError, image_url as imageUrl, created_at as createdAt
         FROM dream_content
         WHERE user_id = #{userId}
         ORDER BY created_at DESC
@@ -31,6 +31,12 @@
     <update id="updateInterpretation">
         UPDATE dream_content
         SET interpretation = #{interpretation}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAnalysisStatus">
+        UPDATE dream_content
+        SET analysis_status = #{status}, analysis_error = #{error}
         WHERE id = #{id}
     </update>
 

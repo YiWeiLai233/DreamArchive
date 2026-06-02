@@ -35,9 +35,11 @@ public class DreamAiTaskService {
             try {
                 String interpretation = aiService.analyzeDream(content, imageUrl, emotion, place, time);
                 dreamService.updateInterpretation(dreamId, interpretation);
+                dreamService.updateAnalysisStatus(dreamId, "SUCCESS", null);
             } catch (Exception e) {
                 log.warn("Background dream analysis failed for {}", dreamId, e);
-                dreamService.updateInterpretation(dreamId, "AI 解析失败，你可以稍后重新解析。");
+                dreamService.updateInterpretation(dreamId, "");
+                dreamService.updateAnalysisStatus(dreamId, "FAILED", "AI 解析失败，请稍后重试");
             }
         }
     }

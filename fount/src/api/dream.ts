@@ -21,6 +21,8 @@ export interface DreamContent {
   place: string
   time: string
   interpretation: string
+  analysisStatus?: string
+  analysisError?: string
   imageUrl?: string
   createdAt: string
 }
@@ -34,6 +36,8 @@ export interface DreamDetail {
   place: string
   time: string
   interpretation: string
+  analysisStatus?: string
+  analysisError?: string
   imageUrl?: string
   createdAt: string
 }

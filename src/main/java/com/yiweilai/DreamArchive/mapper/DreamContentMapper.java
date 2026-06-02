@@ -19,5 +19,7 @@ public interface DreamContentMapper {
 
     void updateInterpretation(@Param("id") String id, @Param("interpretation") String interpretation);
 
+    void updateAnalysisStatus(@Param("id") String id, @Param("status") String status, @Param("error") String error);
+
     int deleteById(@Param("id") String id);
 }

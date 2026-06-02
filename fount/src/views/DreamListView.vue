@@ -28,6 +28,8 @@ interface Dream {
   place: string
   time: string
   interpretation: string
+  analysisStatus?: string
+  analysisError?: string
   imageUrl?: string
   createdAt: string
 }
@@ -70,13 +72,16 @@ function formatCreatedAt(raw: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function isPendingInterpretation(interpretation?: string | null) {
-  if (!interpretation) return false
-  return interpretation.includes('后台解析') || interpretation.includes('解析中')
+function isPendingAnalysis(dream: { analysisStatus?: string; interpretation?: string | null }) {
+  if (dream.analysisStatus) return dream.analysisStatus === 'PENDING'
+  // 兼容旧数据
+  const text = dream.interpretation
+  if (!text) return false
+  return text.includes('解析中')
 }
 
 function hasPendingDreams() {
-  return dreams.value.some(dream => isPendingInterpretation(dream.interpretation))
+  return dreams.value.some(dream => isPendingAnalysis(dream))
 }
 
 function stopPendingDreamsRefresh() {
@@ -229,8 +234,12 @@ function getEmotionColor(emotion: string): string {
 }
 
 function needsAnalysis(dream: Dream): boolean {
+  if (dream.analysisStatus === 'PENDING') return false
+  if (dream.analysisStatus === 'SUCCESS') return false
+  if (dream.analysisStatus === 'NONE' || dream.analysisStatus === 'FAILED') return true
+  // 兼容旧数据
   if (!dream.interpretation) return true
-  if (isPendingInterpretation(dream.interpretation)) return false
+  if (isPendingAnalysis(dream)) return false
   if (dream.interpretation === '暂无解析' || dream.interpretation === '暂无解析内容') return true
   return false
 }
@@ -239,7 +248,8 @@ async function handleAnalyze(dream: Dream) {
   try {
     const { data } = await triggerAnalyze(dream.id)
     if (data.code === 200) {
-      dream.interpretation = '梦境解析中，请稍候...'
+      dream.analysisStatus = 'PENDING'
+      dream.analysisError = undefined
     }
   } catch {
     // 静默失败
@@ -389,7 +399,8 @@ function goBack() {
           <div class="card-top">
             <div class="card-badges">
               <span class="emotion-badge" :style="{ background: getEmotionColor(dream.emotion) + '18', color: getEmotionColor(dream.emotion) }">{{ getEmotionIcon(dream.emotion) }} {{ getEmotionLabel(dream.emotion) }}</span>
-              <span v-if="isPendingInterpretation(dream.interpretation)" class="analysis-badge">🔮 解析中</span>
+              <span v-if="isPendingAnalysis(dream)" class="analysis-badge">🔮 解析中</span>
+              <span v-else-if="dream.analysisStatus === 'FAILED'" class="analysis-badge failed">⚠️ 解析失败</span>
             </div>
             <span class="dream-date">{{ dream.createdAt }}</span>
           </div>
@@ -438,7 +449,7 @@ function goBack() {
             </div>
             <div class="section">
               <h3 class="section-title">🔮 AI 解析</h3>
-              <div v-if="isPendingInterpretation(selectedDream.interpretation)" class="analysis-refresh-status">
+              <div v-if="isPendingAnalysis(selectedDream)" class="analysis-refresh-status">
                 <span class="analysis-spinner"></span>
                 <span>正在解读梦境，稍等片刻...</span>
               </div>
@@ -630,6 +641,12 @@ function goBack() {
   animation: badge-pulse 2s ease-in-out infinite;
 }
 @keyframes badge-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+.analysis-badge.failed {
+  background: rgba(255,107,107,0.13);
+  color: #e74c3c;
+  animation: none;
+}
+html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #ff8a80; }
 .card-actions {
   display: flex;
   align-items: center;

@@ -43,6 +43,7 @@ public class DreamService {
         dreamContent.setPlace(place);
         dreamContent.setTime(time);
         dreamContent.setInterpretation("");
+        dreamContent.setAnalysisStatus("NONE");
         dreamContent.setImageUrl(imageUrl);
         dreamContentMapper.insertDreamContent(dreamContent);
 
@@ -57,6 +58,10 @@ public class DreamService {
      */
     public void updateInterpretation(String dreamId, String interpretation) {
         dreamContentMapper.updateInterpretation(dreamId, interpretation);
+    }
+
+    public void updateAnalysisStatus(String dreamId, String status, String error) {
+        dreamContentMapper.updateAnalysisStatus(dreamId, status, error);
     }
 
     public void updateTitle(String dreamId, String title) {

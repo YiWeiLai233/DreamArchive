@@ -126,8 +126,7 @@ public class DreamController {
             if (!canAccessDream(dream)) {
                 return Result.error(403, "权限不足");
             }
-            String pending = "梦境解析中，请稍候...";
-            dreamService.updateInterpretation(id, pending);
+            dreamService.updateAnalysisStatus(id, "PENDING", null);
             dreamAiTaskService.completeDreamAiFields(id, dream.getContent(), dream.getImageUrl(), dream.getEmotion(), dream.getPlace(), dream.getTime(), false, true);
             return Result.success("已提交解析", null);
         } catch (Exception e) {
@@ -160,10 +159,10 @@ public class DreamController {
             if (!interpretation.isBlank()) {
                 dreamService.updateInterpretation(result.getId(), interpretation);
                 result.setInterpretation(interpretation);
+                result.setAnalysisStatus("SUCCESS");
             } else if (analyze) {
-                String pending = "梦境解析中，请稍候...";
-                dreamService.updateInterpretation(result.getId(), pending);
-                result.setInterpretation(pending);
+                dreamService.updateAnalysisStatus(result.getId(), "PENDING", null);
+                result.setAnalysisStatus("PENDING");
             }
             if (shouldGenerateTitle || analyze) {
                 dreamAiTaskService.completeDreamAiFields(result.getId(), content, imageUrl, emotion, place, time, shouldGenerateTitle, analyze);

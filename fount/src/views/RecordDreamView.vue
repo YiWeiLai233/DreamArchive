@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
-import { getDreamById, saveAndAnalyzeDream, saveDream, guestAnalyzeDream, uploadImage } from '@/api/dream'
+import { getDreamById, saveAndAnalyzeDream, saveDream, guestAnalyzeDream, uploadImage, triggerAnalyze } from '@/api/dream'
 import type { DreamContent } from '@/api/dream'
 import { formatDreamInterpretation } from '@/utils/dreamInterpretation'
 import { getDeviceId, saveGuestDream, updateGuestDreamInterpretation } from '@/utils/guestDreams'
@@ -91,7 +91,8 @@ const ANALYSIS_POLL_INTERVAL_MS = 3000
 const MAX_ANALYSIS_POLL_ATTEMPTS = 120
 
 const isFormValid = computed(() => form.value.content.trim().length > 0 && form.value.emotion.length > 0)
-const isAnalysisPending = computed(() => isPendingInterpretation(result.value?.interpretation))
+const isAnalysisPending = computed(() => isPendingAnalysis(result.value))
+const isAnalysisFailed = computed(() => result.value?.analysisStatus === 'FAILED')
 const formattedInterpretation = computed(() => formatDreamInterpretation(result.value?.interpretation))
 
 function selectEmotion(key: string) {
@@ -153,9 +154,13 @@ function getEmotionIcon(emotion: string) {
   return emotions.find(e => e.key === emotion)?.icon || '🌙'
 }
 
-function isPendingInterpretation(interpretation?: string | null) {
-  if (!interpretation) return false
-  return interpretation.includes('后台解析') || interpretation.includes('解析中')
+function isPendingAnalysis(dream?: { analysisStatus?: string; interpretation?: string | null } | null) {
+  if (!dream) return false
+  if (dream.analysisStatus) return dream.analysisStatus === 'PENDING'
+  // 兼容旧数据
+  const text = dream.interpretation
+  if (!text) return false
+  return text.includes('解析中')
 }
 
 function clearAnalysisPolling() {
@@ -197,7 +202,7 @@ async function refreshDreamUntilAnalyzed(dreamId: string) {
     if (res.data.code === 200 && res.data.data) {
       if (currentAnalysisDreamId !== dreamId && result.value?.id !== dreamId) return
       result.value = res.data.data
-      if (!isPendingInterpretation(res.data.data.interpretation)) {
+      if (!isPendingAnalysis(res.data.data)) {
         clearAnalysisPolling()
       }
     }
@@ -216,7 +221,7 @@ function refreshAnalysisOnResume() {
   const dreamId = currentAnalysisDreamId || result.value?.id
   if (!dreamId || step.value !== 'result') return
 
-  if (!isPendingInterpretation(result.value?.interpretation)) {
+  if (!isPendingAnalysis(result.value)) {
     clearAnalysisPolling()
     return
   }
@@ -295,7 +300,7 @@ async function handleSubmit(mode: 'save' | 'analyze') {
       if (res.data.code === 200) {
         result.value = res.data.data
         step.value = 'result'
-        if (mode === 'analyze' && res.data.data?.id && isPendingInterpretation(res.data.data.interpretation)) {
+        if (mode === 'analyze' && res.data.data?.id && isPendingAnalysis(res.data.data)) {
           startAnalysisPolling(res.data.data.id)
         }
       } else {
@@ -313,6 +318,20 @@ async function handleSubmit(mode: 'save' | 'analyze') {
 
 function goBack() { router.push('/') }
 function goDreams() { router.push('/dreams') }
+async function retryAnalysis() {
+  if (!result.value?.id) return
+  try {
+    const res = await triggerAnalyze(result.value.id)
+    if (res.data.code === 200) {
+      result.value.analysisStatus = 'PENDING'
+      result.value.analysisError = undefined
+      startAnalysisPolling(result.value.id)
+    }
+  } catch (error) {
+    console.error('重新解析失败:', error)
+  }
+}
+
 function recordAnother() {
   clearAnalysisPolling()
   form.value = { title: '', content: '', emotion: '', place: '', time: '' }
@@ -747,7 +766,11 @@ onBeforeUnmount(() => {
                 <span class="analysis-spinner"></span>
                 <span>正在为你解读梦境，稍等片刻...</span>
               </div>
-              <div class="interpretation-box">
+              <div v-if="isAnalysisFailed" class="analysis-failed-status">
+                <p>😔 {{ result?.analysisError || 'AI 解析失败，请稍后重试' }}</p>
+                <button class="btn-retry" @click="retryAnalysis">重新解析</button>
+              </div>
+              <div class="interpretation-box" v-else>
                 <div v-if="formattedInterpretation.length" class="interpretation-content">
                   <template
                     v-for="(block, index) in formattedInterpretation"
@@ -1242,6 +1265,28 @@ html.dark .submit-disclaimer { color: #8A84A8; }
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+.analysis-failed-status {
+  margin-bottom: 0.6rem;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  background: rgba(255,107,107,0.1);
+  color: #e74c3c;
+  font-size: 0.85rem;
+  text-align: center;
+}
+.analysis-failed-status p { margin: 0 0 0.5rem; }
+.btn-retry {
+  padding: 0.35rem 1.2rem;
+  border: none;
+  border-radius: 50px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-retry:hover { opacity: 0.85; transform: translateY(-1px); }
+html.dark .analysis-failed-status { background: rgba(255,107,107,0.15); color: #ff8a80; }
 .interpretation-box {
   background: rgba(255,255,255,0.42);
   padding: 1rem; border-radius: 14px;
