@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores'
 import { getDreamById, saveAndAnalyzeDream, saveDream, guestAnalyzeDream, uploadImage, triggerAnalyze } from '@/api/dream'
 import type { DreamContent } from '@/api/dream'
 import { formatDreamInterpretation } from '@/utils/dreamInterpretation'
+import { isPendingAnalysis } from '@/utils/analysisStatus'
 import { getDeviceId, saveGuestDream, updateGuestDreamInterpretation } from '@/utils/guestDreams'
 
 const router = useRouter()
@@ -152,15 +153,6 @@ async function doUploadImage(): Promise<boolean> {
 
 function getEmotionIcon(emotion: string) {
   return emotions.find(e => e.key === emotion)?.icon || '🌙'
-}
-
-function isPendingAnalysis(dream?: { analysisStatus?: string; interpretation?: string | null } | null) {
-  if (!dream) return false
-  if (dream.analysisStatus) return dream.analysisStatus === 'PENDING'
-  // 兼容旧数据
-  const text = dream.interpretation
-  if (!text) return false
-  return text.includes('解析中')
 }
 
 function clearAnalysisPolling() {

@@ -5,6 +5,7 @@ import { deleteDream, getUserDreams, triggerAnalyze } from '@/api/dream'
 import { getUserByEmail } from '@/api/user'
 import { useUserStore } from '@/stores'
 import { formatDreamInterpretation } from '@/utils/dreamInterpretation'
+import { getAnalysisFields, isPendingAnalysis, needsAnalysis } from '@/utils/analysisStatus'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -70,14 +71,6 @@ function formatCreatedAt(raw: string): string {
   const d = new Date(raw)
   if (isNaN(d.getTime())) return raw
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function isPendingAnalysis(dream: { analysisStatus?: string; interpretation?: string | null }) {
-  if (dream.analysisStatus) return dream.analysisStatus === 'PENDING'
-  // 兼容旧数据
-  const text = dream.interpretation
-  if (!text) return false
-  return text.includes('解析中')
 }
 
 function hasPendingDreams() {
@@ -156,6 +149,7 @@ async function loadDreams(options: { silent?: boolean } = {}) {
         place: d.place || '未知',
         time: d.time || '',
         interpretation: d.interpretation || '暂无解析',
+        ...getAnalysisFields(d),
         imageUrl: d.imageUrl || '',
         createdAt: formatCreatedAt(d.createdAt)
       }))
@@ -233,23 +227,13 @@ function getEmotionColor(emotion: string): string {
   return map[emotion] || '#7C6FE0'
 }
 
-function needsAnalysis(dream: Dream): boolean {
-  if (dream.analysisStatus === 'PENDING') return false
-  if (dream.analysisStatus === 'SUCCESS') return false
-  if (dream.analysisStatus === 'NONE' || dream.analysisStatus === 'FAILED') return true
-  // 兼容旧数据
-  if (!dream.interpretation) return true
-  if (isPendingAnalysis(dream)) return false
-  if (dream.interpretation === '暂无解析' || dream.interpretation === '暂无解析内容') return true
-  return false
-}
-
 async function handleAnalyze(dream: Dream) {
   try {
     const { data } = await triggerAnalyze(dream.id)
     if (data.code === 200) {
       dream.analysisStatus = 'PENDING'
       dream.analysisError = undefined
+      syncPendingDreamsRefresh()
     }
   } catch {
     // 静默失败

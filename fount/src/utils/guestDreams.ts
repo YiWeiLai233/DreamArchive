@@ -1,4 +1,5 @@
 import { saveDream, type DreamForm } from '@/api/dream'
+import { toSyncableInterpretation } from '@/utils/analysisStatus'
 
 export const GUEST_DREAMS_KEY = 'guest_dreams'
 export const DEVICE_ID_KEY = 'device_id'
@@ -90,7 +91,7 @@ export async function syncGuestDreams(userId: number) {
         emotion: dream.emotion,
         place: dream.place || '未知',
         time: dream.time || '',
-        interpretation: dream.interpretation || ''
+        interpretation: toSyncableInterpretation(dream.interpretation)
       }
       const res = await saveDream(dreamData)
       if (res.data.code !== 200) {
