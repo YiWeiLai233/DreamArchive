@@ -5,8 +5,8 @@ import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.service.RegisterService;
 import com.yiweilai.DreamArchive.service.TokenService;
 import com.yiweilai.DreamArchive.service.VerificationCodeService;
-import com.yiweilai.DreamArchive.util.PasswordEncrypt;
 import com.yiweilai.DreamArchive.util.Result;
+import com.yiweilai.DreamArchive.util.SensitiveDataEncryptor;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +21,7 @@ public class RegisterController {
     private RegisterService registerService;
 
     @Autowired
-    private PasswordEncrypt passwordEncrypt;
+    private SensitiveDataEncryptor sensitiveDataEncryptor;
 
     @Autowired
     private VerificationCodeService verificationCodeService;
@@ -51,7 +51,7 @@ public class RegisterController {
         if (!verificationCodeService.verifyCode("register", user.getEmail(), code)) {
             return Result.error("验证码错误或已过期");
         }
-        String encryptedPassword = passwordEncrypt.encrypt(user.getPassword());
+        String encryptedPassword = sensitiveDataEncryptor.encrypt(user.getPassword());
         Result<User> result = registerService.newUser(user.getUsername(), encryptedPassword, user.getEmail());
         if (result.getCode() != 200) {
             return Result.error(result.getMessage());

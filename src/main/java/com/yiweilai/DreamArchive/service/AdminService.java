@@ -10,8 +10,8 @@ import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.mapper.AdminMapper;
 import com.yiweilai.DreamArchive.mapper.DreamContentMapper;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
-import com.yiweilai.DreamArchive.util.PasswordEncrypt;
 import com.yiweilai.DreamArchive.util.Result;
+import com.yiweilai.DreamArchive.util.SensitiveDataEncryptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +35,7 @@ public class AdminService {
     private DreamContentMapper dreamContentMapper;
 
     @Autowired
-    private PasswordEncrypt passwordEncrypt;
+    private SensitiveDataEncryptor sensitiveDataEncryptor;
 
     public Result<AdminOverview> getOverview(String authorizationHeader, AdminOverviewRequest request) {
         Result<User> authResult = requireAdmin(authorizationHeader);
@@ -198,7 +198,7 @@ public class AdminService {
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
-        user.setPassword(passwordEncrypt.encrypt(password));
+        user.setPassword(sensitiveDataEncryptor.encrypt(password));
         user.setRole(normalizeRole(request.getRole()));
         user.setStatus(normalizeStatus(request.getStatus()));
         user.setDeleted(false);
@@ -246,7 +246,7 @@ public class AdminService {
         target.setRole(role);
         target.setStatus(status);
         target.setDeleted(false);
-        target.setPassword(hasText(request.getPassword()) ? passwordEncrypt.encrypt(request.getPassword()) : null);
+        target.setPassword(hasText(request.getPassword()) ? sensitiveDataEncryptor.encrypt(request.getPassword()) : null);
 
         int updated = adminMapper.updateUser(target);
         return updated > 0 ? Result.success(null) : Result.error("修改账号失败");

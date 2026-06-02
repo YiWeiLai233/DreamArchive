@@ -4,8 +4,8 @@ import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
 import com.yiweilai.DreamArchive.mapper.ResetPasswordMapper;
 import com.yiweilai.DreamArchive.service.VerificationCodeService;
-import com.yiweilai.DreamArchive.util.PasswordEncrypt;
 import com.yiweilai.DreamArchive.util.Result;
+import com.yiweilai.DreamArchive.util.SensitiveDataEncryptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,7 +27,7 @@ public class ChangePasswordController {
     private ResetPasswordMapper resetPasswordMapper;
 
     @Autowired
-    private PasswordEncrypt passwordEncrypt;
+    private SensitiveDataEncryptor sensitiveDataEncryptor;
 
     @Autowired
     private VerificationCodeService verificationCodeService;
@@ -74,7 +74,7 @@ public class ChangePasswordController {
         if (user == null) {
             return Result.error("用户不存在，请重新登录");
         }
-        if (!passwordEncrypt.matches(oldPassword, user.getPassword())) {
+        if (!sensitiveDataEncryptor.matches(oldPassword, user.getPassword())) {
             return Result.error("当前密码不正确");
         }
 
@@ -83,7 +83,7 @@ public class ChangePasswordController {
             return Result.error("验证码错误或已过期");
         }
 
-        String encryptedPassword = passwordEncrypt.encrypt(newPassword);
+        String encryptedPassword = sensitiveDataEncryptor.encrypt(newPassword);
         int updated = resetPasswordMapper.resetById(user.getId(), encryptedPassword);
         if (updated <= 0) {
             return Result.error("密码修改失败");

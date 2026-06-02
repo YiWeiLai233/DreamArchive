@@ -2,8 +2,8 @@ package com.yiweilai.DreamArchive.service;
 
 import com.yiweilai.DreamArchive.mapper.ResetPasswordMapper;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
-import com.yiweilai.DreamArchive.util.PasswordEncrypt;
 import com.yiweilai.DreamArchive.util.Result;
+import com.yiweilai.DreamArchive.util.SensitiveDataEncryptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 public class ResetPasswordService {
 
     @Autowired
-    private PasswordEncrypt passwordEncrypt;
+    private SensitiveDataEncryptor sensitiveDataEncryptor;
 
     @Autowired
     private ResetPasswordMapper resetPasswordMapper;
@@ -41,7 +41,7 @@ public class ResetPasswordService {
             }
 
             // 加密新密码
-            String encryptedPassword = passwordEncrypt.encrypt(newPassword);
+            String encryptedPassword = sensitiveDataEncryptor.encrypt(newPassword);
 
             // 执行密码重置
             int rows;

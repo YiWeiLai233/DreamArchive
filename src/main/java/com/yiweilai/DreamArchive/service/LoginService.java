@@ -4,8 +4,8 @@ import com.yiweilai.DreamArchive.DTO.LoginResponse;
 import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
 import com.yiweilai.DreamArchive.mapper.RegisterMapper;
-import com.yiweilai.DreamArchive.util.PasswordEncrypt;
 import com.yiweilai.DreamArchive.util.Result;
+import com.yiweilai.DreamArchive.util.SensitiveDataEncryptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ public class LoginService {
     private RegisterMapper registerMapper;
 
     @Autowired
-    private PasswordEncrypt passwordEncrypt;
+    private SensitiveDataEncryptor sensitiveDataEncryptor;
 
     @Autowired
     private TokenService tokenService;
@@ -61,7 +61,7 @@ public class LoginService {
         }
 
         // 验证密码
-        if (!passwordEncrypt.matches(password, user.getPassword())) {
+        if (!sensitiveDataEncryptor.matches(password, user.getPassword())) {
             return Result.error("密码错误");
         }
 
@@ -78,7 +78,7 @@ public class LoginService {
         if (user == null) {
             // 自动注册
             String tempUsername = "用户" + UUID.randomUUID().toString().substring(0, 6);
-            String tempPassword = passwordEncrypt.encrypt(UUID.randomUUID().toString());
+            String tempPassword = sensitiveDataEncryptor.encrypt(UUID.randomUUID().toString());
             User newUser = new User();
             newUser.setUsername(tempUsername);
             newUser.setEmail(email);
@@ -120,7 +120,7 @@ public class LoginService {
             return Result.error("该用户名已被使用");
         }
 
-        String encryptedPassword = passwordEncrypt.encrypt(password);
+        String encryptedPassword = sensitiveDataEncryptor.encrypt(password);
         int rows = registerMapper.updateUsernameAndPassword(currentUser.getId(), username, encryptedPassword);
         if (rows > 0) {
             return Result.success("设置成功");
