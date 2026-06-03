@@ -37,9 +37,10 @@ public class StatsService {
             List<DreamStatsEntity> recentStats = dreamStatsMapper.selectRecentDays(userId, 7);
 
             // 总梦境数
-            Integer totalDreams = recentStats.stream()
-                    .mapToInt(DreamStatsEntity::getTotalDreams)
-                    .sum();
+            Integer totalDreams = statsMapper.countByUserId(userId);
+            if (totalDreams == null) {
+                totalDreams = 0;
+            }
 
             // 情绪分布（从统计表聚合）
             List<Map<String, Object>> emotionDistribution = buildEmotionDistribution(recentStats);
@@ -110,8 +111,10 @@ public class StatsService {
 
     public Result<Integer> getTotalDreams(Integer userId) {
         try {
-            List<DreamStatsEntity> allStats = dreamStatsMapper.selectRecentDays(userId, 365);
-            Integer total = allStats.stream().mapToInt(DreamStatsEntity::getTotalDreams).sum();
+            Integer total = statsMapper.countByUserId(userId);
+            if (total == null) {
+                total = 0;
+            }
             return Result.success(total);
         } catch (Exception e) {
             log.error("获取梦境总数失败", e);
