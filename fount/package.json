@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "test:analysis-status": "node scripts/test-analysis-status.mjs",
+    "test:cookie-auth": "node scripts/test-cookie-auth.mjs",
     "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },

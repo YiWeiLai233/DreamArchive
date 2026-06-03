@@ -21,13 +21,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import jakarta.servlet.Filter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 @Configuration
@@ -38,13 +31,16 @@ public class SecurityConfig {
     private static final String PERMISSION_DENIED = "\u6743\u9650\u4e0d\u8db3";
 
     private final TokenAuthenticationFilter tokenAuthenticationFilter;
+    private final CsrfProtectionFilter csrfProtectionFilter;
     private final ObjectMapper objectMapper;
     private final CorsProperties corsProperties;
 
     public SecurityConfig(TokenAuthenticationFilter tokenAuthenticationFilter,
+                          CsrfProtectionFilter csrfProtectionFilter,
                           ObjectMapper objectMapper,
                           CorsProperties corsProperties) {
         this.tokenAuthenticationFilter = tokenAuthenticationFilter;
+        this.csrfProtectionFilter = csrfProtectionFilter;
         this.objectMapper = objectMapper;
         this.corsProperties = corsProperties;
     }
@@ -87,6 +83,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(csrfProtectionFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

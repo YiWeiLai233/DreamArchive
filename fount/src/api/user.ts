@@ -18,7 +18,6 @@ export interface UserInfo {
   role?: 'USER' | 'ADMIN'
   status?: 'ACTIVE' | 'BANNED'
   createdAt?: string
-  token?: string
   avatarUrl?: string
 }
 
@@ -71,6 +70,10 @@ export function sendLoginCode(email: string) {
 
 export function loginByCode(email: string, code: string) {
   return api.post<ApiResult<UserInfo>>('/api/login/code', { email, code })
+}
+
+export function logout() {
+  return api.post<ApiResult<string>>('/api/logout')
 }
 
 // 梦境统计相关 API

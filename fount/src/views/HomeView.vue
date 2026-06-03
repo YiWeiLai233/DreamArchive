@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
-import { getDreamStats } from '@/api/user'
+import { getDreamStats, logout as logoutApi } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -61,7 +61,10 @@ function goLogin() {
 }
 
 function handleLogout() {
-  userStore.logout()
+  logoutApi().finally(() => {
+    userStore.logout()
+    router.push('/')
+  })
 }
 
 function goDreamList() {

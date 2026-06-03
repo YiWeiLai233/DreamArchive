@@ -1,4 +1,4 @@
-import axios from 'axios'
+import api from './axios'
 
 export interface ApiResult<T> {
   code: number
@@ -77,34 +77,18 @@ export interface AdminUserActionRequest {
   status?: 'ACTIVE' | 'BANNED'
 }
 
-export function getAdminOverview(token: string, payload: AdminOverviewRequest) {
-  return axios.post<ApiResult<AdminOverview>>('/api/admin/overview', payload, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
+export function getAdminOverview(payload: AdminOverviewRequest) {
+  return api.post<ApiResult<AdminOverview>>('/api/admin/overview', payload)
 }
 
-export function runAdminUserAction(token: string, payload: AdminUserActionRequest) {
-  return axios.post<ApiResult<AdminOverview>>('/api/admin/user-action', payload, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
+export function runAdminUserAction(payload: AdminUserActionRequest) {
+  return api.post<ApiResult<AdminOverview>>('/api/admin/user-action', payload)
 }
 
-export function deleteAdminUser(token: string, id: number) {
-  return axios.post<ApiResult<AdminOverview>>('/api/admin/delete-user', { id }, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
+export function deleteAdminUser(id: number) {
+  return api.post<ApiResult<AdminOverview>>('/api/admin/delete-user', { id })
 }
 
-export function getAdminDreamDetail(token: string, id: string) {
-  return axios.post<ApiResult<AdminDreamDetail>>('/api/admin/dream-detail', { id }, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
+export function getAdminDreamDetail(id: string) {
+  return api.post<ApiResult<AdminDreamDetail>>('/api/admin/dream-detail', { id })
 }

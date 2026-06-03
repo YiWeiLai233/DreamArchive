@@ -32,7 +32,7 @@ const setupLoading = ref(false)
 const setupError = ref('')
 
 function afterLogin(data: any) {
-  userStore.login(data.username, data.email, data.createdAt || '', data.id, data.role, data.token)
+  userStore.login(data.username, data.email, data.createdAt || '', data.id, data.role)
   if (data.avatarUrl) {
     userStore.updateAvatar(data.avatarUrl)
   }

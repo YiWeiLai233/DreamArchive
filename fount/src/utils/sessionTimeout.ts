@@ -1,5 +1,6 @@
 import type { Router } from 'vue-router'
 import { useUserStore } from '@/stores'
+import { logout as logoutApi } from '@/api/user'
 
 const CHECK_INTERVAL_MS = 30 * 1000
 const ACTIVITY_REFRESH_GAP_MS = 1000
@@ -7,6 +8,7 @@ const ACTIVITY_EVENTS = ['click', 'keydown', 'pointerdown', 'scroll', 'touchstar
 
 let installed = false
 let lastRefreshAt = 0
+let logoutInFlight = false
 
 function redirectToLogin(router: Router) {
   const route = router.currentRoute.value
@@ -30,6 +32,12 @@ export function installSessionTimeout(router: Router) {
     if (!userStore.isLoggedIn) return
     if (!userStore.isSessionExpired()) return
 
+    if (!logoutInFlight) {
+      logoutInFlight = true
+      logoutApi().finally(() => {
+        logoutInFlight = false
+      })
+    }
     userStore.logout()
     redirectToLogin(router)
   }

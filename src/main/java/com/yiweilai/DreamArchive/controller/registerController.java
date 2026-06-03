@@ -2,11 +2,14 @@ package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.DTO.LoginResponse;
 import com.yiweilai.DreamArchive.DTO.User;
+import com.yiweilai.DreamArchive.service.AuthCookieService;
+import com.yiweilai.DreamArchive.service.CsrfTokenService;
 import com.yiweilai.DreamArchive.service.RegisterService;
 import com.yiweilai.DreamArchive.service.TokenService;
 import com.yiweilai.DreamArchive.service.VerificationCodeService;
 import com.yiweilai.DreamArchive.util.Result;
 import com.yiweilai.DreamArchive.util.SensitiveDataEncryptor;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +32,12 @@ public class RegisterController {
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private AuthCookieService authCookieService;
+
+    @Autowired
+    private CsrfTokenService csrfTokenService;
+
     @PostMapping("/register/send-code")
     public Result<String> sendCode(@RequestBody Map<String, String> request) {
         String email = request.get("email");
@@ -44,7 +53,7 @@ public class RegisterController {
     }
 
     @PostMapping("/register")
-    public Result<LoginResponse> register(@Valid @RequestBody User user, @RequestParam String code) {
+    public Result<LoginResponse> register(@Valid @RequestBody User user, @RequestParam String code, HttpServletResponse response) {
         if (code.isEmpty()) {
             return Result.error("请输入验证码");
         }
@@ -58,7 +67,9 @@ public class RegisterController {
         }
         User registered = result.getData();
         String token = tokenService.generateToken(registered);
+        authCookieService.addAuthCookie(response, token);
+        authCookieService.addCsrfCookie(response, csrfTokenService.generateToken());
         registered.setPassword(null);
-        return Result.success("注册成功", new LoginResponse(registered, token));
+        return Result.success("注册成功", new LoginResponse(registered, null));
     }
 }

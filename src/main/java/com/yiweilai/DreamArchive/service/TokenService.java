@@ -34,7 +34,7 @@ public class TokenService {
         return parseToken(authorizationHeader.substring("Bearer ".length()).trim());
     }
 
-    private AuthenticatedUser parseToken(String token) {
+    public AuthenticatedUser parseToken(String token) {
         String[] parts = token.split("\\.");
         if (parts.length != 2) {
             throw new IllegalArgumentException("登录状态无效");

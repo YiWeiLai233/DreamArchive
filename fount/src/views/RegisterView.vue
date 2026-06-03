@@ -97,8 +97,7 @@ async function handleRegister() {
         user.email,
         user.createdAt || '',
         user.id,
-        user.role || 'USER',
-        user.token || ''
+        user.role || 'USER'
       )
       if (user.avatarUrl) {
         userStore.updateAvatar(user.avatarUrl)

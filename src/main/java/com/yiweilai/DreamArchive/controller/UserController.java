@@ -25,6 +25,21 @@ public class UserController {
     @Autowired
     private MinioService minioService;
 
+    @GetMapping("/me")
+    public Result<User> me() {
+        User currentUser = currentUser();
+        if (currentUser == null) {
+            return Result.error(401, "请先登录");
+        }
+        User user = loginMapper.selectById(currentUser.getId());
+        if (user == null || Boolean.TRUE.equals(user.getDeleted())) {
+            return Result.error(401, "登录用户不存在");
+        }
+        user.setPassword(null);
+        enrichAvatarUrl(user);
+        return Result.success(user);
+    }
+
     /**
      * 通过邮箱获取用户信息
      * GET /api/user/by-email?email=xxx

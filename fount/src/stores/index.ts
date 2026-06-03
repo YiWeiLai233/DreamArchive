@@ -30,24 +30,21 @@ export const useUserStore = defineStore('user', () => {
   const createdAt = ref(localStorage.getItem('createdAt') || '')
   const avatar = ref(localStorage.getItem('avatar') || '')
   const role = ref(localStorage.getItem('role') || 'USER')
-  const token = ref(localStorage.getItem('authToken') || '')
   const isAdmin = computed(() => role.value === 'ADMIN' || role.value === 'SUPER_ADMIN')
 
-  function login(name: string, mail?: string, joinDate?: string, id?: string | number, userRole?: string, authToken?: string) {
+  function login(name: string, mail?: string, joinDate?: string, id?: string | number, userRole?: string) {
     isLoggedIn.value = true
     username.value = name
     email.value = mail || ''
     createdAt.value = joinDate || ''
     userId.value = id ? String(id) : ''
     role.value = userRole || 'USER'
-    token.value = authToken || ''
     localStorage.setItem('isLoggedIn', 'true')
     localStorage.setItem('username', name)
     if (mail) localStorage.setItem('email', mail)
     if (joinDate) localStorage.setItem('createdAt', joinDate)
     if (id) localStorage.setItem('userId', String(id))
     localStorage.setItem('role', role.value)
-    if (authToken) localStorage.setItem('authToken', authToken)
     refreshSession()
   }
 
@@ -59,7 +56,6 @@ export const useUserStore = defineStore('user', () => {
     userId.value = ''
     avatar.value = ''
     role.value = 'USER'
-    token.value = ''
     localStorage.removeItem('isLoggedIn')
     localStorage.removeItem('username')
     localStorage.removeItem('email')
@@ -67,7 +63,6 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('userId')
     localStorage.removeItem('avatar')
     localStorage.removeItem('role')
-    localStorage.removeItem('authToken')
     localStorage.removeItem(LAST_ACTIVITY_KEY)
     clearSessionCookie()
   }
@@ -120,7 +115,6 @@ export const useUserStore = defineStore('user', () => {
     createdAt,
     avatar,
     role,
-    token,
     isAdmin,
     login,
     logout,

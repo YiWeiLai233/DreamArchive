@@ -1,9 +1,12 @@
 package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.DTO.LoginResponse;
+import com.yiweilai.DreamArchive.service.AuthCookieService;
+import com.yiweilai.DreamArchive.service.CsrfTokenService;
 import com.yiweilai.DreamArchive.service.LoginService;
 import com.yiweilai.DreamArchive.service.VerificationCodeService;
 import com.yiweilai.DreamArchive.util.Result;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,11 +25,17 @@ public class LoginController {
     @Autowired
     private VerificationCodeService verificationCodeService;
 
+    @Autowired
+    private AuthCookieService authCookieService;
+
+    @Autowired
+    private CsrfTokenService csrfTokenService;
+
     @PostMapping("/login")
-    public Result<LoginResponse> login(@RequestBody Map<String, String> request) {
+    public Result<LoginResponse> login(@RequestBody Map<String, String> request, HttpServletResponse response) {
         String username = request.get("username");
         String password = request.get("password");
-        return loginService.login(username, password);
+        return withLoginCookies(loginService.login(username, password), response);
     }
 
     @PostMapping("/login/send-code")
@@ -44,7 +53,7 @@ public class LoginController {
     }
 
     @PostMapping("/login/code")
-    public Result<LoginResponse> loginByCode(@RequestBody Map<String, String> request) {
+    public Result<LoginResponse> loginByCode(@RequestBody Map<String, String> request, HttpServletResponse response) {
         String email = request.get("email");
         String code = request.get("code");
         if (email == null || email.isEmpty()) {
@@ -56,7 +65,7 @@ public class LoginController {
         if (!verificationCodeService.verifyCode("login", email, code)) {
             return Result.error("验证码错误或已过期");
         }
-        return loginService.loginByEmail(email);
+        return withLoginCookies(loginService.loginByEmail(email), response);
     }
 
     @PostMapping("/account/setup")
@@ -70,5 +79,22 @@ public class LoginController {
             return Result.error("密码长度至少6位");
         }
         return loginService.setupAccount(username.trim(), password);
+    }
+
+    @PostMapping("/logout")
+    public Result<String> logout(HttpServletResponse response) {
+        authCookieService.clearAuthCookie(response);
+        authCookieService.clearCsrfCookie(response);
+        return Result.success("退出登录");
+    }
+
+    private Result<LoginResponse> withLoginCookies(Result<LoginResponse> result, HttpServletResponse response) {
+        if (result.getCode() != 200 || result.getData() == null || result.getData().getToken() == null) {
+            return result;
+        }
+        authCookieService.addAuthCookie(response, result.getData().getToken());
+        authCookieService.addCsrfCookie(response, csrfTokenService.generateToken());
+        result.getData().setToken(null);
+        return result;
     }
 }

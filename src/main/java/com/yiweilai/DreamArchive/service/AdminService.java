@@ -13,6 +13,8 @@ import com.yiweilai.DreamArchive.mapper.LoginMapper;
 import com.yiweilai.DreamArchive.util.Result;
 import com.yiweilai.DreamArchive.util.SensitiveDataEncryptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,14 +105,16 @@ public class AdminService {
     }
 
     private Result<User> requireAdmin(String authorizationHeader) {
-        TokenService.AuthenticatedUser currentUser;
-        try {
-            currentUser = tokenService.parseBearerToken(authorizationHeader);
-        } catch (IllegalArgumentException e) {
-            return Result.error(401, e.getMessage());
+        User user = currentPrincipal();
+        if (user == null) {
+            TokenService.AuthenticatedUser currentUser;
+            try {
+                currentUser = tokenService.parseBearerToken(authorizationHeader);
+            } catch (IllegalArgumentException e) {
+                return Result.error(401, e.getMessage());
+            }
+            user = loginMapper.selectById(currentUser.getUserId());
         }
-
-        User user = loginMapper.selectById(currentUser.getUserId());
         if (user == null || Boolean.TRUE.equals(user.getDeleted())) {
             return Result.error(401, "登录用户不存在");
         }
@@ -121,6 +125,14 @@ public class AdminService {
             return Result.error(403, "需要管理员权限");
         }
         return Result.success(user);
+    }
+
+    private User currentPrincipal() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            return null;
+        }
+        return user;
     }
 
     private AdminOverview buildOverview(AdminOverviewRequest request) {

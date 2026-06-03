@@ -21,7 +21,6 @@ export function handleApiError(status: number, message?: string) {
 
   if (status === 401) {
     localStorage.removeItem('isLoggedIn')
-    localStorage.removeItem('authToken')
     router.push('/login')
     return
   }

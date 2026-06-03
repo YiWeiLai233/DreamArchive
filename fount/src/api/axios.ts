@@ -1,13 +1,13 @@
 import axios from 'axios'
 import { onAxiosError } from '@/utils/errorHandler'
-import { attachAuthHeader } from '@/utils/authHeader'
 
 const api = axios.create({
   baseURL: '',
-  timeout: 10000
+  timeout: 10000,
+  withCredentials: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN'
 })
-
-api.interceptors.request.use(attachAuthHeader)
 
 api.interceptors.response.use(
   (response) => response,

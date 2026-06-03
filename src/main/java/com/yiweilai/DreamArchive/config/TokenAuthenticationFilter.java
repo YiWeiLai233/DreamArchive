@@ -3,6 +3,7 @@ package com.yiweilai.DreamArchive.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
+import com.yiweilai.DreamArchive.service.AuthCookieService;
 import com.yiweilai.DreamArchive.service.TokenService;
 import com.yiweilai.DreamArchive.util.Result;
 import jakarta.servlet.FilterChain;
@@ -33,11 +34,16 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
     private final TokenService tokenService;
     private final LoginMapper loginMapper;
     private final ObjectMapper objectMapper;
+    private final AuthCookieService authCookieService;
 
-    public TokenAuthenticationFilter(TokenService tokenService, LoginMapper loginMapper, ObjectMapper objectMapper) {
+    public TokenAuthenticationFilter(TokenService tokenService,
+                                     LoginMapper loginMapper,
+                                     ObjectMapper objectMapper,
+                                     AuthCookieService authCookieService) {
         this.tokenService = tokenService;
         this.loginMapper = loginMapper;
         this.objectMapper = objectMapper;
+        this.authCookieService = authCookieService;
     }
 
     @Override
@@ -50,13 +56,17 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        String cookieToken = authCookieService.readTokenFromCookie(request).orElse(null);
+        if ((authorizationHeader == null || !authorizationHeader.startsWith("Bearer "))
+                && (cookieToken == null || cookieToken.isBlank())) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            TokenService.AuthenticatedUser authenticatedUser = tokenService.parseBearerToken(authorizationHeader);
+            TokenService.AuthenticatedUser authenticatedUser = authorizationHeader != null && authorizationHeader.startsWith("Bearer ")
+                    ? tokenService.parseBearerToken(authorizationHeader)
+                    : tokenService.parseToken(cookieToken);
             User user = loginMapper.selectById(authenticatedUser.getUserId());
             if (user == null || Boolean.TRUE.equals(user.getDeleted())) {
                 writeResult(response, HttpStatus.UNAUTHORIZED, ACCOUNT_UNAVAILABLE);

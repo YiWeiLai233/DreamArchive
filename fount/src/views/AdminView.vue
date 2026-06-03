@@ -72,7 +72,7 @@ let userSearchTimer: number | undefined
 let dreamSearchTimer: number | undefined
 
 async function loadOverview() {
-  if (!userStore.token) {
+  if (!userStore.isLoggedIn) {
     errorMsg.value = '登录状态已失效，请重新登录'
     isLoading.value = false
     return
@@ -81,7 +81,7 @@ async function loadOverview() {
   try {
     isLoading.value = true
     errorMsg.value = ''
-    const res = await getAdminOverview(userStore.token, {
+    const res = await getAdminOverview({
       userPage: userPage.value,
       userPageSize: userPageSize.value,
       userKeyword: userSearch.value.trim() || undefined,
@@ -270,14 +270,14 @@ async function openDreamDetail(dream: AdminDreamSummary) {
   dreamDetailError.value = ''
   isDreamModalOpen.value = true
 
-  if (!userStore.token) {
+  if (!userStore.isLoggedIn) {
     dreamDetailError.value = '登录状态已失效，请重新登录'
     return
   }
 
   try {
     isDreamDetailLoading.value = true
-    const res = await getAdminDreamDetail(userStore.token, dream.id)
+    const res = await getAdminDreamDetail(dream.id)
     if (res.data.code === 200) {
       selectedDreamDetail.value = res.data.data
     } else {
@@ -362,17 +362,17 @@ async function deleteUser(user: AdminUserSummary) {
 }
 
 async function performUserAction(
-  payload: Parameters<typeof runAdminUserAction>[1],
+  payload: Parameters<typeof runAdminUserAction>[0],
   successMessage: string
 ) {
-  if (!userStore.token) {
+  if (!userStore.isLoggedIn) {
     actionError.value = '登录状态已失效，请重新登录'
     return false
   }
 
   try {
     isSubmitting.value = true
-    const res = await runAdminUserAction(userStore.token, payload)
+    const res = await runAdminUserAction(payload)
     if (res.data.code === 200) {
       if (payload.action === 'CREATE') {
         userPage.value = 1
@@ -392,14 +392,14 @@ async function performUserAction(
 }
 
 async function performDeleteUser(id: number) {
-  if (!userStore.token) {
+  if (!userStore.isLoggedIn) {
     actionError.value = '登录状态已失效，请重新登录'
     return false
   }
 
   try {
     isSubmitting.value = true
-    const res = await deleteAdminUser(userStore.token, id)
+    const res = await deleteAdminUser(id)
     if (res.data.code === 200) {
       actionMsg.value = '账号已删除'
       await loadOverview()
