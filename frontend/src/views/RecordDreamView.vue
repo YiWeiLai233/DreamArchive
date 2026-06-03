@@ -523,7 +523,7 @@ onBeforeUnmount(() => {
                 >
                   <span v-if="isSubmitting && submitMode === 'save'" class="loading-spinner"></span>
                   <span v-else class="btn-icon">💾</span>
-                  <span>{{ isSubmitting && submitMode === 'save' ? '正在保存...' : '仅保存' }}</span>
+                  <span>{{ isSubmitting && submitMode === 'save' ? '正在保存...' : '保存草稿' }}</span>
                 </button>
                 <button
                   class="submit-btn"
@@ -710,7 +710,7 @@ onBeforeUnmount(() => {
                     >
                       <span v-if="isSubmitting && submitMode === 'save'" class="loading-spinner"></span>
                       <span v-else class="btn-icon">💾</span>
-                      <span>{{ isSubmitting && submitMode === 'save' ? '正在保存...' : '仅保存' }}</span>
+                      <span>{{ isSubmitting && submitMode === 'save' ? '正在保存...' : '保存草稿' }}</span>
                     </button>
                     <button
                       class="submit-btn"

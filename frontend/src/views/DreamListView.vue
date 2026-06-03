@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { deleteDream, getUserDreams, triggerAnalyze } from '@/api/dream'
+import { deleteDream, getUserDreams, triggerAnalyze, updateDream } from '@/api/dream'
 import { getUserByEmail } from '@/api/user'
 import { useUserStore } from '@/stores'
 import { formatDreamInterpretation } from '@/utils/dreamInterpretation'
@@ -17,9 +17,20 @@ const selectedDream = ref<Dream | null>(null)
 const isLoading = ref(true)
 const isRefreshingPendingDreams = ref(false)
 const isDeleting = ref(false)
+const isSavingEdit = ref(false)
 const errorMsg = ref('')
+const editErrorMsg = ref('')
 const showDeleteConfirm = ref(false)
+const showEditModal = ref(false)
 const dreamPendingDelete = ref<Dream | null>(null)
+const dreamPendingEdit = ref<Dream | null>(null)
+const editForm = ref({
+  title: '',
+  content: '',
+  emotion: '',
+  place: '',
+  time: ''
+})
 
 interface Dream {
   id: string
@@ -37,10 +48,20 @@ interface Dream {
 
 const filters = [
   { key: 'all', label: '全部', icon: '🌙' },
+  { key: 'drafts', label: '草稿', icon: '📝' },
   { key: 'happy', label: '开心', icon: '😊' },
   { key: 'sad', label: '悲伤', icon: '😢' },
   { key: 'scary', label: '恐惧', icon: '😰' },
   { key: 'mysterious', label: '神秘', icon: '🔮' }
+]
+
+const emotionOptions = [
+  { key: 'happy', label: '开心', icon: '😊', color: '#FFD93D' },
+  { key: 'sad', label: '悲伤', icon: '😢', color: '#6B9BFF' },
+  { key: 'scary', label: '恐惧', icon: '😰', color: '#FF6B6B' },
+  { key: 'mysterious', label: '神秘', icon: '🔮', color: '#9B8FFF' },
+  { key: 'peaceful', label: '平静', icon: '😌', color: '#4ECDC4' },
+  { key: 'excited', label: '兴奋', icon: '🤩', color: '#FFB347' }
 ]
 
 const dreams = ref<Dream[]>([])
@@ -71,6 +92,21 @@ function formatCreatedAt(raw: string): string {
   const d = new Date(raw)
   if (isNaN(d.getTime())) return raw
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function normalizeDream(d: any): Dream {
+  return {
+    id: d.id,
+    title: d.title || (d.content ? d.content.slice(0, 20) + (d.content.length > 20 ? '...' : '') : '未命名梦境'),
+    content: d.content || '',
+    emotion: d.emotion || 'mysterious',
+    place: d.place || '未知',
+    time: d.time || '',
+    interpretation: d.interpretation || '暂无解析',
+    ...getAnalysisFields(d),
+    imageUrl: d.imageUrl || '',
+    createdAt: formatCreatedAt(d.createdAt)
+  }
 }
 
 function hasPendingDreams() {
@@ -141,18 +177,7 @@ async function loadDreams(options: { silent?: boolean } = {}) {
     }
     const res = await getUserDreams(Number(userId))
     if (res.data.code === 200) {
-      const nextDreams = (res.data.data || []).map(d => ({
-        id: d.id,
-        title: d.title || (d.content ? d.content.slice(0, 20) + (d.content.length > 20 ? '...' : '') : '未命名梦境'),
-        content: d.content || '',
-        emotion: d.emotion || 'mysterious',
-        place: d.place || '未知',
-        time: d.time || '',
-        interpretation: d.interpretation || '暂无解析',
-        ...getAnalysisFields(d),
-        imageUrl: d.imageUrl || '',
-        createdAt: formatCreatedAt(d.createdAt)
-      }))
+      const nextDreams = (res.data.data || []).map(normalizeDream)
       dreams.value = nextDreams
       if (selectedDream.value) {
         const updatedSelectedDream = nextDreams.find(dream => dream.id === selectedDream.value?.id)
@@ -193,7 +218,9 @@ onBeforeUnmount(() => {
 
 const filteredDreams = computed(() => {
   let result = dreams.value
-  if (activeFilter.value !== 'all') {
+  if (activeFilter.value === 'drafts') {
+    result = result.filter(d => isEditableDream(d))
+  } else if (activeFilter.value !== 'all') {
     result = result.filter(d => d.emotion === activeFilter.value)
   }
   if (searchQuery.value.trim()) {
@@ -208,6 +235,7 @@ const filteredDreams = computed(() => {
 })
 
 const selectedInterpretationBlocks = computed(() => formatDreamInterpretation(selectedDream.value?.interpretation))
+const isEditFormValid = computed(() => editForm.value.content.trim().length > 0 && editForm.value.emotion.length > 0)
 
 function getEmotionIcon(emotion: string) {
   const map: Record<string, string> = { happy: '😊', sad: '😢', scary: '😰', mysterious: '🔮', peaceful: '😌', excited: '🤩', angry: '😤' }
@@ -227,6 +255,10 @@ function getEmotionColor(emotion: string): string {
   return map[emotion] || '#7C6FE0'
 }
 
+function isEditableDream(dream?: Dream | null) {
+  return Boolean(dream && needsAnalysis(dream) && !isPendingAnalysis(dream))
+}
+
 async function handleAnalyze(dream: Dream) {
   try {
     const { data } = await triggerAnalyze(dream.id)
@@ -237,6 +269,57 @@ async function handleAnalyze(dream: Dream) {
     }
   } catch {
     // 静默失败
+  }
+}
+
+function openEdit(dream: Dream) {
+  if (!isEditableDream(dream)) return
+  dreamPendingEdit.value = dream
+  editForm.value = {
+    title: dream.title || '',
+    content: dream.content || '',
+    emotion: dream.emotion || '',
+    place: dream.place || '',
+    time: dream.time || ''
+  }
+  editErrorMsg.value = ''
+  showEditModal.value = true
+}
+
+function closeEditModal(force = false) {
+  if (isSavingEdit.value && !force) return
+  showEditModal.value = false
+  dreamPendingEdit.value = null
+  editErrorMsg.value = ''
+}
+
+async function submitEditDream() {
+  if (!dreamPendingEdit.value || !isEditFormValid.value || isSavingEdit.value) return
+
+  try {
+    isSavingEdit.value = true
+    editErrorMsg.value = ''
+    const res = await updateDream(dreamPendingEdit.value.id, {
+      title: editForm.value.title,
+      content: editForm.value.content,
+      emotion: editForm.value.emotion,
+      place: editForm.value.place || '未知',
+      time: editForm.value.time
+    })
+    if (res.data.code === 200 && res.data.data) {
+      const updatedDream = normalizeDream(res.data.data)
+      dreams.value = dreams.value.map(dream => dream.id === updatedDream.id ? updatedDream : dream)
+      if (selectedDream.value?.id === updatedDream.id) {
+        selectedDream.value = updatedDream
+      }
+      closeEditModal(true)
+    } else {
+      editErrorMsg.value = res.data.message || '保存失败，请重试'
+    }
+  } catch (e: any) {
+    editErrorMsg.value = e?.response?.data?.message || e.message || '保存失败，请重试'
+  } finally {
+    isSavingEdit.value = false
   }
 }
 
@@ -383,6 +466,7 @@ function goBack() {
           <div class="card-top">
             <div class="card-badges">
               <span class="emotion-badge" :style="{ background: getEmotionColor(dream.emotion) + '18', color: getEmotionColor(dream.emotion) }">{{ getEmotionIcon(dream.emotion) }} {{ getEmotionLabel(dream.emotion) }}</span>
+              <span v-if="isEditableDream(dream)" class="draft-badge">📝 草稿</span>
               <span v-if="isPendingAnalysis(dream)" class="analysis-badge">🔮 解析中</span>
               <span v-else-if="dream.analysisStatus === 'FAILED'" class="analysis-badge failed">⚠️ 解析失败</span>
             </div>
@@ -396,12 +480,18 @@ function goBack() {
             <span class="dream-meta">🕐 {{ dream.time }}</span>
           </div>
           <div class="card-footer-actions">
-            <button
-              v-if="needsAnalysis(dream)"
-              class="card-action-btn analyze"
-              @click.stop="handleAnalyze(dream)"
-            >🔮 AI 解析</button>
-            <span v-else></span>
+            <div class="card-primary-actions">
+              <button
+                v-if="isEditableDream(dream)"
+                class="card-action-btn edit"
+                @click.stop="openEdit(dream)"
+              >✏️ 编辑</button>
+              <button
+                v-if="needsAnalysis(dream)"
+                class="card-action-btn analyze"
+                @click.stop="handleAnalyze(dream)"
+              >🔮 AI 解析</button>
+            </div>
             <button
               class="card-action-btn delete"
               @click.stop="askDeleteDream(dream)"
@@ -462,9 +552,87 @@ function goBack() {
             </div>
           </div>
           <div class="modal-actions">
+            <button v-if="isEditableDream(selectedDream)" class="edit-detail-btn" @click="openEdit(selectedDream)">
+              <span>✏️</span>
+              <span>编辑草稿</span>
+            </button>
+            <button v-if="needsAnalysis(selectedDream)" class="analyze-detail-btn" @click="handleAnalyze(selectedDream)">
+              <span>🔮</span>
+              <span>AI 解析</span>
+            </button>
             <button class="delete-detail-btn" @click="askDeleteDream(selectedDream)">
               <span>🗑</span>
               <span>删除梦境</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="modal">
+      <div v-if="showEditModal && dreamPendingEdit" class="modal-overlay edit-overlay" @click.self="closeEditModal()">
+        <div class="edit-card glass">
+          <button class="modal-close" @click="closeEditModal()">✕</button>
+          <div class="edit-header">
+            <span class="edit-icon">📝</span>
+            <h2 class="edit-title">编辑草稿梦境</h2>
+            <p class="edit-subtitle">修改后仍会保留为未解析草稿，你可以稍后再启动 AI 解析。</p>
+          </div>
+
+          <div class="edit-form">
+            <label class="edit-field">
+              <span class="edit-label">标题</span>
+              <input v-model="editForm.title" type="text" class="edit-input" placeholder="给这个梦取个名字（可选）" />
+            </label>
+
+            <div class="edit-field">
+              <span class="edit-label">情绪 <span class="required">*</span></span>
+              <div class="edit-emotions">
+                <button
+                  v-for="emotion in emotionOptions"
+                  :key="emotion.key"
+                  class="edit-emotion-btn"
+                  :class="{ active: editForm.emotion === emotion.key }"
+                  :style="editForm.emotion === emotion.key ? { borderColor: emotion.color, background: emotion.color + '20' } : {}"
+                  @click="editForm.emotion = emotion.key"
+                >
+                  <span>{{ emotion.icon }}</span>
+                  <span>{{ emotion.label }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="edit-field-row">
+              <label class="edit-field">
+                <span class="edit-label">地点</span>
+                <input v-model="editForm.place" type="text" class="edit-input" placeholder="梦境地点" />
+              </label>
+              <label class="edit-field">
+                <span class="edit-label">时间</span>
+                <input v-model="editForm.time" type="text" class="edit-input" placeholder="梦境时间" />
+              </label>
+            </div>
+
+            <label class="edit-field">
+              <span class="edit-label">梦境内容 <span class="required">*</span></span>
+              <textarea
+                v-model="editForm.content"
+                class="edit-textarea"
+                placeholder="描述你梦到了什么..."
+              ></textarea>
+            </label>
+
+            <p v-if="editErrorMsg" class="edit-error">{{ editErrorMsg }}</p>
+          </div>
+
+          <div class="edit-actions">
+            <button class="edit-cancel" :disabled="isSavingEdit" @click="closeEditModal()">取消</button>
+            <button
+              class="edit-save"
+              :disabled="!isEditFormValid || isSavingEdit"
+              @click="submitEditDream"
+            >
+              {{ isSavingEdit ? '保存中...' : '保存修改' }}
             </button>
           </div>
         </div>
@@ -631,6 +799,14 @@ function goBack() {
   animation: none;
 }
 html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #ff8a80; }
+.draft-badge {
+  font-size: 0.75rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 50px;
+  background: rgba(255,179,71,0.16);
+  color: #b66b00;
+  font-weight: 600;
+}
 .card-actions {
   display: flex;
   align-items: center;
@@ -647,6 +823,12 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
   min-height: 38px;
   align-items: center;
 }
+.card-primary-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
 .card-action-btn {
   display: inline-flex;
   align-items: center;
@@ -657,6 +839,15 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Noto Sans SC', sans-serif;
+}
+.card-action-btn.edit {
+  border: 1px solid rgba(255,179,71,0.28);
+  background: rgba(255,179,71,0.08);
+  color: #9a5a00;
+}
+.card-action-btn.edit:hover {
+  background: rgba(255,179,71,0.18);
+  border-color: rgba(255,179,71,0.45);
 }
 .card-action-btn.analyze {
   border: 1px solid rgba(124,111,224,0.2);
@@ -848,8 +1039,12 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
 .modal-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   margin-top: 1.5rem;
 }
+.edit-detail-btn,
+.analyze-detail-btn,
 .delete-detail-btn {
   display: inline-flex;
   align-items: center;
@@ -865,9 +1060,179 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
   transition: all 0.2s ease;
   font-family: 'Noto Sans SC', sans-serif;
 }
+.edit-detail-btn {
+  border-color: rgba(255,179,71,0.32);
+  background: rgba(255,179,71,0.1);
+  color: #9a5a00;
+}
+.analyze-detail-btn {
+  border-color: rgba(124,111,224,0.28);
+  background: rgba(124,111,224,0.08);
+  color: var(--primary);
+}
+.edit-detail-btn:hover,
+.analyze-detail-btn:hover,
 .delete-detail-btn:hover {
-  background: rgba(229,57,53,0.15);
   transform: translateY(-1px);
+}
+.edit-detail-btn:hover { background: rgba(255,179,71,0.18); }
+.analyze-detail-btn:hover { background: rgba(124,111,224,0.15); }
+.delete-detail-btn:hover { background: rgba(229,57,53,0.15); }
+.required { color: #FF6B6B; }
+.edit-overlay { z-index: 130; }
+.edit-card {
+  width: 100%;
+  max-width: 760px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 2rem;
+  border-radius: 22px;
+  position: relative;
+  background: rgba(255,255,255,0.94);
+  border: 1px solid rgba(255,255,255,0.72);
+}
+.edit-header {
+  text-align: center;
+  margin-bottom: 1.4rem;
+}
+.edit-icon {
+  display: block;
+  font-size: 2.2rem;
+  margin-bottom: 0.45rem;
+}
+.edit-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.35rem;
+}
+.edit-subtitle {
+  margin: 0;
+  color: #6B6899;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.edit-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+.edit-label {
+  color: var(--text-dark);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.edit-input,
+.edit-textarea {
+  width: 100%;
+  border: 1.5px solid var(--glass-border);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.58);
+  color: var(--text-dark);
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+.edit-input {
+  min-height: 42px;
+  padding: 0.55rem 0.75rem;
+}
+.edit-textarea {
+  min-height: 180px;
+  padding: 0.75rem 0.9rem;
+  line-height: 1.7;
+  resize: vertical;
+}
+.edit-input:focus,
+.edit-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(124,111,224,0.12);
+}
+.edit-input::placeholder,
+.edit-textarea::placeholder { color: var(--text-light); }
+.edit-emotions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.edit-emotion-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.32rem;
+  min-height: 38px;
+  padding: 0.45rem 0.7rem;
+  border: 1.5px solid var(--glass-border);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.48);
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.edit-emotion-btn:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+.edit-emotion-btn.active {
+  box-shadow: 0 2px 10px rgba(124,111,224,0.18);
+}
+.edit-error {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: rgba(255,107,107,0.1);
+  color: #c62828;
+  font-size: 0.86rem;
+}
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.4rem;
+}
+.edit-cancel,
+.edit-save {
+  min-width: 112px;
+  min-height: 42px;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.edit-cancel {
+  border: 1px solid rgba(124,111,224,0.2);
+  background: rgba(255,255,255,0.72);
+  color: var(--text-dark);
+}
+.edit-save {
+  border: none;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(124,111,224,0.28);
+}
+.edit-cancel:hover:not(:disabled),
+.edit-save:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.edit-cancel:disabled,
+.edit-save:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
 }
 .confirm-overlay { z-index: 140; }
 .confirm-card {
@@ -950,6 +1315,11 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
   .card-footer-actions { gap: 0.4rem; }
   .card-action-btn { padding: 0.35rem 0.6rem; font-size: 0.72rem; }
   .modal-card { padding: 1.5rem; }
+  .edit-card { padding: 1.5rem; }
+  .edit-field-row { grid-template-columns: 1fr; }
+  .edit-actions { flex-direction: column; }
+  .edit-cancel,
+  .edit-save { width: 100%; }
   .confirm-card { padding: 1.5rem; }
   .confirm-actions { flex-direction: column; }
   .confirm-cancel,
@@ -972,6 +1342,11 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
   .empty-title { font-size: 1.1rem; }
   .empty-desc { font-size: 0.82rem; }
   .modal-card { padding: 1.25rem; }
+  .edit-card { padding: 1.25rem; }
+  .edit-title { font-size: 1.15rem; }
+  .edit-subtitle { font-size: 0.8rem; }
+  .edit-textarea { min-height: 150px; }
+  .edit-emotion-btn { flex: 1; min-width: 78px; }
   .confirm-card { padding: 1.25rem; }
 }
 
@@ -1069,7 +1444,17 @@ html.dark .dream-preview { color: #C6C0DA; }
 html.dark .dream-meta { color: #BFB8D5; }
 html.dark .emotion-badge { background: rgba(155, 143, 255, 0.12); }
 html.dark .analysis-badge { background: rgba(155, 143, 255, 0.15); color: #B8AEFF; }
+html.dark .draft-badge { background: rgba(255, 179, 71, 0.14); color: #FFB347; }
 html.dark .card-footer-actions { border-color: rgba(184, 174, 255, 0.16); }
+html.dark .card-action-btn.edit {
+  border-color: rgba(255, 179, 71, 0.22);
+  background: rgba(255, 179, 71, 0.08);
+  color: #FFB347;
+}
+html.dark .card-action-btn.edit:hover {
+  background: rgba(255, 179, 71, 0.16);
+  border-color: rgba(255, 179, 71, 0.36);
+}
 html.dark .card-action-btn.analyze {
   border-color: rgba(155, 143, 255, 0.2);
   background: rgba(155, 143, 255, 0.06);
@@ -1117,12 +1502,61 @@ html.dark .interpretation-item { background: rgba(24, 20, 39, 0.62); }
 html.dark .interpretation-paragraph { color: #C6C0DA; }
 html.dark .interpretation-item p { color: #C6C0DA; }
 html.dark .ai-disclaimer { color: #8A84A8; border-top-color: rgba(155, 143, 255, 0.15); }
+html.dark .edit-detail-btn {
+  border-color: rgba(255, 179, 71, 0.24);
+  background: rgba(255, 179, 71, 0.08);
+  color: #FFB347;
+}
+html.dark .edit-detail-btn:hover { background: rgba(255, 179, 71, 0.15); }
+html.dark .analyze-detail-btn {
+  border-color: rgba(155, 143, 255, 0.24);
+  background: rgba(155, 143, 255, 0.08);
+  color: #B8AEFF;
+}
+html.dark .analyze-detail-btn:hover { background: rgba(155, 143, 255, 0.16); }
 html.dark .delete-detail-btn {
   border-color: rgba(255, 82, 82, 0.25);
   background: rgba(255, 82, 82, 0.08);
   color: #FF6B6B;
 }
 html.dark .delete-detail-btn:hover { background: rgba(255, 82, 82, 0.15); }
+html.dark .edit-card {
+  background: rgba(31, 27, 49, 0.97);
+  border-color: rgba(184, 174, 255, 0.38);
+}
+html.dark .edit-title,
+html.dark .edit-label { color: #F1EEFA; }
+html.dark .edit-subtitle { color: #A9A3C0; }
+html.dark .edit-input,
+html.dark .edit-textarea {
+  background: rgba(24, 20, 39, 0.72);
+  border-color: rgba(184, 174, 255, 0.24);
+  color: #E8E4F0;
+}
+html.dark .edit-input:focus,
+html.dark .edit-textarea:focus {
+  background: rgba(34, 29, 54, 0.9);
+  box-shadow: 0 0 0 3px rgba(155, 143, 255, 0.18);
+}
+html.dark .edit-input::placeholder,
+html.dark .edit-textarea::placeholder { color: rgba(169, 163, 192, 0.58); }
+html.dark .edit-emotion-btn {
+  background: rgba(24, 20, 39, 0.7);
+  border-color: rgba(184, 174, 255, 0.24);
+  color: #E8E4F0;
+}
+html.dark .edit-emotion-btn:hover { background: rgba(155, 143, 255, 0.14); }
+html.dark .edit-error {
+  background: rgba(255, 82, 82, 0.12);
+  color: #FF8A80;
+}
+html.dark .edit-cancel {
+  background: rgba(30, 27, 46, 0.62);
+  border-color: rgba(155, 143, 255, 0.16);
+  color: #E8E4F0;
+}
+html.dark .edit-cancel:hover { background: rgba(30, 27, 46, 0.82); }
+html.dark .edit-save { box-shadow: 0 4px 15px rgba(155, 143, 255, 0.24); }
 html.dark .confirm-card {
   background: rgba(31, 27, 49, 0.97);
   border-color: rgba(184, 174, 255, 0.36);

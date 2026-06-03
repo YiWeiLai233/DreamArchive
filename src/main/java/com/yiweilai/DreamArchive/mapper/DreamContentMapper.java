@@ -17,6 +17,13 @@ public interface DreamContentMapper {
 
     void updateTitle(@Param("id") String id, @Param("title") String title);
 
+    int updateEditableDream(@Param("id") String id,
+                            @Param("title") String title,
+                            @Param("content") String content,
+                            @Param("emotion") String emotion,
+                            @Param("place") String place,
+                            @Param("time") String time);
+
     void updateInterpretation(@Param("id") String id, @Param("interpretation") String interpretation);
 
     void updateAnalysisStatus(@Param("id") String id, @Param("status") String status, @Param("error") String error);

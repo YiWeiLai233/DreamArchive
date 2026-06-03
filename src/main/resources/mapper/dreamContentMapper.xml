@@ -28,6 +28,19 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updateEditableDream">
+        UPDATE dream_content
+        SET title = #{title},
+            content = #{content},
+            emotion = #{emotion},
+            place = #{place},
+            time = #{time},
+            interpretation = '',
+            analysis_status = 'NONE',
+            analysis_error = NULL
+        WHERE id = #{id}
+    </update>
+
     <update id="updateInterpretation">
         UPDATE dream_content
         SET interpretation = #{interpretation}
