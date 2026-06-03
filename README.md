@@ -532,7 +532,7 @@ echo "0 2 * * 1 certbot renew --quiet" | crontab -
 - [ ] 深色模式切换正常
 - [ ] 手机端访问布局正常
 
-> 完整部署文档（含常见问题排查、JVM 调优、数据库备份等）见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
+> 完整部署文档（含常见问题排查、JVM 调优、数据库备份、监控告警和日志集中化设计）见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
 
 ## 项目关键词
 
