@@ -196,18 +196,18 @@ onMounted(loadStats)
       <div class="overview-grid">
         <div class="overview-card glass card-enter" style="animation-delay: 0.1s">
           <span class="ov-icon">🌙</span>
+          <span class="ov-value">{{ totalDreams }}</span>
+          <span class="ov-label">梦境总数</span>
+        </div>
+        <div class="overview-card glass card-enter" style="animation-delay: 0.2s">
+          <span class="ov-icon">📅</span>
           <div class="ov-value-row">
-            <span class="ov-value">{{ totalDreams }}</span>
+            <span class="ov-value">{{ todayCount }}</span>
             <span v-if="trendDiff !== 0" class="ov-trend" :class="trendDiff > 0 ? 'up' : 'down'">
               {{ trendDiff > 0 ? '↑' : '↓' }} {{ Math.abs(trendDiff) }}
             </span>
           </div>
-          <span class="ov-label">梦境总数 <span class="ov-sub">较昨日</span></span>
-        </div>
-        <div class="overview-card glass card-enter" style="animation-delay: 0.2s">
-          <span class="ov-icon">📅</span>
-          <span class="ov-value">{{ todayCount }}</span>
-          <span class="ov-label">今日梦境</span>
+          <span class="ov-label">今日梦境 <span class="ov-sub">较昨日</span></span>
         </div>
         <div class="overview-card glass card-enter" style="animation-delay: 0.3s">
           <span class="ov-icon">📊</span>
