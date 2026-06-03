@@ -300,7 +300,7 @@ src/main/resources/
 ├── mapper/        # MyBatis XML SQL
 └── db/            # 数据库建表与补丁脚本
 
-fount/
+frontend/
 ├── src/views/     # Vue 页面组件
 ├── src/api/       # 前端 API 封装
 ├── src/router/    # 路由与权限守卫
@@ -375,7 +375,7 @@ mvn spring-boot:run
 
 ```bash
 # 前端安装依赖
-cd fount
+cd frontend
 npm install
 
 # 前端开发环境
@@ -425,7 +425,7 @@ cp src/main/resources/application.properties.example src/main/resources/applicat
 ```bash
 # 安装 MySQL 8.0 后，创建数据库并导入
 mysql -u root -p -e "CREATE DATABASE dream DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
-mysql -u root -p dream < dream.sql
+mysql -u root -p dream < sql/init.sql
 ```
 
 完整建表 SQL 包含 `user`、`dream_content`、`dream_stats`、`dream_place_stats` 四张表。首次注册的用户自动成为超级管理员（`SUPER_ADMIN`）。
@@ -466,9 +466,9 @@ java -jar target/DreamArchive-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 ### 前端
 
 ```bash
-cd fount
+cd frontend
 npm install
-npm run build    # 产物输出到 fount/dist/
+npm run build    # 产物输出到 frontend/dist/
 ```
 
 将 `dist/` 目录部署到 Nginx 静态资源目录。

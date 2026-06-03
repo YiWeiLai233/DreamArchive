@@ -221,9 +221,9 @@ CREATE TABLE `dream_place_stats` (
 -- UPDATE user SET role = 'ADMIN' WHERE email = 'your-email@example.com';
 ```
 
-> **说明**：也可以直接导入项目中的 `dream.sql` 文件：
+> **说明**：也可以直接导入项目中的 `sql/init.sql` 文件：
 > ```bash
-> mysql -u root -p dream < dream.sql
+> mysql -u root -p dream < sql/init.sql
 > ```
 > 然后执行补丁 SQL 添加后续新增字段：
 > ```bash
@@ -511,13 +511,13 @@ journalctl -u dream-archive -f
 ### 7.1 安装依赖
 
 ```bash
-cd /opt/dream-archive/fount
+cd /opt/dream-archive/frontend
 npm install
 ```
 
 ### 7.2 配置生产环境 API 地址
 
-编辑 `fount/src/api/axios.ts`，确保 `baseURL` 在生产环境指向正确的后端地址：
+编辑 `frontend/src/api/axios.ts`，确保 `baseURL` 在生产环境指向正确的后端地址：
 
 ```typescript
 const api = axios.create({
@@ -534,13 +534,13 @@ const api = axios.create({
 npm run build
 ```
 
-构建产物输出到 `fount/dist/` 目录。
+构建产物输出到 `frontend/dist/` 目录。
 
 ### 7.4 部署静态文件
 
 ```bash
 # 将构建产物复制到 Nginx 静态目录
-cp -r /opt/dream-archive/fount/dist/* /var/www/dream-archive/
+cp -r /opt/dream-archive/frontend/dist/* /var/www/dream-archive/
 ```
 
 ---

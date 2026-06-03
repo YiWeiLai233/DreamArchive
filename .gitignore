@@ -38,8 +38,15 @@ build/
 **/.claude/
 
 ### Frontend generated files ###
-fount/node_modules/
-fount/dist/
+frontend/node_modules/
+frontend/dist/
+fount/
+
+### Local generated/cache directories ###
+.local-cache/
+
+### Local collected logs ###
+logs/
 
 ### Local runtime logs ###
 *.log
