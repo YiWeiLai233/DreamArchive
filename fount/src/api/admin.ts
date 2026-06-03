@@ -92,3 +92,50 @@ export function deleteAdminUser(id: number) {
 export function getAdminDreamDetail(id: string) {
   return api.post<ApiResult<AdminDreamDetail>>('/api/admin/dream-detail', { id })
 }
+
+// ---- AI 资源池 ----
+
+export interface AiProviderInfo {
+  name: string
+  url: string
+  model: string
+  weight: number
+  enabled: boolean
+  failCount: number
+  lastFailTime: number
+  circuitOpen: boolean
+  avgLatencyMs: number
+}
+
+export interface AiProviderForm {
+  name: string
+  url: string
+  apiKey: string
+  model: string
+  weight: number
+  enabled: boolean
+}
+
+export function getAiProviders() {
+  return api.get<ApiResult<AiProviderInfo[]>>('/api/admin/ai-pool/providers')
+}
+
+export function addAiProvider(payload: AiProviderForm) {
+  return api.post<ApiResult<string>>('/api/admin/ai-pool/providers', payload)
+}
+
+export function updateAiProvider(name: string, params: { weight?: number; enabled?: boolean }) {
+  return api.post<ApiResult<AiProviderInfo>>(
+    `/api/admin/ai-pool/providers/${encodeURIComponent(name)}/update`,
+    null,
+    { params }
+  )
+}
+
+export function deleteAiProvider(name: string) {
+  return api.post<ApiResult<string>>(`/api/admin/ai-pool/providers/${encodeURIComponent(name)}/delete`)
+}
+
+export function resetAiProviderCircuit(name: string) {
+  return api.post<ApiResult<string>>(`/api/admin/ai-pool/providers/${encodeURIComponent(name)}/reset`)
+}

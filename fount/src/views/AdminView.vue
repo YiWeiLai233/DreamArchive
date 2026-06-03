@@ -6,10 +6,17 @@ import {
   getAdminDreamDetail,
   getAdminOverview,
   runAdminUserAction,
+  getAiProviders,
+  addAiProvider,
+  updateAiProvider,
+  deleteAiProvider,
+  resetAiProviderCircuit,
   type AdminDreamDetail,
   type AdminDreamSummary,
   type AdminOverview,
-  type AdminUserSummary
+  type AdminUserSummary,
+  type AiProviderInfo,
+  type AiProviderForm
 } from '@/api/admin'
 import { useUserStore } from '@/stores'
 
@@ -25,7 +32,7 @@ const userPage = ref(1)
 const userPageSize = ref(10)
 const dreamPage = ref(1)
 const dreamPageSize = ref(5)
-const activePanel = ref<'users' | 'dreams'>('users')
+const activePanel = ref<'users' | 'dreams' | 'ai-pool'>('users')
 const actionMsg = ref('')
 const actionError = ref('')
 const isSubmitting = ref(false)
@@ -54,6 +61,20 @@ const userForm = ref<{
   password: '',
   role: 'USER',
   status: 'ACTIVE'
+})
+
+// ---- AI 资源池 ----
+const providers = ref<AiProviderInfo[]>([])
+const providersLoading = ref(false)
+const isProviderModalOpen = ref(false)
+const editingProvider = ref<AiProviderInfo | null>(null)
+const providerForm = ref<AiProviderForm>({
+  name: '',
+  url: '',
+  apiKey: '',
+  model: '',
+  weight: 10,
+  enabled: true
 })
 
 const filteredUsers = computed(() => {
@@ -149,8 +170,149 @@ function changeDreamPageSize() {
   loadOverview()
 }
 
-function switchPanel(panel: 'users' | 'dreams') {
+function switchPanel(panel: 'users' | 'dreams' | 'ai-pool') {
   activePanel.value = panel
+  if (panel === 'ai-pool' && providers.value.length === 0) {
+    loadProviders()
+  }
+}
+
+// ---- AI 资源池操作 ----
+
+async function loadProviders() {
+  providersLoading.value = true
+  try {
+    const res = await getAiProviders()
+    if (res.data.code === 200) {
+      providers.value = res.data.data
+    }
+  } catch {
+    // errorHandler 会处理
+  } finally {
+    providersLoading.value = false
+  }
+}
+
+function openCreateProvider() {
+  resetActionMessage()
+  editingProvider.value = null
+  providerForm.value = { name: '', url: '', apiKey: '', model: '', weight: 10, enabled: true }
+  isProviderModalOpen.value = true
+}
+
+function openEditProvider(p: AiProviderInfo) {
+  resetActionMessage()
+  editingProvider.value = p
+  providerForm.value = { name: p.name, url: p.url, apiKey: '', model: p.model, weight: p.weight, enabled: p.enabled }
+  isProviderModalOpen.value = true
+}
+
+function closeProviderModal() {
+  if (!isSubmitting.value) {
+    isProviderModalOpen.value = false
+  }
+}
+
+async function submitProviderForm() {
+  const form = providerForm.value
+  if (!form.name.trim() || !form.url.trim() || !form.model.trim()) {
+    actionError.value = '名称、URL 和模型为必填项'
+    return
+  }
+  if (!editingProvider.value && !form.apiKey.trim()) {
+    actionError.value = '新增时 API Key 为必填项'
+    return
+  }
+  if (form.weight < 1) {
+    actionError.value = '权重必须大于 0'
+    return
+  }
+
+  isSubmitting.value = true
+  resetActionMessage()
+  try {
+    if (editingProvider.value) {
+      // 更新 weight / enabled
+      const res = await updateAiProvider(form.name, { weight: form.weight, enabled: form.enabled })
+      if (res.data.code === 200) {
+        actionMsg.value = '更新成功'
+        isProviderModalOpen.value = false
+        await loadProviders()
+      } else {
+        actionError.value = res.data.message
+      }
+    } else {
+      const res = await addAiProvider(form)
+      if (res.data.code === 200) {
+        actionMsg.value = '添加成功'
+        isProviderModalOpen.value = false
+        await loadProviders()
+      } else {
+        actionError.value = res.data.message
+      }
+    }
+  } catch {
+    actionError.value = '操作失败，请稍后重试'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+async function toggleProvider(p: AiProviderInfo) {
+  const action = p.enabled ? '禁用' : '启用'
+  const ok = await showConfirm('切换状态', `确定要${action} ${p.name} 吗？`, 'warning')
+  if (!ok) return
+  resetActionMessage()
+  try {
+    const res = await updateAiProvider(p.name, { enabled: !p.enabled })
+    if (res.data.code === 200) {
+      actionMsg.value = `已${action}`
+      await loadProviders()
+    } else {
+      actionError.value = res.data.message
+    }
+  } catch {
+    actionError.value = '操作失败'
+  }
+}
+
+async function deleteProvider(p: AiProviderInfo) {
+  const ok = await showConfirm('删除 Provider', `确定要删除 ${p.name} 吗？此操作不可恢复。`, 'danger')
+  if (!ok) return
+  resetActionMessage()
+  try {
+    const res = await deleteAiProvider(p.name)
+    if (res.data.code === 200) {
+      actionMsg.value = '删除成功'
+      await loadProviders()
+    } else {
+      actionError.value = res.data.message
+    }
+  } catch {
+    actionError.value = '删除失败'
+  }
+}
+
+async function resetCircuit(p: AiProviderInfo) {
+  const ok = await showConfirm('重置熔断', `确定要重置 ${p.name} 的熔断状态吗？`, 'warning')
+  if (!ok) return
+  resetActionMessage()
+  try {
+    const res = await resetAiProviderCircuit(p.name)
+    if (res.data.code === 200) {
+      actionMsg.value = '熔断已重置'
+      await loadProviders()
+    } else {
+      actionError.value = res.data.message
+    }
+  } catch {
+    actionError.value = '重置失败'
+  }
+}
+
+function formatLatency(ms: number) {
+  if (ms <= 0) return '-'
+  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`
 }
 
 watch(userSearch, () => {
@@ -419,7 +581,10 @@ function goHome() {
   router.push('/')
 }
 
-onMounted(loadOverview)
+onMounted(() => {
+  loadOverview()
+  loadProviders()
+})
 </script>
 
 <template>
@@ -476,6 +641,18 @@ onMounted(loadOverview)
           <div class="sidebar-item-text">
             <span>最近梦境</span>
             <span class="sidebar-count">{{ dreamResultTotal }}</span>
+          </div>
+        </button>
+        <button
+          class="sidebar-item"
+          :class="{ active: activePanel === 'ai-pool' }"
+          type="button"
+          @click="switchPanel('ai-pool')"
+        >
+          <span class="sidebar-item-icon pool-icon">🤖</span>
+          <div class="sidebar-item-text">
+            <span>AI 资源池</span>
+            <span class="sidebar-count">{{ providers.length }}</span>
           </div>
         </button>
       </aside>
@@ -639,7 +816,7 @@ onMounted(loadOverview)
           </section>
 
           <!-- 最近梦境面板 -->
-          <section v-else class="content-card">
+          <section v-if="activePanel === 'dreams'" class="content-card">
             <div class="card-header">
               <div class="card-title-group">
                 <h2>最近梦境</h2>
@@ -704,8 +881,180 @@ onMounted(loadOverview)
               </div>
             </div>
           </section>
+
+          <!-- AI 资源池面板 -->
+          <section v-if="activePanel === 'ai-pool'" class="panel-card">
+            <div class="card-header">
+              <div class="card-header-left">
+                <h2 class="card-title">AI 资源池</h2>
+                <span class="card-range">共 {{ providers.length }} 个 Provider</span>
+              </div>
+              <div class="card-header-right">
+                <button class="action-btn primary" type="button" :disabled="providersLoading" @click="openCreateProvider">
+                  + 添加 Provider
+                </button>
+                <button class="action-btn" type="button" :disabled="providersLoading" @click="loadProviders">
+                  {{ providersLoading ? '刷新中...' : '刷新' }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="providersLoading" class="state-section small">
+              <div class="state-spinner"></div>
+              <p>加载中...</p>
+            </div>
+
+            <div v-else class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>名称</th>
+                    <th>模型</th>
+                    <th>URL</th>
+                    <th>权重</th>
+                    <th>状态</th>
+                    <th>熔断</th>
+                    <th>失败次数</th>
+                    <th>平均延迟</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="p in providers" :key="p.name">
+                    <td class="name-cell">{{ p.name }}</td>
+                    <td><code class="model-code">{{ p.model }}</code></td>
+                    <td class="url-cell" :title="p.url">{{ p.url.length > 30 ? p.url.slice(0, 30) + '...' : p.url }}</td>
+                    <td class="count-cell">{{ p.weight }}</td>
+                    <td>
+                      <span class="badge" :class="p.enabled ? 'badge-green' : 'badge-gray'">
+                        {{ p.enabled ? '启用' : '禁用' }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge" :class="p.circuitOpen ? 'badge-red' : 'badge-green'">
+                        {{ p.circuitOpen ? '熔断中' : '正常' }}
+                      </span>
+                    </td>
+                    <td class="count-cell">{{ p.failCount }}</td>
+                    <td class="count-cell">{{ formatLatency(p.avgLatencyMs) }}</td>
+                    <td class="action-cell">
+                      <button class="action-btn small" type="button" :disabled="isSubmitting" @click="openEditProvider(p)">
+                        编辑
+                      </button>
+                      <button class="action-btn small" :class="p.enabled ? 'warning' : 'primary'" type="button" :disabled="isSubmitting" @click="toggleProvider(p)">
+                        {{ p.enabled ? '禁用' : '启用' }}
+                      </button>
+                      <button class="action-btn small" type="button" :disabled="isSubmitting || !p.circuitOpen" @click="resetCircuit(p)">
+                        重置熔断
+                      </button>
+                      <button class="action-btn small danger" type="button" :disabled="isSubmitting" @click="deleteProvider(p)">
+                        删除
+                      </button>
+                    </td>
+                  </tr>
+                  <tr v-if="providers.length === 0">
+                    <td colspan="9" class="empty-row">暂无 Provider，请点击上方按钮添加</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
         </template>
       </main>
+    </div>
+
+    <!-- AI Provider 弹窗 -->
+    <div v-if="isProviderModalOpen" class="modal-mask" @click.self="closeProviderModal">
+      <section class="user-modal" aria-label="Provider 表单">
+        <div class="modal-hero" :class="{ edit: editingProvider }">
+          <span class="hero-icon">{{ editingProvider ? '✏️' : '🤖' }}</span>
+          <h2>{{ editingProvider ? '编辑 Provider' : '添加 Provider' }}</h2>
+          <p>{{ editingProvider ? '修改权重和启用状态' : '配置一个新的 AI Provider' }}</p>
+          <button class="hero-close" type="button" :disabled="isSubmitting" @click="closeProviderModal">×</button>
+        </div>
+
+        <form class="user-form" @submit.prevent="submitProviderForm">
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-dot"></span>
+              名称
+            </label>
+            <div class="input-wrap">
+              <span class="input-icon">🏷️</span>
+              <input v-model="providerForm.name" type="text" maxlength="50" placeholder="唯一标识，如 mimo" :disabled="!!editingProvider || isSubmitting" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-dot"></span>
+              URL
+            </label>
+            <div class="input-wrap">
+              <span class="input-icon">🔗</span>
+              <input v-model="providerForm.url" type="text" maxlength="200" placeholder="https://api.example.com/v1" :disabled="!!editingProvider || isSubmitting" />
+            </div>
+          </div>
+
+          <div v-if="!editingProvider" class="form-group">
+            <label class="form-label">
+              <span class="label-dot"></span>
+              API Key
+            </label>
+            <div class="input-wrap">
+              <span class="input-icon">🔑</span>
+              <input v-model="providerForm.apiKey" type="password" maxlength="200" placeholder="Bearer token" :disabled="isSubmitting" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-dot"></span>
+              模型
+            </label>
+            <div class="input-wrap">
+              <span class="input-icon">🧠</span>
+              <input v-model="providerForm.model" type="text" maxlength="100" placeholder="gpt-4o / mimo-v2.5-pro" :disabled="!!editingProvider || isSubmitting" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label class="form-label">
+                <span class="label-dot"></span>
+                权重
+              </label>
+              <div class="input-wrap">
+                <span class="input-icon">⚖️</span>
+                <input v-model.number="providerForm.weight" type="number" min="1" max="100" :disabled="isSubmitting" />
+              </div>
+            </div>
+            <div class="form-group half">
+              <label class="form-label">启用状态</label>
+              <label class="toggle-label">
+                <button
+                  type="button"
+                  class="toggle-switch"
+                  :class="{ on: providerForm.enabled }"
+                  :disabled="isSubmitting"
+                  @click="providerForm.enabled = !providerForm.enabled"
+                >
+                  <span class="toggle-knob"></span>
+                </button>
+                <span>{{ providerForm.enabled ? '启用' : '禁用' }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="action-btn" type="button" :disabled="isSubmitting" @click="closeProviderModal">取消</button>
+            <button class="action-btn primary" type="submit" :disabled="isSubmitting">
+              <span v-if="isSubmitting" class="btn-spinner"></span>
+              {{ isSubmitting ? '保存中...' : '保存' }}
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
 
     <div v-if="isUserModalOpen" class="modal-mask" @click.self="closeUserModal">
@@ -1418,6 +1767,66 @@ onMounted(loadOverview)
 .badge-green { background: #ecfdf5; color: #065f46; }
 .badge-red { background: #fef2f2; color: #991b1b; }
 .badge-blue { background: #eff6ff; color: #1e40af; }
+
+/* ===== AI Pool ===== */
+.pool-icon { background: rgba(99, 102, 241, 0.15); }
+.model-code {
+  font-size: 0.78rem;
+  background: #f1f5f9;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: #6366f1;
+}
+.url-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Toggle switch */
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  padding-top: 0.3rem;
+}
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  background: #cbd5e1;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+}
+.toggle-switch.on { background: #6366f1; }
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle-switch.on .toggle-knob { transform: translateX(20px); }
+
+/* Form row (half-width fields) */
+.form-row {
+  display: flex;
+  gap: 0.9rem;
+}
+.form-group.half { flex: 1; }
 
 /* ===== Dream List ===== */
 .dream-list {
@@ -2353,6 +2762,11 @@ html.dark .badge-gold {
 html.dark .badge-green { background: rgba(129, 199, 132, 0.15); color: #81C784; }
 html.dark .badge-red { background: rgba(255, 82, 82, 0.15); color: #FF6B6B; }
 html.dark .badge-blue { background: rgba(96, 165, 250, 0.15); color: #93C5FD; }
+html.dark .pool-icon { background: rgba(124, 111, 224, 0.25); }
+html.dark .model-code { background: #32324A; color: #A78BFA; }
+html.dark .url-cell { color: #6B6B80; }
+html.dark .toggle-switch { background: #32324A; }
+html.dark .toggle-switch.on { background: #7C73E8; }
 html.dark .dream-item { border-color: #32324A; }
 html.dark .dream-item:hover { background: rgba(155, 143, 255, 0.04); }
 html.dark .dream-item-title strong { color: #E8E4F0; }
