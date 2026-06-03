@@ -89,6 +89,14 @@ const userTotalPages = computed(() => overview.value?.userTotalPages || 1)
 const dreamTotalPages = computed(() => overview.value?.dreamTotalPages || 1)
 const userResultTotal = computed(() => overview.value?.userResultTotal || 0)
 const dreamResultTotal = computed(() => overview.value?.dreamResultTotal || 0)
+
+// ---- AI 资源池图表 ----
+const poolEnabledCount = computed(() => providers.value.filter(p => p.enabled).length)
+const poolDisabledCount = computed(() => providers.value.filter(p => !p.enabled).length)
+const poolCircuitOpenCount = computed(() => providers.value.filter(p => p.circuitOpen).length)
+const poolMaxWeight = computed(() => Math.max(1, ...providers.value.map(p => p.weight)))
+const poolMaxLatency = computed(() => Math.max(1, ...providers.value.map(p => p.avgLatencyMs || 0)))
+
 let userSearchTimer: number | undefined
 let dreamSearchTimer: number | undefined
 
@@ -904,7 +912,76 @@ onMounted(() => {
               <p>加载中...</p>
             </div>
 
-            <div v-else class="table-container">
+            <template v-else>
+              <!-- 概览卡片 -->
+              <div class="pool-stats-row">
+                <div class="pool-stat-card">
+                  <span class="pool-stat-icon">📊</span>
+                  <div>
+                    <span class="pool-stat-label">总计</span>
+                    <strong class="pool-stat-value">{{ providers.length }}</strong>
+                  </div>
+                </div>
+                <div class="pool-stat-card">
+                  <span class="pool-stat-icon">✅</span>
+                  <div>
+                    <span class="pool-stat-label">启用</span>
+                    <strong class="pool-stat-value green">{{ poolEnabledCount }}</strong>
+                  </div>
+                </div>
+                <div class="pool-stat-card">
+                  <span class="pool-stat-icon">⛔</span>
+                  <div>
+                    <span class="pool-stat-label">禁用</span>
+                    <strong class="pool-stat-value gray">{{ poolDisabledCount }}</strong>
+                  </div>
+                </div>
+                <div class="pool-stat-card">
+                  <span class="pool-stat-icon">🔥</span>
+                  <div>
+                    <span class="pool-stat-label">熔断</span>
+                    <strong class="pool-stat-value red">{{ poolCircuitOpenCount }}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 权重 & 延迟图表 -->
+              <div class="pool-charts-row" v-if="providers.length > 0">
+                <div class="pool-chart-card">
+                  <h3 class="pool-chart-title">权重分布</h3>
+                  <div class="pool-bar-chart">
+                    <div v-for="p in providers" :key="'w-' + p.name" class="pool-bar-item">
+                      <span class="pool-bar-label">{{ p.name }}</span>
+                      <div class="pool-bar-track">
+                        <div
+                          class="pool-bar-fill weight"
+                          :style="{ width: (p.weight / poolMaxWeight * 100) + '%' }"
+                        ></div>
+                      </div>
+                      <span class="pool-bar-value">{{ p.weight }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="pool-chart-card">
+                  <h3 class="pool-chart-title">平均延迟</h3>
+                  <div class="pool-bar-chart">
+                    <div v-for="p in providers" :key="'l-' + p.name" class="pool-bar-item">
+                      <span class="pool-bar-label">{{ p.name }}</span>
+                      <div class="pool-bar-track">
+                        <div
+                          class="pool-bar-fill latency"
+                          :class="{ slow: p.avgLatencyMs > 1000, fast: p.avgLatencyMs > 0 && p.avgLatencyMs <= 300 }"
+                          :style="{ width: (p.avgLatencyMs / poolMaxLatency * 100) + '%' }"
+                        ></div>
+                      </div>
+                      <span class="pool-bar-value">{{ formatLatency(p.avgLatencyMs) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Provider 表格 -->
+              <div class="table-container">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -958,6 +1035,7 @@ onMounted(() => {
                 </tbody>
               </table>
             </div>
+            </template>
           </section>
         </template>
       </main>
@@ -1821,6 +1899,104 @@ onMounted(() => {
 }
 .toggle-switch.on .toggle-knob { transform: translateX(20px); }
 
+/* Pool stats cards */
+.pool-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.pool-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+.pool-stat-icon { font-size: 1.3rem; }
+.pool-stat-label {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pool-stat-value {
+  font-size: 1.35rem;
+  color: #1e293b;
+}
+.pool-stat-value.green { color: #059669; }
+.pool-stat-value.gray { color: #64748b; }
+.pool-stat-value.red { color: #dc2626; }
+
+/* Pool bar charts */
+.pool-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.pool-chart-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+.pool-chart-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 0.75rem;
+}
+.pool-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.pool-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pool-bar-label {
+  width: 70px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #475569;
+  text-align: right;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pool-bar-track {
+  flex: 1;
+  height: 18px;
+  background: #f1f5f9;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.pool-bar-fill {
+  height: 100%;
+  border-radius: 9px;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+.pool-bar-fill.weight { background: linear-gradient(90deg, #818cf8, #6366f1); }
+.pool-bar-fill.latency { background: linear-gradient(90deg, #34d399, #10b981); }
+.pool-bar-fill.latency.slow { background: linear-gradient(90deg, #f87171, #ef4444); }
+.pool-bar-fill.latency.fast { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+.pool-bar-value {
+  width: 50px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6366f1;
+  text-align: right;
+  flex-shrink: 0;
+}
+
 /* Form row (half-width fields) */
 .form-row {
   display: flex;
@@ -2542,6 +2718,14 @@ onMounted(() => {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .pool-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pool-charts-row {
+    grid-template-columns: 1fr;
+  }
+
   .search-input {
     min-width: 10rem;
   }
@@ -2767,6 +2951,14 @@ html.dark .model-code { background: #32324A; color: #A78BFA; }
 html.dark .url-cell { color: #6B6B80; }
 html.dark .toggle-switch { background: #32324A; }
 html.dark .toggle-switch.on { background: #7C73E8; }
+html.dark .pool-stat-card { background: #1A1A26; border-color: #32324A; }
+html.dark .pool-stat-label { color: #6B6B80; }
+html.dark .pool-stat-value { color: #E8E4F0; }
+html.dark .pool-chart-card { background: #1A1A26; border-color: #32324A; }
+html.dark .pool-chart-title { color: #A9A3C0; }
+html.dark .pool-bar-label { color: #A9A3C0; }
+html.dark .pool-bar-track { background: #32324A; }
+html.dark .pool-bar-value { color: #A78BFA; }
 html.dark .dream-item { border-color: #32324A; }
 html.dark .dream-item:hover { background: rgba(155, 143, 255, 0.04); }
 html.dark .dream-item-title strong { color: #E8E4F0; }
