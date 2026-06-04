@@ -116,6 +116,46 @@ public class DreamController {
         }
     }
 
+    @PostMapping("/dream/{id}/update")
+    public Result<DreamContent> updateDream(@PathVariable String id, @RequestBody Map<String, Object> request) {
+        try {
+            DreamContent dream = dreamService.getDreamById(id);
+            if (dream == null) {
+                return Result.error("梦境不存在或已被删除");
+            }
+            if (!canAccessDream(dream)) {
+                return Result.error(403, "权限不足");
+            }
+            if (!dreamService.isEditableDream(dream)) {
+                return Result.error("已解析或解析中的梦境不能编辑");
+            }
+
+            String content = toStringValue(request.get("content")).trim();
+            String emotion = toStringValue(request.get("emotion")).trim();
+            if (content.isBlank() || emotion.isBlank()) {
+                return Result.error("梦境内容和情绪不能为空");
+            }
+
+            DreamContent updated = dreamService.updateEditableDream(
+                    id,
+                    dream.getUserId(),
+                    toStringValue(request.getOrDefault("title", "")),
+                    content,
+                    emotion,
+                    toStringValue(request.getOrDefault("place", "未知")),
+                    toStringValue(request.getOrDefault("time", ""))
+            );
+            if (updated == null) {
+                return Result.error("更新失败，请确认梦境仍可编辑");
+            }
+            enrichImageUrl(updated);
+            return Result.success(updated);
+        } catch (Exception e) {
+            log.error("更新梦境失败", e);
+            return Result.error("更新失败，请稍后重试");
+        }
+    }
+
     @PostMapping("/dream/{id}/analyze")
     public Result<Void> analyzeDream(@PathVariable String id) {
         try {

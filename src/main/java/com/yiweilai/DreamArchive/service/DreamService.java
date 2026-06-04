@@ -68,6 +68,67 @@ public class DreamService {
         dreamContentMapper.updateTitle(dreamId, title);
     }
 
+    @Transactional
+    public DreamContent updateEditableDream(String id, Integer userId, String title, String content,
+                                            String emotion, String place, String time) {
+        DreamContent existingDream = dreamContentMapper.selectById(id);
+        if (existingDream == null
+                || userId == null
+                || !userId.equals(existingDream.getUserId())
+                || !isEditableDream(existingDream)) {
+            return null;
+        }
+
+        String nextContent = content == null ? "" : content.trim();
+        String nextEmotion = emotion == null ? "" : emotion.trim();
+        if (nextContent.isBlank() || nextEmotion.isBlank()) {
+            return null;
+        }
+
+        String nextTitle = title == null ? "" : title.trim();
+        if (nextTitle.isBlank()) {
+            nextTitle = fallbackTitle(nextContent);
+        }
+        String nextPlace = place == null || place.isBlank() ? "未知" : place.trim();
+        String nextTime = time == null ? "" : time.trim();
+
+        int updated = dreamContentMapper.updateEditableDream(id, nextTitle, nextContent, nextEmotion, nextPlace, nextTime);
+        if (updated <= 0) {
+            return null;
+        }
+
+        LocalDate statDate = existingDream.getCreatedAt() == null
+                ? LocalDate.now()
+                : existingDream.getCreatedAt().toLocalDate();
+        statsService.rebuildStatsAfterDreamDeleted(existingDream.getUserId(), statDate);
+
+        DreamContent updatedDream = dreamContentMapper.selectById(id);
+        if (updatedDream == null) {
+            updatedDream = existingDream;
+        }
+        updatedDream.setTitle(nextTitle);
+        updatedDream.setContent(nextContent);
+        updatedDream.setEmotion(nextEmotion);
+        updatedDream.setPlace(nextPlace);
+        updatedDream.setTime(nextTime);
+        updatedDream.setInterpretation("");
+        updatedDream.setAnalysisStatus("NONE");
+        updatedDream.setAnalysisError(null);
+        return updatedDream;
+    }
+
+    public boolean isEditableDream(DreamContent dream) {
+        if (dream == null) {
+            return false;
+        }
+        String status = dream.getAnalysisStatus();
+        if (status == null || status.isBlank()) {
+            String interpretation = dream.getInterpretation();
+            return interpretation == null || interpretation.isBlank();
+        }
+        return !"PENDING".equalsIgnoreCase(status) && !"SUCCESS".equalsIgnoreCase(status);
+    }
+
     /**
      * 根据 ID 查询梦境
      */
@@ -109,5 +170,13 @@ public class DreamService {
             }
         }
         return deleted;
+    }
+
+    private String fallbackTitle(String content) {
+        String compact = content == null ? "" : content.replaceAll("\\s+", "").trim();
+        if (compact.isBlank()) {
+            return "未命名梦境";
+        }
+        return compact.length() > 12 ? compact.substring(0, 12) : compact;
     }
 }

@@ -12,6 +12,14 @@ export interface DreamForm {
   imageUrl?: string
 }
 
+export interface DreamUpdateForm {
+  title?: string
+  content: string
+  emotion: string
+  place?: string
+  time?: string
+}
+
 export interface DreamContent {
   id: string
   userId: number
@@ -78,6 +86,10 @@ export function getUserDreams(userId: number) {
 
 export function deleteDream(id: string) {
   return api.post<ApiResult<void>>(`/api/dream/${id}/delete`)
+}
+
+export function updateDream(id: string, form: DreamUpdateForm) {
+  return api.post<ApiResult<DreamContent>>(`/api/dream/${id}/update`, form)
 }
 
 export function triggerAnalyze(id: string) {
