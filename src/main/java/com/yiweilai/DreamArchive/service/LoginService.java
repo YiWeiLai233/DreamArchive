@@ -14,6 +14,8 @@ import java.util.UUID;
 
 @Service
 public class LoginService {
+    public static final String INVALID_CREDENTIALS_MESSAGE = "\u7528\u6237\u540d\u6216\u5bc6\u7801\u9519\u8bef";
+
 
     @Autowired
     private LoginMapper loginMapper;
@@ -51,7 +53,7 @@ public class LoginService {
         // 根据用户名或邮箱查询用户
         User user = loginMapper.login(username.trim(), username.trim());
         if (user == null) {
-            return Result.error("用户不存在");
+            return Result.error(INVALID_CREDENTIALS_MESSAGE);
         }
         if (Boolean.TRUE.equals(user.getDeleted())) {
             return Result.error(403, "账号已被删除，无法登录");
@@ -62,7 +64,7 @@ public class LoginService {
 
         // 验证密码
         if (!sensitiveDataEncryptor.matches(password, user.getPassword())) {
-            return Result.error("密码错误");
+            return Result.error(INVALID_CREDENTIALS_MESSAGE);
         }
 
         // 登录成功，返回用户信息（不包含密码）

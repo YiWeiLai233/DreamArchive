@@ -3,9 +3,13 @@ package com.yiweilai.DreamArchive.controller;
 import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.mapper.LoginMapper;
 import com.yiweilai.DreamArchive.mapper.ResetPasswordMapper;
+import com.yiweilai.DreamArchive.service.ClientIpResolver;
+import com.yiweilai.DreamArchive.service.RateLimitExceededException;
+import com.yiweilai.DreamArchive.service.SecurityRateLimitService;
 import com.yiweilai.DreamArchive.service.VerificationCodeService;
 import com.yiweilai.DreamArchive.util.Result;
 import com.yiweilai.DreamArchive.util.SensitiveDataEncryptor;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,15 +36,24 @@ public class ChangePasswordController {
     @Autowired
     private VerificationCodeService verificationCodeService;
 
+    @Autowired
+    private SecurityRateLimitService rateLimitService;
+
+    @Autowired
+    private ClientIpResolver clientIpResolver;
+
     @PostMapping("/change-password/send-code")
-    public Result<String> sendCode(@RequestBody Map<String, String> request) {
+    public Result<String> sendCode(@RequestBody Map<String, String> request, HttpServletRequest servletRequest) {
         User currentUser = currentUser();
         if (currentUser == null) {
-            return Result.error(401, "\u8bf7\u5148\u767b\u5f55");
+            return Result.error(401, "请先登录");
         }
         String email = currentUser.getEmail();
         if (email == null || email.isEmpty()) {
             return Result.error("邮箱不能为空");
+        }
+        if (isVerificationSendLimited("change-password", servletRequest)) {
+            return Result.error(429, SecurityRateLimitService.RATE_LIMIT_MESSAGE);
         }
         try {
             verificationCodeService.sendCode("change-password", email, email);
@@ -51,7 +64,7 @@ public class ChangePasswordController {
     }
 
     @PostMapping("/change-password")
-    public Result<String> changePassword(@RequestBody Map<String, Object> request) {
+    public Result<String> changePassword(@RequestBody Map<String, Object> request, HttpServletRequest servletRequest) {
         String oldPassword = stringValue(request.get("oldPassword"));
         String newPassword = stringValue(request.get("newPassword"));
         String code = stringValue(request.get("code"));
@@ -68,7 +81,7 @@ public class ChangePasswordController {
 
         User currentUser = currentUser();
         if (currentUser == null) {
-            return Result.error(401, "\u8bf7\u5148\u767b\u5f55");
+            return Result.error(401, "请先登录");
         }
         User user = loginMapper.selectById(currentUser.getId());
         if (user == null) {
@@ -79,8 +92,12 @@ public class ChangePasswordController {
         }
 
         // 验证验证码
-        if (!verificationCodeService.verifyCode("change-password", user.getEmail(), code)) {
-            return Result.error("验证码错误或已过期");
+        try {
+            if (!verificationCodeService.verifyCode("change-password", user.getEmail(), code, resolveClientIp(servletRequest))) {
+                return Result.error("验证码错误或已过期");
+            }
+        } catch (RateLimitExceededException e) {
+            return Result.error(429, e.getMessage());
         }
 
         String encryptedPassword = sensitiveDataEncryptor.encrypt(newPassword);
@@ -101,5 +118,14 @@ public class ChangePasswordController {
 
     private String stringValue(Object value) {
         return value == null ? null : String.valueOf(value).trim();
+    }
+
+    private boolean isVerificationSendLimited(String scene, HttpServletRequest request) {
+        return rateLimitService != null
+                && rateLimitService.consumeVerificationSend(scene, resolveClientIp(request));
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        return clientIpResolver == null ? "unknown" : clientIpResolver.resolve(request);
     }
 }

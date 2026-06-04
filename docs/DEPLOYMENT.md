@@ -560,9 +560,16 @@ systemctl enable nginx
 创建 `/etc/nginx/conf.d/dream-archive.conf`：
 
 ```nginx
+# API 入口粗限流（conf.d 默认在 nginx.conf 的 http {} 内加载）
+# 后端仍会用 Redis 做 IP、账号/邮箱、验证码失败次数等业务维度精细限流。
+limit_req_zone $binary_remote_addr zone=dream_api_general:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=dream_auth:10m rate=5r/m;
+limit_req_zone $binary_remote_addr zone=dream_guest_ai:10m rate=10r/m;
+
 server {
     listen 80;
     server_name your-domain.com;  # 替换为你的域名或 IP
+    limit_req_status 429;
 
     # 前端静态资源
     root /var/www/dream-archive;
@@ -573,8 +580,43 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # 登录、注册、重置密码等敏感公开接口：Nginx 粗限流
+    # 注意：这只是入口层防护，账号/邮箱/验证码失败次数由后端 Redis 精细限流。
+    location ~ ^/api/(login|register|reset-password)(/send-code|/code)?$ {
+        limit_req zone=dream_auth burst=5 nodelay;
+
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 10m;
+        proxy_read_timeout 120s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 60s;
+    }
+
+    # 游客 AI 解析：保护 AI 资源成本
+    location = /api/guest/analyze {
+        limit_req zone=dream_guest_ai burst=3 nodelay;
+
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 10m;
+        proxy_read_timeout 120s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 60s;
+    }
+
     # API 反向代理到后端
     location /api/ {
+        limit_req zone=dream_api_general burst=30 nodelay;
+
         proxy_pass http://127.0.0.1:8080/api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -633,6 +675,7 @@ systemctl reload nginx
 - [ ] **MinIO**：设置强密钥，配置 Bucket 策略
 - [ ] **CORS**：只允许实际使用的域名/IP
 - [ ] **防火墙**：只开放必要端口（80/443），后端 8080 通过 Nginx 代理，不直接暴露
+- [ ] **限流**：Nginx 已配置公开接口粗限流，后端 `app.security.rate-limit.*` 已开启 Redis 精细限流
 - [ ] **API 密钥**：`application-prod.properties` 不提交到 Git
 - [ ] **日志**：配置日志轮转，避免磁盘打满
 

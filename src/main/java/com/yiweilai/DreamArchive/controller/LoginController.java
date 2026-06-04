@@ -2,10 +2,14 @@ package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.DTO.LoginResponse;
 import com.yiweilai.DreamArchive.service.AuthCookieService;
+import com.yiweilai.DreamArchive.service.ClientIpResolver;
 import com.yiweilai.DreamArchive.service.CsrfTokenService;
 import com.yiweilai.DreamArchive.service.LoginService;
+import com.yiweilai.DreamArchive.service.RateLimitExceededException;
+import com.yiweilai.DreamArchive.service.SecurityRateLimitService;
 import com.yiweilai.DreamArchive.service.VerificationCodeService;
 import com.yiweilai.DreamArchive.util.Result;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,18 +35,47 @@ public class LoginController {
     @Autowired
     private CsrfTokenService csrfTokenService;
 
+    @Autowired
+    private SecurityRateLimitService rateLimitService;
+
+    @Autowired
+    private ClientIpResolver clientIpResolver;
+
     @PostMapping("/login")
-    public Result<LoginResponse> login(@RequestBody Map<String, String> request, HttpServletResponse response) {
+    public Result<LoginResponse> login(@RequestBody Map<String, String> request,
+                                       HttpServletResponse response,
+                                       HttpServletRequest servletRequest) {
         String username = request.get("username");
         String password = request.get("password");
-        return withLoginCookies(loginService.login(username, password), response);
+        String clientIp = resolveClientIp(servletRequest);
+        if (hasText(username) && rateLimitService != null
+                && rateLimitService.isPasswordLoginBlocked(clientIp, username)) {
+            return Result.error(429, SecurityRateLimitService.RATE_LIMIT_MESSAGE);
+        }
+
+        Result<LoginResponse> result = loginService.login(username, password);
+        if (hasText(username) && rateLimitService != null) {
+            if (result.getCode() == 200) {
+                rateLimitService.clearPasswordLoginFailures(clientIp, username);
+            } else if (LoginService.INVALID_CREDENTIALS_MESSAGE.equals(result.getMessage())) {
+                rateLimitService.recordPasswordLoginFailure(clientIp, username);
+            }
+        }
+        return withLoginCookies(result, response);
+    }
+
+    Result<LoginResponse> login(Map<String, String> request, HttpServletResponse response) {
+        return login(request, response, null);
     }
 
     @PostMapping("/login/send-code")
-    public Result<String> sendCode(@RequestBody Map<String, String> request) {
+    public Result<String> sendCode(@RequestBody Map<String, String> request, HttpServletRequest servletRequest) {
         String email = request.get("email");
         if (email == null || email.isEmpty()) {
             return Result.error("请输入邮箱");
+        }
+        if (isVerificationSendLimited("login", servletRequest)) {
+            return Result.error(429, SecurityRateLimitService.RATE_LIMIT_MESSAGE);
         }
         try {
             verificationCodeService.sendCode("login", email, email);
@@ -53,7 +86,9 @@ public class LoginController {
     }
 
     @PostMapping("/login/code")
-    public Result<LoginResponse> loginByCode(@RequestBody Map<String, String> request, HttpServletResponse response) {
+    public Result<LoginResponse> loginByCode(@RequestBody Map<String, String> request,
+                                             HttpServletResponse response,
+                                             HttpServletRequest servletRequest) {
         String email = request.get("email");
         String code = request.get("code");
         if (email == null || email.isEmpty()) {
@@ -62,8 +97,12 @@ public class LoginController {
         if (code == null || code.isEmpty()) {
             return Result.error("请输入验证码");
         }
-        if (!verificationCodeService.verifyCode("login", email, code)) {
-            return Result.error("验证码错误或已过期");
+        try {
+            if (!verificationCodeService.verifyCode("login", email, code, resolveClientIp(servletRequest))) {
+                return Result.error("验证码错误或已过期");
+            }
+        } catch (RateLimitExceededException e) {
+            return Result.error(429, e.getMessage());
         }
         return withLoginCookies(loginService.loginByEmail(email), response);
     }
@@ -96,5 +135,18 @@ public class LoginController {
         authCookieService.addCsrfCookie(response, csrfTokenService.generateToken());
         result.getData().setToken(null);
         return result;
+    }
+
+    private boolean isVerificationSendLimited(String scene, HttpServletRequest request) {
+        return rateLimitService != null
+                && rateLimitService.consumeVerificationSend(scene, resolveClientIp(request));
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        return clientIpResolver == null ? "unknown" : clientIpResolver.resolve(request);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

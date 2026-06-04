@@ -1,7 +1,10 @@
 package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.service.AiService;
+import com.yiweilai.DreamArchive.service.ClientIpResolver;
+import com.yiweilai.DreamArchive.service.SecurityRateLimitService;
 import com.yiweilai.DreamArchive.util.Result;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +31,14 @@ public class GuestController {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    @Autowired
+    private SecurityRateLimitService rateLimitService;
+
+    @Autowired
+    private ClientIpResolver clientIpResolver;
+
     @PostMapping("/analyze")
-    public Result<Map<String, String>> guestAnalyze(@RequestBody Map<String, Object> request) {
+    public Result<Map<String, String>> guestAnalyze(@RequestBody Map<String, Object> request, HttpServletRequest servletRequest) {
         String deviceId = toStringValue(request.get("deviceId"));
         String content = toStringValue(request.get("content"));
 
@@ -38,6 +47,10 @@ public class GuestController {
         }
         if (content.isBlank()) {
             return Result.error("梦境内容不能为空");
+        }
+        if (rateLimitService != null
+                && rateLimitService.consumeGuestAnalyzeIp(resolveClientIp(servletRequest))) {
+            return Result.error(429, SecurityRateLimitService.RATE_LIMIT_MESSAGE);
         }
 
         String redisKey = GUEST_ANALYZE_KEY_PREFIX + deviceId;
@@ -60,5 +73,9 @@ public class GuestController {
 
     private String toStringValue(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        return clientIpResolver == null ? "unknown" : clientIpResolver.resolve(request);
     }
 }
