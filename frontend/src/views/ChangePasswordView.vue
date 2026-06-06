@@ -19,26 +19,41 @@ const isLoading = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
 const code = ref('')
+const isCodeSending = ref(false)
 const codeCountdown = ref(0)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 async function handleSendCode() {
+  if (codeCountdown.value > 0 || isCodeSending.value) return
   errorMsg.value = ''
   if (!userStore.email) { errorMsg.value = '无法获取邮箱，请重新登录'; return }
+  isCodeSending.value = true
   try {
     const { data } = await sendChangePasswordCode(userStore.email)
     if (data.code === 200) {
-      codeCountdown.value = 60
-      countdownTimer = setInterval(() => {
-        codeCountdown.value--
-        if (codeCountdown.value <= 0 && countdownTimer) { clearInterval(countdownTimer); countdownTimer = null }
-      }, 1000)
+      startCodeCountdown()
     } else {
       errorMsg.value = data.message || '发送失败'
     }
   } catch (e: any) {
     errorMsg.value = e.response?.data?.message || '发送失败，请稍后再试'
+  } finally {
+    isCodeSending.value = false
   }
+}
+
+function startCodeCountdown() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+  }
+  codeCountdown.value = 60
+  countdownTimer = setInterval(() => {
+    codeCountdown.value--
+    if (codeCountdown.value <= 0 && countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+  }, 1000)
 }
 
 const strength = ref(0)
@@ -161,8 +176,8 @@ function goBack() { router.push('/') }
               <div class="input-wrapper code-input">
                 <input id="code" v-model="code" type="text" placeholder="输入6位验证码" maxlength="6" :disabled="isLoading" />
               </div>
-              <button type="button" class="send-code-btn" :disabled="codeCountdown > 0" @click="handleSendCode">
-                {{ codeCountdown > 0 ? `${codeCountdown}s` : '发送验证码' }}
+              <button type="button" class="send-code-btn" :disabled="codeCountdown > 0 || isCodeSending" @click="handleSendCode">
+                {{ codeCountdown > 0 ? `${codeCountdown}s` : (isCodeSending ? '发送中...' : '发送验证码') }}
               </button>
             </div>
           </div>

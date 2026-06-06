@@ -6,6 +6,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -23,6 +24,12 @@ public class VerificationCodeService {
 
     @Autowired
     private JavaMailSender mailSender;
+
+    @Autowired
+    private SecurityRateLimitService rateLimitService;
+
+    @Value("${app.mail.from:${spring.mail.username:}}")
+    private String mailFrom;
 
     private final SecureRandom random = new SecureRandom();
 
@@ -86,9 +93,28 @@ public class VerificationCodeService {
         return false;
     }
 
+    public boolean verifyCode(String scene, String identifier, String code, String clientIp) {
+        if (rateLimitService != null && rateLimitService.isVerificationCheckBlocked(scene, clientIp, identifier)) {
+            throw new RateLimitExceededException(SecurityRateLimitService.RATE_LIMIT_MESSAGE);
+        }
+
+        boolean matched = verifyCode(scene, identifier, code);
+        if (rateLimitService == null) {
+            return matched;
+        }
+        if (matched) {
+            rateLimitService.clearVerificationCheckFailures(scene, clientIp, identifier);
+        } else {
+            rateLimitService.recordVerificationCheckFailure(scene, clientIp, identifier);
+        }
+        return matched;
+    }
+
     private void sendEmail(String to, String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("859399899@qq.com");
+        if (mailFrom != null && !mailFrom.isBlank()) {
+            message.setFrom(mailFrom);
+        }
         message.setTo(to);
         message.setSubject(subject);
         message.setText(text + "\n\n验证码有效期为5分钟，请勿泄露给他人。\n\n如非本人操作，请忽略此邮件。");

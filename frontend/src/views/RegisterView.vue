@@ -22,28 +22,43 @@ const showPassword = ref(false)
 const showConfirm = ref(false)
 const code = ref('')
 const codeSent = ref(false)
+const isCodeSending = ref(false)
 const codeCountdown = ref(0)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 async function handleSendCode() {
+  if (codeCountdown.value > 0 || isCodeSending.value) return
   errorMsg.value = ''
   if (!form.value.email.trim()) { errorMsg.value = '请先输入邮箱'; return }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) { errorMsg.value = '请输入正确的邮箱格式'; return }
+  isCodeSending.value = true
   try {
     const { data } = await sendRegisterCode(form.value.email)
     if (data.code === 200) {
       codeSent.value = true
-      codeCountdown.value = 60
-      countdownTimer = setInterval(() => {
-        codeCountdown.value--
-        if (codeCountdown.value <= 0 && countdownTimer) { clearInterval(countdownTimer); countdownTimer = null }
-      }, 1000)
+      startCodeCountdown()
     } else {
       errorMsg.value = data.message || '发送失败'
     }
   } catch (e: any) {
     errorMsg.value = e.response?.data?.message || '发送失败，请稍后再试'
+  } finally {
+    isCodeSending.value = false
   }
+}
+
+function startCodeCountdown() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+  }
+  codeCountdown.value = 60
+  countdownTimer = setInterval(() => {
+    codeCountdown.value--
+    if (codeCountdown.value <= 0 && countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+  }, 1000)
 }
 
 async function handleRegister() {
@@ -216,10 +231,10 @@ function goHome() {
             <button
               type="button"
               class="send-code-btn"
-              :disabled="codeCountdown > 0"
+              :disabled="codeCountdown > 0 || isCodeSending"
               @click="handleSendCode"
             >
-              {{ codeCountdown > 0 ? `${codeCountdown}s` : '发送验证码' }}
+              {{ codeCountdown > 0 ? `${codeCountdown}s` : (isCodeSending ? '发送中...' : '发送验证码') }}
             </button>
           </div>
         </div>

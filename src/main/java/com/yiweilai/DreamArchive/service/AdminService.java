@@ -61,7 +61,7 @@ public class AdminService {
         String action = request.getAction().trim().toUpperCase();
         User currentAdmin = authResult.getData();
         Result<Void> actionResult = switch (action) {
-            case "CREATE" -> createUser(request);
+            case "CREATE" -> createUser(currentAdmin, request);
             case "UPDATE" -> updateUser(currentAdmin, request);
             case "BAN" -> updateStatus(currentAdmin, request, "BANNED");
             case "UNBAN" -> updateStatus(currentAdmin, request, "ACTIVE");
@@ -188,14 +188,20 @@ public class AdminService {
         return (page - 1) * pageSize;
     }
 
-    private Result<Void> createUser(AdminUserActionRequest request) {
+    private Result<Void> createUser(User currentAdmin, AdminUserActionRequest request) {
         String username = trim(request.getUsername());
         String email = trim(request.getEmail());
         String password = request.getPassword();
+        String role = normalizeRole(request.getRole());
+        String status = normalizeStatus(request.getStatus());
 
         Result<Void> validation = validateBaseUserFields(username, email);
         if (validation.getCode() != 200) {
             return validation;
+        }
+        Result<Void> roleValidation = ensureCanAssignRole(currentAdmin, role);
+        if (roleValidation.getCode() != 200) {
+            return roleValidation;
         }
         if (!hasText(password) || password.length() < 6) {
             return Result.error(400, "密码长度至少 6 位");
@@ -211,8 +217,8 @@ public class AdminService {
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(sensitiveDataEncryptor.encrypt(password));
-        user.setRole(normalizeRole(request.getRole()));
-        user.setStatus(normalizeStatus(request.getStatus()));
+        user.setRole(role);
+        user.setStatus(status);
         user.setDeleted(false);
 
         int inserted = adminMapper.insertUser(user);
@@ -224,8 +230,9 @@ public class AdminService {
         if (target == null) {
             return Result.error(404, "账号不存在或已被删除");
         }
-        if (isSuperAdmin(target)) {
-            return Result.error(403, "超级管理员不可编辑");
+        Result<Void> manageValidation = ensureCanManageTarget(currentAdmin, target);
+        if (manageValidation.getCode() != 200) {
+            return manageValidation;
         }
 
         String username = trim(request.getUsername());
@@ -246,11 +253,17 @@ public class AdminService {
 
         String role = normalizeRole(hasText(request.getRole()) ? request.getRole() : target.getRole());
         String status = normalizeStatus(hasText(request.getStatus()) ? request.getStatus() : target.getStatus());
-        if (target.getId() == currentAdmin.getId() && !"ADMIN".equalsIgnoreCase(role)) {
-            return Result.error(400, "不能取消自己的管理员权限");
+        if (target.getId() == currentAdmin.getId() && !target.getRole().equalsIgnoreCase(role)) {
+            return Result.error(400, "不能修改自己的管理员角色");
         }
         if (target.getId() == currentAdmin.getId() && "BANNED".equalsIgnoreCase(status)) {
             return Result.error(400, "不能封禁自己的账号");
+        }
+        if (!target.getRole().equalsIgnoreCase(role)) {
+            Result<Void> roleValidation = ensureCanAssignRole(currentAdmin, role);
+            if (roleValidation.getCode() != 200) {
+                return roleValidation;
+            }
         }
 
         target.setUsername(username);
@@ -269,11 +282,12 @@ public class AdminService {
         if (target == null) {
             return Result.error(404, "账号不存在或已被删除");
         }
-        if (isSuperAdmin(target)) {
-            return Result.error(403, "超级管理员不可删除");
-        }
         if (target.getId() == currentAdmin.getId()) {
             return Result.error(400, "不能删除自己的账号");
+        }
+        Result<Void> manageValidation = ensureCanManageTarget(currentAdmin, target);
+        if (manageValidation.getCode() != 200) {
+            return manageValidation;
         }
 
         int updated = adminMapper.softDeleteUser(target.getId());
@@ -285,11 +299,12 @@ public class AdminService {
         if (target == null) {
             return Result.error(404, "账号不存在或已被删除");
         }
-        if (isSuperAdmin(target)) {
-            return Result.error(403, "超级管理员不可封禁");
-        }
         if (target.getId() == currentAdmin.getId() && "BANNED".equalsIgnoreCase(status)) {
             return Result.error(400, "不能封禁自己的账号");
+        }
+        Result<Void> manageValidation = ensureCanManageTarget(currentAdmin, target);
+        if (manageValidation.getCode() != 200) {
+            return manageValidation;
         }
 
         int updated = adminMapper.updateUserStatus(target.getId(), status);
@@ -330,6 +345,32 @@ public class AdminService {
 
     private String normalizeStatus(String status) {
         return "BANNED".equalsIgnoreCase(trim(status)) ? "BANNED" : "ACTIVE";
+    }
+
+    private Result<Void> ensureCanManageTarget(User currentAdmin, User target) {
+        if (currentAdmin == null || target == null) {
+            return Result.error(403, "需要管理员权限");
+        }
+        if (target.getId() == currentAdmin.getId()) {
+            return Result.success(null);
+        }
+        if (isSuperAdmin(target)) {
+            return Result.error(403, "不能操作其他超级管理员");
+        }
+        if (!isSuperAdmin(currentAdmin) && !"USER".equalsIgnoreCase(target.getRole())) {
+            return Result.error(403, "普通管理员只能管理普通用户");
+        }
+        return Result.success(null);
+    }
+
+    private Result<Void> ensureCanAssignRole(User currentAdmin, String role) {
+        if (currentAdmin == null) {
+            return Result.error(403, "需要管理员权限");
+        }
+        if (!isSuperAdmin(currentAdmin) && !"USER".equalsIgnoreCase(role)) {
+            return Result.error(403, "普通管理员只能授予普通用户角色");
+        }
+        return Result.success(null);
     }
 
     private boolean isSuperAdmin(User user) {
