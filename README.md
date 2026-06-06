@@ -6,7 +6,7 @@ DreamArchive 是一个面向个人梦境记录、AI 解读与长期情绪洞察�
 
 > 说明：本项目中的 AI 梦境解析用于辅助记录与自我观察，不用于医学诊断或心理治疗结论。
 
-> 快速跳转：[Deployment / 部署文档](docs/DEPLOYMENT.md)
+> 快速跳转：[Deployment / 部署文档](docs/DEPLOYMENT.md) · [Docker 一键部署](docker/)
 
 ## 项目亮点速览
 
@@ -564,85 +564,6 @@ echo "0 2 * * 1 certbot renew --quiet" | crontab -
 - [ ] 手机端访问布局正常
 
 > 完整部署文档（含常见问题排查、JVM 调优、数据库备份、监控告警和日志集中化设计）见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
-
-## Docker 一键部署
-
-项目提供完整的 Docker Compose 部署方案，无需手动安装 MySQL、Redis、MinIO、Nginx 等依赖，一条命令即可启动全部服务。
-
-### 文件结构
-
-```text
-docker/
-├── docker-compose.yml    # 5 服务编排（MySQL + Redis + MinIO + Backend + Frontend）
-├── Dockerfile            # 后端多阶段构建（Maven → JRE 17）
-├── frontend.Dockerfile   # 前端多阶段构建（Node 18 → Nginx）
-├── nginx.conf            # Nginx 反向代理 + 限流 + Gzip + 安全头
-├── .env.example          # 环境变量模板
-├── deploy.sh             # Linux / macOS 一键部署脚本
-└── deploy.ps1            # Windows PowerShell 一键部署脚本
-```
-
-### 快速开始
-
-```bash
-# 1. 进入 docker 目录
-cd docker
-
-# 2. 复制环境变量模板并填写
-cp .env.example .env
-# 编辑 .env，填写 MySQL 密码、MinIO 密钥、SMTP 授权码、Auth Secret、AI Key
-
-# 3. 一键启动
-chmod +x deploy.sh && ./deploy.sh
-
-# 或手动执行
-docker compose up -d
-```
-
-### 服务架构
-
-```text
-浏览器 → :80 Nginx (frontend)
-              ├── 静态文件 → /usr/share/nginx/html
-              └── /api/*  → :8080 backend (Spring Boot)
-                              ├── → :3306 MySQL
-                              ├── → :6379 Redis
-                              └── → :9000 MinIO
-```
-
-### 环境变量
-
-| 变量 | 说明 |
-|------|------|
-| `MYSQL_ROOT_PASSWORD` | MySQL root 密码 |
-| `MINIO_ROOT_USER` | MinIO 管理员用户名 |
-| `MINIO_ROOT_PASSWORD` | MinIO 管理员密码 |
-| `MAIL_PASSWORD` | QQ 邮箱 SMTP 授权码 |
-| `AUTH_SECRET` | JWT 认证密钥（建议 32 位以上随机字符串） |
-| `AI_API_KEY` | AI Provider API Key |
-
-### 访问地址
-
-| 服务 | 地址 |
-|------|------|
-| 前端 | `http://localhost` |
-| 后端 API | `http://localhost/api/hello` |
-| MinIO 控制台 | `http://localhost:9001` |
-| Swagger UI | `http://localhost/swagger-ui/` |
-
-### 常用命令
-
-```bash
-docker compose ps              # 查看服务状态
-docker compose logs -f         # 查看所有日志
-docker compose logs -f backend # 查看后端日志
-docker compose down            # 停止所有服务
-docker compose up -d --build   # 重建镜像并启动
-```
-
-### 数据持久化
-
-MySQL、Redis、MinIO 数据通过 Docker Volume 持久化，`docker compose down` 不会丢失数据。如需完全清理：`docker compose down -v`。
 
 ## 项目关键词
 
