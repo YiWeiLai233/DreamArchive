@@ -8,12 +8,22 @@ DreamArchive 是一个面向个人梦境记录、AI 解读与长期情绪洞察�
 
 > 快速跳转：[Deployment / 部署文档](docs/DEPLOYMENT.md)
 
+## 项目亮点速览
+
+- 基于 Spring Boot + Vue 构建完整前后端分离项目，覆盖用户、梦境内容、统计图表、后台管理和部署文档。
+- 使用 HttpOnly Cookie 承载登录 Token，并通过 CSRF Token 保护敏感写操作。
+- 使用 Redis 实现密码登录失败、验证码发送、验证码校验失败和游客 AI 解析等多维度限流。
+- 采用“先落库、后异步解析”的 AI 任务流程，配合 `analysis_status` / `analysis_error` 显示解析状态。
+- 设计 AI Provider Pool，支持多模型加权轮询、延迟感知和失败熔断。
+- 使用 MinIO 存储图片，并校验 MIME 类型和文件头魔数，降低伪造上传风险。
+- 提供 Nginx 反向代理与入口限流示例，生产环境只建议公网开放 80/443。
+
 ## 核心功能
 
 | 模块 | 功能说明 |
 |------|----------|
 | 用户系统 | 注册、密码登录、验证码登录、自动注册、修改密码、重置密码、账号资料维护 |
-| 认证授权 | HMAC-SHA256 Token、Spring Security 过滤链、角色权限、管理员访问控制 |
+| 认证授权 | HttpOnly Cookie、CSRF Token、HMAC-SHA256 Token、Spring Security 过滤链、角色权限 |
 | 梦境记录 | 梦境新增、列表查询、详情查看、搜索、删除、自动标题、AI 解析 |
 | 游客模式 | 未登录用户可体验记录与 AI 解析，登录或注册后自动同步游客梦境 |
 | AI 解析 | 接入 OpenAI 兼容格式模型，支持文本梦境解析和图片辅助分析 |
@@ -29,7 +39,7 @@ DreamArchive 是一个面向个人梦境记录、AI 解读与长期情绪洞察�
 |------|----------|
 | 前端框架 | Vue 3、TypeScript、Vite |
 | 前端路由与状态 | Vue Router、Pinia |
-| 网络请求 | Axios、请求拦截器、统一错误处理 |
+| 网络请求 | Axios、withCredentials、CSRF Header、统一错误处理 |
 | UI 与交互 | CSS3、响应式布局、Glassmorphism、移动端向导式表单 |
 | 后端框架 | Java 17、Spring Boot 3.5.7、Spring MVC |
 | 安全框架 | Spring Security、BCrypt、HMAC-SHA256 Token |
@@ -85,10 +95,11 @@ flowchart LR
 
 项目没有依赖传统 Session，而是使用无状态 Token 认证：
 
-- 登录成功后生成 HMAC-SHA256 签名 Token。
-- 前端将 Token 存入本地，并通过 Axios 拦截器自动附带到请求头。
-- 后端 `TokenAuthenticationFilter` 解析 Token 后，会再次查询数据库确认用户未被删除或封禁。
-- 管理员接口统一限制为 `ROLE_ADMIN`。
+- 登录成功后，后端生成 HMAC-SHA256 签名 Token，并写入 HttpOnly Cookie。
+- 前端通过 Axios `withCredentials` 自动携带 Cookie，不再把敏感 Token 存入 localStorage。
+- 后端同时下发非 HttpOnly 的 `XSRF-TOKEN` Cookie，前端写操作通过 `X-XSRF-TOKEN` Header 进行 CSRF 校验。
+- 后端 `TokenAuthenticationFilter` 解析 Cookie Token 后，会再次查询数据库确认用户未被删除或封禁。
+- 管理员接口统一限制为 `ROLE_ADMIN` / `ROLE_SUPER_ADMIN`。
 - 前端路由也配置了 `requiresAuth`、`guestOnly`、`requiresAdmin` 等守卫。
 
 这种设计兼顾了前后端分离场景下的易用性和权限安全。
@@ -99,6 +110,7 @@ flowchart LR
 
 - 验证码 5 分钟有效。
 - 同一场景下 60 秒内限制重复发送。
+- 后端使用 Redis 记录验证码发送次数和校验失败次数，达到阈值后返回 429。
 - 校验通过后立即删除验证码。
 - 邮件发送失败时返回用户友好提示，避免暴露 SMTP 细节。
 
@@ -261,12 +273,15 @@ flowchart TD
 ## 安全设计
 
 - 密码使用 BCrypt 加密存储。
-- Token 使用 HMAC-SHA256 签名，并设置有效期。
+- Token 使用 HMAC-SHA256 签名，通过 HttpOnly Cookie 保存，并设置有效期。
+- 敏感写操作启用 CSRF Token 校验。
 - 后端每次鉴权都会查询数据库确认用户状态。
 - 管理员接口通过 `ROLE_ADMIN` / `ROLE_SUPER_ADMIN` 控制。
 - 验证码使用 Redis TTL，校验后立即删除。
-- 验证码发送有频率限制，防止滥用。
-- 游客 AI 解析有设备级次数限制。
+- 验证码发送和验证码校验失败均有 Redis 限流，防止刷邮件和爆破验证码。
+- 密码登录失败按 IP、账号/邮箱、IP+账号/邮箱 多维度限流。
+- 游客 AI 解析有设备级和 IP 级次数限制。
+- 管理员操作限制普通 ADMIN 只能管理 USER，避免提权为 ADMIN / SUPER_ADMIN。
 - 图片上传限制大小、类型和文件头。
 - CSP 响应头限制脚本来源（`script-src 'self'`），防止 XSS。
 - X-Frame-Options、X-Content-Type-Options、Referrer-Policy 安全头。
@@ -281,7 +296,7 @@ flowchart TD
 | 可维护性 | 前后端分层清晰，业务模块拆分明确 |
 | 稳定性 | AI provider 熔断、异步解析、失败降级 |
 | 性能 | 统计预计算、前端路由懒加载、请求拦截复用 |
-| 安全性 | Token 认证、角色权限、Redis 验证码、上传校验 |
+| 安全性 | HttpOnly Cookie、CSRF、角色权限、Redis 限流、上传校验 |
 | 用户体验 | 游客体验、登录后同步、移动端向导、解析轮询 |
 | 可扩展性 | AI provider 可动态扩展，统计维度可继续增加 |
 
@@ -438,7 +453,7 @@ yum install -y redis
 systemctl start redis && systemctl enable redis
 ```
 
-配置 `/etc/redis.conf`：设置 `bind 0.0.0.0`（允许远程连接）、`requirepass`（密码认证）、`appendonly yes`（持久化）。
+配置 `/etc/redis.conf`：单机部署建议 `bind 127.0.0.1`，设置 `requirepass`（密码认证）和 `appendonly yes`（持久化）。如需远程连接，应仅允许内网或安全组白名单访问，不建议暴露公网。
 
 ### MinIO
 
@@ -476,9 +491,15 @@ npm run build    # 产物输出到 frontend/dist/
 ### Nginx 反向代理
 
 ```nginx
+# API 入口粗限流（放在 http {} 作用域）
+limit_req_zone $binary_remote_addr zone=dream_api_general:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=dream_auth:10m rate=5r/m;
+limit_req_zone $binary_remote_addr zone=dream_guest_ai:10m rate=10r/m;
+
 server {
     listen 80;
     server_name your-domain.com;
+    limit_req_status 429;
 
     root /var/www/dream-archive;
     index index.html;
@@ -490,10 +511,12 @@ server {
 
     # API 反向代理
     location /api/ {
+        limit_req zone=dream_api_general burst=30 nodelay;
         proxy_pass http://127.0.0.1:8080/api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size 10m;
         proxy_read_timeout 120s;    # AI 解析可能较慢
     }
@@ -508,6 +531,8 @@ server {
     gzip_types text/plain text/css application/json application/javascript text/xml;
 }
 ```
+
+生产环境建议后端只监听 `127.0.0.1:8080`，公网只开放 80/443，通过 Nginx 转发 `/api/`，避免绕过反向代理限流和 `X-Forwarded-For` 可信边界。
 
 ### HTTPS（可选）
 
@@ -560,9 +585,9 @@ echo "0 2 * * 1 certbot renew --quiet" | crontab -
 2. 为 AI 调用增加更完整的监控面板，如成功率、平均延迟、熔断次数和模型成本。
 3. 增加梦境标签、收藏、导出、时间轴和日历视图。
 4. 增加更细粒度的统计分析，如情绪变化趋势、常见符号、关键词云。
-5. 引入单元测试和接口测试，提高登录、权限、AI 池和统计逻辑的回归保障。
+5. 引入更多单元测试和接口测试，提高权限、AI 池、统计逻辑和上传逻辑的回归保障。
 6. 支持 Docker Compose 一键启动 MySQL、Redis、MinIO 和后端服务。
-7. Token 存储从 localStorage 迁移到 HttpOnly Cookie（`feat/httponly-cookie` 分支）。
+7. 引入 RabbitMQ 解耦 AI 异步解析任务，补充失败重试和死信队列。
 
 ## 开源协议
 

@@ -58,16 +58,13 @@ yum install -y wget curl vim net-tools unzip
 setenforce 0
 sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 
-# 配置防火墙，放行所需端口
+# 配置防火墙：公网只开放 Web 入口
 firewall-cmd --permanent --add-port=80/tcp      # HTTP
 firewall-cmd --permanent --add-port=443/tcp     # HTTPS
-firewall-cmd --permanent --add-port=8080/tcp    # 后端 API
-firewall-cmd --permanent --add-port=3306/tcp    # MySQL
-firewall-cmd --permanent --add-port=6379/tcp    # Redis
-firewall-cmd --permanent --add-port=9000/tcp    # MinIO API
-firewall-cmd --permanent --add-port=9001/tcp    # MinIO Console
 firewall-cmd --reload
 ```
+
+后端 8080、MySQL 3306、Redis 6379、MinIO 9000/9001 不建议暴露公网。单机部署时让它们监听 `127.0.0.1`，由 Nginx 统一代理公网入口；多机部署时仅放行内网安全组或指定可信 IP。
 
 ### 2.2 安装 JDK 17
 
@@ -284,12 +281,9 @@ systemctl restart redis
 redis-cli -h 127.0.0.1 -p 6379 -a YourRedisPassword ping
 ```
 
-### 4.3 防火墙放行
+### 4.3 网络访问
 
-```bash
-firewall-cmd --permanent --add-port=6379/tcp
-firewall-cmd --reload
-```
+如果 Redis 与后端在同一台服务器，保持 `bind 127.0.0.1`，不要放行 6379 公网端口。若 Redis 独立部署，只允许后端服务器所在内网或安全组访问，并启用 `requirepass`。
 
 ---
 
@@ -438,7 +432,10 @@ ai.pool.vision-provider=mimo2
 
 # ===== 服务端口 =====
 server.port=8080
+server.address=127.0.0.1
 ```
+
+`server.address=127.0.0.1` 可以避免后端 8080 直接暴露公网；公网请求统一从 Nginx 的 80/443 进入。
 
 ### 6.3 配置 CORS 白名单
 

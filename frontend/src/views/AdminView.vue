@@ -89,6 +89,7 @@ const userTotalPages = computed(() => overview.value?.userTotalPages || 1)
 const dreamTotalPages = computed(() => overview.value?.dreamTotalPages || 1)
 const userResultTotal = computed(() => overview.value?.userResultTotal || 0)
 const dreamResultTotal = computed(() => overview.value?.dreamResultTotal || 0)
+const isSuperAdmin = computed(() => userStore.role === 'SUPER_ADMIN')
 
 // ---- AI 资源池图表 ----
 const poolEnabledCount = computed(() => providers.value.filter(p => p.enabled).length)
@@ -464,6 +465,19 @@ function isCurrentUser(user: AdminUserSummary) {
   return String(user.id) === userStore.userId
 }
 
+function canEditUser(user: AdminUserSummary) {
+  if (user.role === 'SUPER_ADMIN') return false
+  if (user.role === 'ADMIN') return isSuperAdmin.value || isCurrentUser(user)
+  return true
+}
+
+function canModerateUser(user: AdminUserSummary) {
+  if (isCurrentUser(user)) return false
+  if (user.role === 'SUPER_ADMIN') return false
+  if (user.role === 'ADMIN') return isSuperAdmin.value
+  return true
+}
+
 async function submitUserForm() {
   resetActionMessage()
   const username = userForm.value.username.trim()
@@ -480,6 +494,11 @@ async function submitUserForm() {
   }
   if (password && password.length < 6) {
     actionError.value = '密码至少 6 位'
+    return
+  }
+  const roleChanged = !editingUser.value || userForm.value.role !== editingUser.value.role
+  if (!isSuperAdmin.value && roleChanged && userForm.value.role !== 'USER') {
+    actionError.value = '普通管理员只能创建或管理普通用户'
     return
   }
 
@@ -772,13 +791,13 @@ onMounted(() => {
                     <td class="count-cell">{{ user.dreamCount }}</td>
                     <td class="date-cell">{{ formatDate(user.createdAt) }}</td>
                     <td class="action-cell">
-                      <button class="action-btn small" type="button" :disabled="isSubmitting || user.role === 'SUPER_ADMIN'" @click="openEditUser(user)">
+                      <button class="action-btn small" type="button" :disabled="isSubmitting || !canEditUser(user)" @click="openEditUser(user)">
                         编辑
                       </button>
                       <button
                         class="action-btn small warning"
                         type="button"
-                        :disabled="isSubmitting || isCurrentUser(user) || user.role === 'SUPER_ADMIN'"
+                        :disabled="isSubmitting || !canModerateUser(user)"
                         @click="toggleUserBan(user)"
                       >
                         {{ user.status === 'BANNED' ? '解封' : '封禁' }}
@@ -786,7 +805,7 @@ onMounted(() => {
                       <button
                         class="action-btn small danger"
                         type="button"
-                        :disabled="isSubmitting || isCurrentUser(user) || user.role === 'SUPER_ADMIN'"
+                        :disabled="isSubmitting || !canModerateUser(user)"
                         @click="deleteUser(user)"
                       >
                         删除
@@ -1188,10 +1207,10 @@ onMounted(() => {
             <div class="form-group">
               <label class="form-label">角色</label>
               <div class="select-wrap">
-                <select v-model="userForm.role" :disabled="isSubmitting || editingUser?.role === 'SUPER_ADMIN'">
+                <select v-model="userForm.role" :disabled="isSubmitting || !isSuperAdmin || editingUser?.role === 'SUPER_ADMIN'">
                   <option value="USER">普通用户</option>
-                  <option value="ADMIN">管理员</option>
-                  <option v-if="editingUser?.role === 'SUPER_ADMIN'" value="SUPER_ADMIN">超级管理员</option>
+                  <option v-if="isSuperAdmin" value="ADMIN">管理员</option>
+                  <option v-if="isSuperAdmin" value="SUPER_ADMIN">超级管理员</option>
                 </select>
               </div>
             </div>
