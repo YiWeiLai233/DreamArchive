@@ -461,3 +461,23 @@ cp .env.example .env   # 编辑填写真实配置
 # 或 .\deploy.ps1      # Windows
 # 或 docker compose up -d
 ```
+
+### 2026-06-06 Docker 安全加固 + 问题清单修复
+
+根据 `docker-install` 分支问题清单修复全部 P0/P1/P2 问题：
+
+| 问题 | 修复 |
+|------|------|
+| `.dockerignore` 排除 `docker/` 导致前端构建失败 | 移除 `docker/` 排除行 |
+| `app.auth.token-ttl-seconds` 配置名错误 | 改为 `app.auth.ttl-seconds`（与 `TokenService` 一致） |
+| MySQL/Redis/Backend 默认暴露公网端口 | 改为 `expose`，仅前端 80 对外，MinIO 控制台绑定 `127.0.0.1:9001` |
+| Redis 无密码 | 新增 `REDIS_PASSWORD` 环境变量，compose 加 `--requirepass` |
+| 邮箱账号硬编码 `859399899@qq.com` | 改为 `${MAIL_USERNAME}` 环境变量 |
+| MinIO bucket 无自动初始化 | 新增 `minio-init` 服务（mc 创建 bucket + 设置公开下载） |
+| Swagger 默认公开 | nginx.conf 中注释掉 swagger location |
+| 限流配置前缀不一致 | 改为 `app.security.rate-limit.*` 对齐 security-rate-limits 分支 |
+| 上传接口无专用限流 | nginx 新增 `dream_upload` 限流区 30r/m |
+| AUTH_SECRET 无长度校验 | deploy 脚本增加 32 位最小长度检查 |
+| Docker 文档未区分本地/生产 | README 新增本地开发 vs 生产部署对比 + 故障排查 |
+
+新增文件：`.github/workflows/ci.yml`（后端构建+测试）、`.github/workflows/docker-build.yml`（Docker 镜像构建验证）

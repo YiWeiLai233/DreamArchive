@@ -303,6 +303,17 @@ docker/
 
 部署步骤：`cd docker && cp .env.example .env && vim .env && ./deploy.sh`
 
+### 安全加固（2026-06-06）
+
+- 生产环境只暴露 80 端口，MySQL/Redis/Backend 改为内部 expose
+- Redis 加密码认证（`REDIS_PASSWORD`）
+- 邮箱账号改为环境变量（`MAIL_USERNAME`），不再硬编码
+- MinIO bucket 自动初始化（`minio-init` 服务）
+- Swagger 默认注释，AUTH_SECRET 32 位长度校验
+- 限流配置前缀对齐 `app.security.rate-limit.*`
+- 上传接口专用 Nginx 限流 30r/m
+- GitHub Actions：`ci.yml`（构建+测试）、`docker-build.yml`（镜像构建验证）
+
 ## 服务器
 
 - 数据库：MySQL 192.168.199.136:3306
