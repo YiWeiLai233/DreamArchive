@@ -53,6 +53,7 @@ logs/
 
 ### Sensitive config ###
 src/main/resources/application.properties
+.env
 
 ### Project docs (local only) ###
 *.md
