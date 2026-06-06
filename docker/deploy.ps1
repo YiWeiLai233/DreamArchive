@@ -37,7 +37,7 @@ if (-not (Test-Path .env)) {
 
 # 读取 .env 并检查
 $envContent = Get-Content .env -Raw
-$requiredVars = @("MYSQL_ROOT_PASSWORD", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD", "MAIL_PASSWORD", "AUTH_SECRET", "AI_API_KEY")
+$requiredVars = @("MYSQL_ROOT_PASSWORD", "REDIS_PASSWORD", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD", "MAIL_USERNAME", "MAIL_PASSWORD", "AUTH_SECRET", "AI_API_KEY")
 $missing = $false
 foreach ($var in $requiredVars) {
     $match = [regex]::Match($envContent, "(?m)^${var}=(.*)$")
@@ -48,6 +48,13 @@ foreach ($var in $requiredVars) {
 }
 if ($missing) {
     Write-Host "请编辑 .env 文件填写真实配置后重新运行" -ForegroundColor Yellow
+    exit 1
+}
+
+# AUTH_SECRET 长度校验
+$authMatch = [regex]::Match($envContent, "(?m)^AUTH_SECRET=(.*)$")
+if ($authMatch.Success -and $authMatch.Groups[1].Value.Trim().Length -lt 32) {
+    Write-Host "错误: AUTH_SECRET 至少需要 32 位，当前 $($authMatch.Groups[1].Value.Trim().Length) 位" -ForegroundColor Red
     exit 1
 }
 
@@ -85,7 +92,6 @@ Write-Host "╠═════════════════════�
 Write-Host "║  前端:      http://localhost          ║" -ForegroundColor Green
 Write-Host "║  后端 API:  http://localhost/api/hello ║" -ForegroundColor Green
 Write-Host "║  MinIO:     http://localhost:9001      ║" -ForegroundColor Green
-Write-Host "║  Swagger:   http://localhost/swagger-ui/║" -ForegroundColor Green
 Write-Host "╚══════════════════════════════════════╝" -ForegroundColor Green
 Write-Host ""
 Write-Host "常用命令:" -ForegroundColor Cyan

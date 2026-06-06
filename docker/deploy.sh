@@ -44,7 +44,7 @@ fi
 # 检查必要环境变量
 source .env
 missing=0
-for var in MYSQL_ROOT_PASSWORD MINIO_ROOT_USER MINIO_ROOT_PASSWORD MAIL_PASSWORD AUTH_SECRET AI_API_KEY; do
+for var in MYSQL_ROOT_PASSWORD REDIS_PASSWORD MINIO_ROOT_USER MINIO_ROOT_PASSWORD MAIL_USERNAME MAIL_PASSWORD AUTH_SECRET AI_API_KEY; do
     val=$(eval echo \$$var)
     if [ -z "$val" ] || [[ "$val" == "your_"* ]]; then
         echo -e "${RED}错误: .env 中 $var 未填写或仍为模板值${NC}"
@@ -53,6 +53,12 @@ for var in MYSQL_ROOT_PASSWORD MINIO_ROOT_USER MINIO_ROOT_PASSWORD MAIL_PASSWORD
 done
 if [ $missing -eq 1 ]; then
     echo -e "${YELLOW}请编辑 .env 文件填写真实配置后重新运行${NC}"
+    exit 1
+fi
+
+# AUTH_SECRET 长度校验
+if [ ${#AUTH_SECRET} -lt 32 ]; then
+    echo -e "${RED}错误: AUTH_SECRET 至少需要 32 位，当前 ${#AUTH_SECRET} 位${NC}"
     exit 1
 fi
 
@@ -66,7 +72,7 @@ echo -e "${GREEN}[3/3] 等待服务就绪...${NC}"
 echo "  MySQL  → 检查健康状态..."
 docker compose exec -T mysql mysqladmin ping -h localhost -u root -p"${MYSQL_ROOT_PASSWORD}" --wait=30 > /dev/null 2>&1
 echo "  Redis  → 检查健康状态..."
-docker compose exec -T redis redis-cli ping > /dev/null 2>&1
+docker compose exec -T redis redis-cli -a "${REDIS_PASSWORD}" ping > /dev/null 2>&1
 echo "  后端   → 等待启动 (约30-60秒)..."
 timeout 120 bash -c 'until curl -sf http://localhost:8080/api/hello > /dev/null 2>&1; do sleep 3; done'
 echo "  前端   → 检查 Nginx..."
@@ -79,7 +85,6 @@ echo -e "${GREEN}╠════════════════════
 echo -e "${GREEN}║  前端:      http://localhost          ║${NC}"
 echo -e "${GREEN}║  后端 API:  http://localhost/api/hello ║${NC}"
 echo -e "${GREEN}║  MinIO:     http://localhost:9001      ║${NC}"
-echo -e "${GREEN}║  Swagger:   http://localhost/swagger-ui/║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════╝${NC}"
 echo ""
 echo -e "常用命令:"

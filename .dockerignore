@@ -10,6 +10,4 @@ target/
 !env.example
 frontend/node_modules/
 frontend/dist/
-docker/
 docs/
-sql/
