@@ -74,7 +74,8 @@ const providerForm = ref<AiProviderForm>({
   apiKey: '',
   model: '',
   weight: 10,
-  enabled: true
+  enabled: true,
+  visionEnabled: false
 })
 
 const filteredUsers = computed(() => {
@@ -205,14 +206,22 @@ async function loadProviders() {
 function openCreateProvider() {
   resetActionMessage()
   editingProvider.value = null
-  providerForm.value = { name: '', url: '', apiKey: '', model: '', weight: 10, enabled: true }
+  providerForm.value = { name: '', url: '', apiKey: '', model: '', weight: 10, enabled: true, visionEnabled: false }
   isProviderModalOpen.value = true
 }
 
 function openEditProvider(p: AiProviderInfo) {
   resetActionMessage()
   editingProvider.value = p
-  providerForm.value = { name: p.name, url: p.url, apiKey: '', model: p.model, weight: p.weight, enabled: p.enabled }
+  providerForm.value = {
+    name: p.name,
+    url: p.url,
+    apiKey: '',
+    model: p.model,
+    weight: p.weight,
+    enabled: p.enabled,
+    visionEnabled: p.visionEnabled
+  }
   isProviderModalOpen.value = true
 }
 
@@ -241,8 +250,15 @@ async function submitProviderForm() {
   resetActionMessage()
   try {
     if (editingProvider.value) {
-      // 更新 weight / enabled
-      const res = await updateAiProvider(form.name, { weight: form.weight, enabled: form.enabled })
+      const payload = {
+        url: form.url.trim(),
+        model: form.model.trim(),
+        weight: form.weight,
+        enabled: form.enabled,
+        visionEnabled: form.visionEnabled,
+        ...(form.apiKey.trim() ? { apiKey: form.apiKey.trim() } : {})
+      }
+      const res = await updateAiProvider(form.name, payload)
       if (res.data.code === 200) {
         actionMsg.value = '更新成功'
         isProviderModalOpen.value = false
@@ -251,7 +267,13 @@ async function submitProviderForm() {
         actionError.value = res.data.message
       }
     } else {
-      const res = await addAiProvider(form)
+      const res = await addAiProvider({
+        ...form,
+        name: form.name.trim(),
+        url: form.url.trim(),
+        apiKey: form.apiKey.trim(),
+        model: form.model.trim()
+      })
       if (res.data.code === 200) {
         actionMsg.value = '添加成功'
         isProviderModalOpen.value = false
@@ -1007,6 +1029,7 @@ onMounted(() => {
                     <th>名称</th>
                     <th>模型</th>
                     <th>URL</th>
+                    <th>图片</th>
                     <th>权重</th>
                     <th>状态</th>
                     <th>熔断</th>
@@ -1020,6 +1043,11 @@ onMounted(() => {
                     <td class="name-cell">{{ p.name }}</td>
                     <td><code class="model-code">{{ p.model }}</code></td>
                     <td class="url-cell" :title="p.url">{{ p.url.length > 30 ? p.url.slice(0, 30) + '...' : p.url }}</td>
+                    <td>
+                      <span class="badge" :class="p.visionEnabled ? 'badge-blue' : 'badge-gray'">
+                        {{ p.visionEnabled ? '启用' : '否' }}
+                      </span>
+                    </td>
                     <td class="count-cell">{{ p.weight }}</td>
                     <td>
                       <span class="badge" :class="p.enabled ? 'badge-green' : 'badge-gray'">
@@ -1049,7 +1077,7 @@ onMounted(() => {
                     </td>
                   </tr>
                   <tr v-if="providers.length === 0">
-                    <td colspan="9" class="empty-row">暂无 Provider，请点击上方按钮添加</td>
+                    <td colspan="10" class="empty-row">暂无 Provider，请点击上方按钮添加</td>
                   </tr>
                 </tbody>
               </table>
@@ -1066,7 +1094,7 @@ onMounted(() => {
         <div class="modal-hero" :class="{ edit: editingProvider }">
           <span class="hero-icon">{{ editingProvider ? '✏️' : '🤖' }}</span>
           <h2>{{ editingProvider ? '编辑 Provider' : '添加 Provider' }}</h2>
-          <p>{{ editingProvider ? '修改权重和启用状态' : '配置一个新的 AI Provider' }}</p>
+          <p>{{ editingProvider ? '修改连接、模型、权重和状态' : '配置一个新的 AI Provider' }}</p>
           <button class="hero-close" type="button" :disabled="isSubmitting" @click="closeProviderModal">×</button>
         </div>
 
@@ -1089,18 +1117,18 @@ onMounted(() => {
             </label>
             <div class="input-wrap">
               <span class="input-icon">🔗</span>
-              <input v-model="providerForm.url" type="text" maxlength="200" placeholder="https://api.example.com/v1" :disabled="!!editingProvider || isSubmitting" />
+              <input v-model="providerForm.url" type="text" maxlength="200" placeholder="https://api.example.com/v1" :disabled="isSubmitting" />
             </div>
           </div>
 
-          <div v-if="!editingProvider" class="form-group">
+          <div class="form-group">
             <label class="form-label">
               <span class="label-dot"></span>
               API Key
             </label>
             <div class="input-wrap">
               <span class="input-icon">🔑</span>
-              <input v-model="providerForm.apiKey" type="password" maxlength="200" placeholder="Bearer token" :disabled="isSubmitting" />
+              <input v-model="providerForm.apiKey" type="password" maxlength="200" :placeholder="editingProvider ? '留空则保留当前密钥' : 'Bearer token'" :disabled="isSubmitting" />
             </div>
           </div>
 
@@ -1111,7 +1139,7 @@ onMounted(() => {
             </label>
             <div class="input-wrap">
               <span class="input-icon">🧠</span>
-              <input v-model="providerForm.model" type="text" maxlength="100" placeholder="gpt-4o / mimo-v2.5-pro" :disabled="!!editingProvider || isSubmitting" />
+              <input v-model="providerForm.model" type="text" maxlength="100" placeholder="gpt-4o / mimo-v2.5-pro" :disabled="isSubmitting" />
             </div>
           </div>
 
@@ -1141,6 +1169,22 @@ onMounted(() => {
                 <span>{{ providerForm.enabled ? '启用' : '禁用' }}</span>
               </label>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">图片解析</label>
+            <label class="toggle-label">
+              <button
+                type="button"
+                class="toggle-switch"
+                :class="{ on: providerForm.visionEnabled }"
+                :disabled="isSubmitting"
+                @click="providerForm.visionEnabled = !providerForm.visionEnabled"
+              >
+                <span class="toggle-knob"></span>
+              </button>
+              <span>{{ providerForm.visionEnabled ? '作为图片解析 Provider' : '不用于图片解析' }}</span>
+            </label>
           </div>
 
           <div class="form-actions">
