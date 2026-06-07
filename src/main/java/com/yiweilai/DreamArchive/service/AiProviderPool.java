@@ -3,6 +3,7 @@ package com.yiweilai.DreamArchive.service;
 import com.yiweilai.DreamArchive.DTO.AiProvider;
 import com.yiweilai.DreamArchive.DTO.AiProviderUpdateRequest;
 import com.yiweilai.DreamArchive.mapper.AiProviderMapper;
+import com.yiweilai.DreamArchive.util.AesEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,9 @@ public class AiProviderPool {
 
     @Autowired(required = false)
     private AiProviderMapper aiProviderMapper;
+
+    @Autowired(required = false)
+    private AesEncryptor aesEncryptor;
 
     public List<AiProvider> getProviders() {
         return Collections.unmodifiableList(providers);
@@ -143,7 +147,9 @@ public class AiProviderPool {
             if (provider.isVisionEnabled()) {
                 aiProviderMapper.clearVisionEnabledExcept(provider.getName());
             }
-            aiProviderMapper.insert(provider);
+            AiProvider toSave = copyProvider(provider);
+            encryptApiKey(toSave);
+            aiProviderMapper.insert(toSave);
         }
         if (provider.isVisionEnabled()) {
             clearMemoryVisionEnabledExcept(provider.getName());
@@ -204,7 +210,9 @@ public class AiProviderPool {
             if (updated.isVisionEnabled()) {
                 aiProviderMapper.clearVisionEnabledExcept(updated.getName());
             }
-            aiProviderMapper.update(updated);
+            AiProvider toSave = copyProvider(updated);
+            encryptApiKey(toSave);
+            aiProviderMapper.update(toSave);
         }
 
         if (updated.isVisionEnabled()) {
@@ -257,7 +265,12 @@ public class AiProviderPool {
             return;
         }
         try {
-            setProviders(aiProviderMapper.selectAll());
+            List<AiProvider> loaded = aiProviderMapper.selectAll();
+            // 解密 apiKey（内存中保留明文供调用使用）
+            for (AiProvider p : loaded) {
+                decryptApiKey(p);
+            }
+            setProviders(loaded);
         } catch (RuntimeException e) {
             log.error("Failed to load AI providers from database", e);
             setProviders(List.of());
@@ -405,5 +418,33 @@ public class AiProviderPool {
             currentWeight.put(best.getName(), bestCurrent - totalEffectiveWeight);
         }
         return best;
+    }
+
+    private void encryptApiKey(AiProvider provider) {
+        if (aesEncryptor != null && provider.getApiKey() != null && !provider.getApiKey().isBlank()) {
+            provider.setApiKey(aesEncryptor.encrypt(provider.getApiKey()));
+        }
+    }
+
+    private void decryptApiKey(AiProvider provider) {
+        if (aesEncryptor != null && provider.getApiKey() != null && !provider.getApiKey().isBlank()) {
+            if (aesEncryptor.isEncrypted(provider.getApiKey())) {
+                provider.setApiKey(aesEncryptor.decrypt(provider.getApiKey()));
+            }
+            // 非加密格式（旧数据）保持原样，不做处理
+        }
+    }
+
+    private AiProvider copyProvider(AiProvider source) {
+        AiProvider copy = new AiProvider(
+                source.getName(),
+                source.getUrl(),
+                source.getApiKey(),
+                source.getModel(),
+                source.getWeight(),
+                source.isEnabled()
+        );
+        copy.setVisionEnabled(source.isVisionEnabled());
+        return copy;
     }
 }

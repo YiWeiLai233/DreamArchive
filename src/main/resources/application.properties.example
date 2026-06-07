@@ -88,26 +88,12 @@ minio.secret-key=你的MinIO_SECRET_KEY
 minio.bucket=dream-archive
 
 # ==================== AI 资源池 ====================
-# Provider 0 - 主力模型
-ai.pool.providers[0].name=mimo
-ai.pool.providers[0].url=https://token-plan-cn.xiaomimimo.com/v1
-ai.pool.providers[0].apiKey=你的API密钥
-ai.pool.providers[0].model=mimo-v2.5-pro
-ai.pool.providers[0].weight=50
-ai.pool.providers[0].enabled=true
-
-# Provider 1 - 备用模型 / 图片分析专用
-ai.pool.providers[1].name=mimo2
-ai.pool.providers[1].url=https://token-plan-cn.xiaomimimo.com/v1
-ai.pool.providers[1].apiKey=你的API密钥
-ai.pool.providers[1].model=mimo-v2.5
-ai.pool.providers[1].weight=60
-ai.pool.providers[1].enabled=true
-
-# 图片分析使用的 provider 名称
-ai.pool.vision-provider=mimo2
-
 # AI 资源池启动心跳：true=启动后异步自检并测速；false=跳过自检，适合本地频繁重启时节省 token
 ai.pool.heartbeat.enabled=true
 # 单个 provider 心跳请求超时时间（秒）
 ai.pool.heartbeat.timeout-seconds=10
+
+# ==================== 敏感数据加密 ====================
+# AES-256-GCM 密钥，必须恰好 32 字符，用于加密存储 AI provider apiKey
+# 生产环境务必修改为随机字符串，切勿泄露
+app.encryption.aes-key=你的32位AES加密密钥_请修改

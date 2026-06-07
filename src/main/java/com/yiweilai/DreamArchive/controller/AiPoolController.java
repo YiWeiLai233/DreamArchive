@@ -2,8 +2,12 @@ package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.DTO.AiProvider;
 import com.yiweilai.DreamArchive.DTO.AiProviderUpdateRequest;
+import com.yiweilai.DreamArchive.mapper.AiProviderMapper;
 import com.yiweilai.DreamArchive.service.AiProviderPool;
+import com.yiweilai.DreamArchive.util.AesEncryptor;
 import com.yiweilai.DreamArchive.util.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,8 +17,16 @@ import java.util.List;
 @RequestMapping("/api/admin/ai-pool")
 public class AiPoolController {
 
+    private static final Logger log = LoggerFactory.getLogger(AiPoolController.class);
+
     @Autowired
     private AiProviderPool providerPool;
+
+    @Autowired(required = false)
+    private AiProviderMapper aiProviderMapper;
+
+    @Autowired(required = false)
+    private AesEncryptor aesEncryptor;
 
     @GetMapping("/providers")
     public Result<List<AiProvider>> listProviders() {
@@ -73,5 +85,34 @@ public class AiPoolController {
             return Result.success("熔断已重置");
         }
         return Result.error("provider [" + name + "] 不存在");
+    }
+
+    /**
+     * 迁移接口：加密数据库中所有明文 apiKey（仅需调用一次）
+     */
+    @PostMapping("/providers/encrypt-api-keys")
+    public Result<String> encryptAllApiKeys() {
+        if (aiProviderMapper == null || aesEncryptor == null) {
+            return Result.error("加密组件未就绪");
+        }
+        try {
+            List<AiProvider> providers = aiProviderMapper.selectAll();
+            int encrypted = 0;
+            for (AiProvider p : providers) {
+                if (p.getApiKey() != null && !p.getApiKey().isBlank() && !aesEncryptor.isEncrypted(p.getApiKey())) {
+                    String encryptedKey = aesEncryptor.encrypt(p.getApiKey());
+                    p.setApiKey(encryptedKey);
+                    aiProviderMapper.update(p);
+                    encrypted++;
+                    log.info("Encrypted apiKey for provider: {}", p.getName());
+                }
+            }
+            // 重新加载内存
+            providerPool.refreshFromDatabase();
+            return Result.success("加密完成，共处理 " + encrypted + " 个 provider");
+        } catch (Exception e) {
+            log.error("Failed to encrypt api keys", e);
+            return Result.error("加密失败: " + e.getMessage());
+        }
     }
 }

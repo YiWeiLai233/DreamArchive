@@ -47,6 +47,10 @@ frontend/             # Vue 3 + TS + Vite 前端，12 个 View 组件
 - **前端守卫**: guestOnly(/login,/register,/reset-password)、requiresAuth、requiresAdmin(/admin)
 - **Session**: 前端 15 分钟超时
 - **软删除**: user.deleted=1，封禁: user.status='BANNED'
+- **敏感数据加密**: `AesEncryptor` AES-256-GCM 可逆加密，用于加密 AI provider apiKey
+  - 配置: `app.encryption.aes-key` 必须恰好 32 字符
+  - 加密存储: `AiProviderPool` 写入数据库时自动加密，读取时自动解密
+  - 迁移接口: `POST /api/admin/ai-pool/providers/encrypt-api-keys` 一次性加密数据库中所有明文 apiKey
 
 ## 验证码+邮件系统
 
@@ -481,3 +485,34 @@ cp .env.example .env   # 编辑填写真实配置
 | Docker 文档未区分本地/生产 | README 新增本地开发 vs 生产部署对比 + 故障排查 |
 
 新增文件：`.github/workflows/ci.yml`（后端构建+测试）、`.github/workflows/docker-build.yml`（Docker 镜像构建验证）
+
+### 2026-06-06 CI 修复 + Workflow 清理
+
+**Java 文件名大小写修复**：
+
+Linux CI 大小写敏感，小写文件名导致编译失败（本地 Windows 不报错）。修正 4 个文件：
+
+| 原文件名 | 新文件名 |
+|---|---|
+| `mapper/loginMapper.java` | `mapper/LoginMapper.java` |
+| `mapper/registerMapper.java` | `mapper/RegisterMapper.java` |
+| `mapper/resetPasswordMapper.java` | `mapper/ResetPasswordMapper.java` |
+| `service/registerService.java` | `service/RegisterService.java` |
+
+验证：`mvn test` 40 tests, 0 failures。
+
+**CI Workflow 清理**：
+
+删除 2 个重复的 workflow 文件，每次推送从 4 个减到 2 个：
+
+| 文件 | 状态 |
+|---|---|
+| `ci.yml` | ✅ 保留（构建+测试） |
+| `docker-build.yml` | ✅ 保留（Docker 构建） |
+| `maven-publish.yml` | ❌ 删除（与 ci.yml 重复） |
+| `jekyll-docker.yml` | ❌ 删除（与 docker-build.yml 重复） |
+
+**docker-build.yml 增强**：
+
+1. 添加 `pull_request` 触发，PR 合入前自动验证 Docker 构建
+2. 新增 `validate-compose` job，`docker compose config --quiet` 校验配置语法
