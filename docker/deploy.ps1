@@ -37,7 +37,7 @@ if (-not (Test-Path .env)) {
 
 # 读取 .env 并检查
 $envContent = Get-Content .env -Raw
-$requiredVars = @("MYSQL_ROOT_PASSWORD", "REDIS_PASSWORD", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD", "MAIL_USERNAME", "MAIL_PASSWORD", "AUTH_SECRET", "AI_API_KEY")
+$requiredVars = @("MYSQL_ROOT_PASSWORD", "REDIS_PASSWORD", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD", "MAIL_USERNAME", "MAIL_PASSWORD", "AUTH_SECRET")
 $missing = $false
 foreach ($var in $requiredVars) {
     $match = [regex]::Match($envContent, "(?m)^${var}=(.*)$")
@@ -71,7 +71,7 @@ $timeout = 120
 $elapsed = 0
 while ($elapsed -lt $timeout) {
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:8080/api/hello" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri "http://localhost/api/hello" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
             Write-Host "  后端 → 就绪" -ForegroundColor Green
             break
