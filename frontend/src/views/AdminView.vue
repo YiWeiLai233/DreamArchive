@@ -632,7 +632,9 @@ function goHome() {
 
 onMounted(() => {
   loadOverview()
-  loadProviders()
+  if (isSuperAdmin.value) {
+    loadProviders()
+  }
 })
 </script>
 
@@ -693,6 +695,7 @@ onMounted(() => {
           </div>
         </button>
         <button
+          v-if="isSuperAdmin"
           class="sidebar-item"
           :class="{ active: activePanel === 'ai-pool' }"
           type="button"
@@ -932,7 +935,7 @@ onMounted(() => {
           </section>
 
           <!-- AI 资源池面板 -->
-          <section v-if="activePanel === 'ai-pool'" class="panel-card">
+          <section v-if="activePanel === 'ai-pool' && isSuperAdmin" class="panel-card">
             <div class="card-header">
               <div class="card-header-left">
                 <h2 class="card-title">AI 资源池</h2>

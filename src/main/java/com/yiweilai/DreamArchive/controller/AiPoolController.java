@@ -2,7 +2,9 @@ package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.DTO.AiProvider;
 import com.yiweilai.DreamArchive.DTO.AiProviderUpdateRequest;
+import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.mapper.AiProviderMapper;
+import com.yiweilai.DreamArchive.service.AdminService;
 import com.yiweilai.DreamArchive.service.AiProviderPool;
 import com.yiweilai.DreamArchive.util.AesEncryptor;
 import com.yiweilai.DreamArchive.util.Result;
@@ -22,6 +24,9 @@ public class AiPoolController {
     @Autowired
     private AiProviderPool providerPool;
 
+    @Autowired
+    private AdminService adminService;
+
     @Autowired(required = false)
     private AiProviderMapper aiProviderMapper;
 
@@ -29,12 +34,21 @@ public class AiPoolController {
     private AesEncryptor aesEncryptor;
 
     @GetMapping("/providers")
-    public Result<List<AiProvider>> listProviders() {
+    public Result<List<AiProvider>> listProviders(@RequestHeader(value = "Authorization", required = false) String authorization) {
+        Result<User> authResult = adminService.requireSuperAdmin(authorization);
+        if (authResult.getCode() != 200) {
+            return Result.error(authResult.getCode(), authResult.getMessage());
+        }
         return Result.success("获取成功", providerPool.getProviders());
     }
 
     @PostMapping("/providers")
-    public Result<String> addProvider(@RequestBody AiProvider provider) {
+    public Result<String> addProvider(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                      @RequestBody AiProvider provider) {
+        Result<User> authResult = adminService.requireSuperAdmin(authorization);
+        if (authResult.getCode() != 200) {
+            return Result.error(authResult.getCode(), authResult.getMessage());
+        }
         try {
             providerPool.addProvider(provider);
             return Result.success("添加成功");
@@ -45,11 +59,16 @@ public class AiPoolController {
 
     @PostMapping("/providers/{name}/update")
     public Result<AiProvider> updateProvider(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
             @PathVariable String name,
             @RequestBody(required = false) AiProviderUpdateRequest request,
             @RequestParam(required = false) Integer weight,
             @RequestParam(required = false) Boolean enabled,
             @RequestParam(required = false) Boolean visionEnabled) {
+        Result<User> authResult = adminService.requireSuperAdmin(authorization);
+        if (authResult.getCode() != 200) {
+            return Result.error(authResult.getCode(), authResult.getMessage());
+        }
         try {
             AiProviderUpdateRequest effectiveRequest = request != null ? request : new AiProviderUpdateRequest();
             if (weight != null) {
@@ -72,7 +91,12 @@ public class AiPoolController {
     }
 
     @PostMapping("/providers/{name}/delete")
-    public Result<String> removeProvider(@PathVariable String name) {
+    public Result<String> removeProvider(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                         @PathVariable String name) {
+        Result<User> authResult = adminService.requireSuperAdmin(authorization);
+        if (authResult.getCode() != 200) {
+            return Result.error(authResult.getCode(), authResult.getMessage());
+        }
         if (providerPool.removeProvider(name)) {
             return Result.success("删除成功");
         }
@@ -80,7 +104,12 @@ public class AiPoolController {
     }
 
     @PostMapping("/providers/{name}/reset")
-    public Result<String> resetCircuit(@PathVariable String name) {
+    public Result<String> resetCircuit(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                       @PathVariable String name) {
+        Result<User> authResult = adminService.requireSuperAdmin(authorization);
+        if (authResult.getCode() != 200) {
+            return Result.error(authResult.getCode(), authResult.getMessage());
+        }
         if (providerPool.resetCircuit(name)) {
             return Result.success("熔断已重置");
         }
@@ -91,7 +120,11 @@ public class AiPoolController {
      * 迁移接口：加密数据库中所有明文 apiKey（仅需调用一次）
      */
     @PostMapping("/providers/encrypt-api-keys")
-    public Result<String> encryptAllApiKeys() {
+    public Result<String> encryptAllApiKeys(@RequestHeader(value = "Authorization", required = false) String authorization) {
+        Result<User> authResult = adminService.requireSuperAdmin(authorization);
+        if (authResult.getCode() != 200) {
+            return Result.error(authResult.getCode(), authResult.getMessage());
+        }
         if (aiProviderMapper == null || aesEncryptor == null) {
             return Result.error("加密组件未就绪");
         }

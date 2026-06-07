@@ -377,6 +377,21 @@ public class AdminService {
         return user != null && "SUPER_ADMIN".equalsIgnoreCase(user.getRole());
     }
 
+    /**
+     * 校验当前用户是否为超级管理员
+     */
+    public Result<User> requireSuperAdmin(String authorizationHeader) {
+        Result<User> authResult = requireAdmin(authorizationHeader);
+        if (authResult.getCode() != 200) {
+            return authResult;
+        }
+        User user = authResult.getData();
+        if (!isSuperAdmin(user)) {
+            return Result.error(403, "需要超级管理员权限");
+        }
+        return Result.success(user);
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }
