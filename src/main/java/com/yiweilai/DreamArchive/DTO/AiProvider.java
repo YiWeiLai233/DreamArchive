@@ -11,6 +11,7 @@ public class AiProvider {
     private String model;
     private int weight = 10;
     private boolean enabled = true;
+    private boolean visionEnabled;
 
     // 运行时状态（不持久化）
     private int failCount;
@@ -46,6 +47,9 @@ public class AiProvider {
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+    public boolean isVisionEnabled() { return visionEnabled; }
+    public void setVisionEnabled(boolean visionEnabled) { this.visionEnabled = visionEnabled; }
 
     public int getFailCount() { return failCount; }
     public void setFailCount(int failCount) { this.failCount = failCount; }

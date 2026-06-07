@@ -1,10 +1,13 @@
 package com.yiweilai.DreamArchive.service;
 
 import com.yiweilai.DreamArchive.DTO.AiProvider;
+import com.yiweilai.DreamArchive.DTO.AiProviderUpdateRequest;
+import com.yiweilai.DreamArchive.mapper.AiProviderMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 import java.util.*;
@@ -12,7 +15,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-@ConfigurationProperties(prefix = "ai.pool")
 public class AiProviderPool {
 
     private static final Logger log = LoggerFactory.getLogger(AiProviderPool.class);
@@ -22,7 +24,9 @@ public class AiProviderPool {
 
     private List<AiProvider> providers = new CopyOnWriteArrayList<>();
     private final Map<String, Integer> currentWeight = new ConcurrentHashMap<>();
-    private String visionProvider;
+
+    @Autowired(required = false)
+    private AiProviderMapper aiProviderMapper;
 
     public List<AiProvider> getProviders() {
         return Collections.unmodifiableList(providers);
@@ -30,26 +34,33 @@ public class AiProviderPool {
 
     public void setProviders(List<AiProvider> providers) {
         this.providers = providers != null ? new CopyOnWriteArrayList<>(providers) : new CopyOnWriteArrayList<>();
+        rebuildCurrentWeights();
     }
 
     public String getVisionProvider() {
-        return visionProvider;
-    }
-
-    public void setVisionProvider(String visionProvider) {
-        this.visionProvider = visionProvider;
+        for (AiProvider provider : providers) {
+            if (provider.isEnabled() && provider.isVisionEnabled()) {
+                return provider.getName();
+            }
+        }
+        return null;
     }
 
     @PostConstruct
     public void init() {
+        loadProvidersFromDatabase();
         if (providers.isEmpty()) {
-            log.warn("AI pool has no providers. Add ai.pool.providers[0].name/... in application.properties");
+            log.warn("AI pool has no providers. Add providers in ai_provider table or Admin AI pool page.");
         } else {
             for (AiProvider p : providers) {
-                currentWeight.put(p.getName(), 0);
+                currentWeight.putIfAbsent(p.getName(), 0);
                 log.info("AI provider loaded: {} (weight={}, enabled={})", p.getName(), p.getWeight(), p.isEnabled());
             }
         }
+    }
+
+    public synchronized void refreshFromDatabase() {
+        loadProvidersFromDatabase();
     }
 
     public synchronized AiProvider acquire() {
@@ -118,37 +129,90 @@ public class AiProviderPool {
         }
     }
 
-    public void addProvider(AiProvider provider) {
+    @Transactional
+    public synchronized void addProvider(AiProvider provider) {
         validateProvider(provider);
-        for (AiProvider p : providers) {
-            if (p.getName().equals(provider.getName())) {
+        normalizeProvider(provider);
+        if (findProvider(provider.getName()) != null) {
+            throw new IllegalArgumentException("provider [" + provider.getName() + "] already exists");
+        }
+        if (aiProviderMapper != null) {
+            if (aiProviderMapper.selectByName(provider.getName()) != null) {
                 throw new IllegalArgumentException("provider [" + provider.getName() + "] already exists");
             }
+            if (provider.isVisionEnabled()) {
+                aiProviderMapper.clearVisionEnabledExcept(provider.getName());
+            }
+            aiProviderMapper.insert(provider);
+        }
+        if (provider.isVisionEnabled()) {
+            clearMemoryVisionEnabledExcept(provider.getName());
         }
         currentWeight.put(provider.getName(), 0);
         providers.add(provider);
     }
 
-    public boolean removeProvider(String name) {
+    @Transactional
+    public synchronized boolean removeProvider(String name) {
+        if (isBlank(name)) {
+            return false;
+        }
+        if (aiProviderMapper != null && aiProviderMapper.deleteByName(name) == 0) {
+            return false;
+        }
         boolean removed = providers.removeIf(p -> p.getName().equals(name));
         if (removed) currentWeight.remove(name);
         return removed;
     }
 
+    @Transactional
     public AiProvider updateProvider(String name, Integer weight, Boolean enabled) {
-        for (AiProvider p : providers) {
-            if (p.getName().equals(name)) {
-                if (weight != null) {
-                    if (weight <= 0) {
-                        throw new IllegalArgumentException("weight must be greater than 0");
-                    }
-                    p.setWeight(weight);
-                }
-                if (enabled != null) p.setEnabled(enabled);
-                return p;
-            }
+        AiProviderUpdateRequest request = new AiProviderUpdateRequest();
+        request.setWeight(weight);
+        request.setEnabled(enabled);
+        return updateProvider(name, request);
+    }
+
+    @Transactional
+    public AiProvider updateProvider(String name, AiProvider provider) {
+        if (provider == null) {
+            throw new IllegalArgumentException("provider is required");
         }
-        return null;
+        AiProviderUpdateRequest request = new AiProviderUpdateRequest();
+        request.setUrl(provider.getUrl());
+        request.setApiKey(provider.getApiKey());
+        request.setModel(provider.getModel());
+        request.setWeight(provider.getWeight());
+        request.setEnabled(provider.isEnabled());
+        request.setVisionEnabled(provider.isVisionEnabled());
+        return updateProvider(name, request);
+    }
+
+    @Transactional
+    public synchronized AiProvider updateProvider(String name, AiProviderUpdateRequest request) {
+        if (isBlank(name)) {
+            throw new IllegalArgumentException("provider name is required");
+        }
+        AiProvider existing = findProvider(name);
+        if (existing == null) {
+            return null;
+        }
+        AiProvider updated = mergeProvider(existing, request);
+        validateProvider(updated);
+
+        if (aiProviderMapper != null) {
+            if (updated.isVisionEnabled()) {
+                aiProviderMapper.clearVisionEnabledExcept(updated.getName());
+            }
+            aiProviderMapper.update(updated);
+        }
+
+        if (updated.isVisionEnabled()) {
+            clearMemoryVisionEnabledExcept(updated.getName());
+        }
+        applyProvider(existing, updated);
+        currentWeight.putIfAbsent(existing.getName(), 0);
+        return existing;
     }
 
     public boolean resetCircuit(String name) {
@@ -185,6 +249,104 @@ public class AiProviderPool {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private void loadProvidersFromDatabase() {
+        if (aiProviderMapper == null) {
+            rebuildCurrentWeights();
+            return;
+        }
+        try {
+            setProviders(aiProviderMapper.selectAll());
+        } catch (RuntimeException e) {
+            log.error("Failed to load AI providers from database", e);
+            setProviders(List.of());
+        }
+    }
+
+    private void rebuildCurrentWeights() {
+        currentWeight.clear();
+        for (AiProvider provider : providers) {
+            if (!isBlank(provider.getName())) {
+                currentWeight.put(provider.getName(), 0);
+            }
+        }
+    }
+
+    private AiProvider findProvider(String name) {
+        if (isBlank(name)) {
+            return null;
+        }
+        for (AiProvider provider : providers) {
+            if (provider.getName().equals(name)) {
+                return provider;
+            }
+        }
+        return null;
+    }
+
+    private AiProvider mergeProvider(AiProvider existing, AiProviderUpdateRequest request) {
+        AiProvider updated = new AiProvider(
+                existing.getName(),
+                existing.getUrl(),
+                existing.getApiKey(),
+                existing.getModel(),
+                existing.getWeight(),
+                existing.isEnabled()
+        );
+        updated.setVisionEnabled(existing.isVisionEnabled());
+
+        if (request == null) {
+            return updated;
+        }
+        if (request.getUrl() != null) {
+            updated.setUrl(request.getUrl());
+        }
+        if (request.getApiKey() != null && !request.getApiKey().isBlank()) {
+            updated.setApiKey(request.getApiKey());
+        }
+        if (request.getModel() != null) {
+            updated.setModel(request.getModel());
+        }
+        if (request.getWeight() != null) {
+            updated.setWeight(request.getWeight());
+        }
+        if (request.getEnabled() != null) {
+            updated.setEnabled(request.getEnabled());
+        }
+        if (request.getVisionEnabled() != null) {
+            updated.setVisionEnabled(request.getVisionEnabled());
+        }
+        normalizeProvider(updated);
+        return updated;
+    }
+
+    private void normalizeProvider(AiProvider provider) {
+        provider.setName(trim(provider.getName()));
+        provider.setUrl(trim(provider.getUrl()));
+        provider.setApiKey(trim(provider.getApiKey()));
+        provider.setModel(trim(provider.getModel()));
+    }
+
+    private String trim(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private void clearMemoryVisionEnabledExcept(String name) {
+        for (AiProvider provider : providers) {
+            if (!provider.getName().equals(name)) {
+                provider.setVisionEnabled(false);
+            }
+        }
+    }
+
+    private void applyProvider(AiProvider target, AiProvider source) {
+        target.setUrl(source.getUrl());
+        target.setApiKey(source.getApiKey());
+        target.setModel(source.getModel());
+        target.setWeight(source.getWeight());
+        target.setEnabled(source.isEnabled());
+        target.setVisionEnabled(source.isVisionEnabled());
     }
 
     private List<AiProvider> getAvailableProviders() {

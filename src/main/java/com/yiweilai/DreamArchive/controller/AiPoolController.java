@@ -1,6 +1,7 @@
 package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.DTO.AiProvider;
+import com.yiweilai.DreamArchive.DTO.AiProviderUpdateRequest;
 import com.yiweilai.DreamArchive.service.AiProviderPool;
 import com.yiweilai.DreamArchive.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,10 +34,22 @@ public class AiPoolController {
     @PostMapping("/providers/{name}/update")
     public Result<AiProvider> updateProvider(
             @PathVariable String name,
+            @RequestBody(required = false) AiProviderUpdateRequest request,
             @RequestParam(required = false) Integer weight,
-            @RequestParam(required = false) Boolean enabled) {
+            @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) Boolean visionEnabled) {
         try {
-            AiProvider updated = providerPool.updateProvider(name, weight, enabled);
+            AiProviderUpdateRequest effectiveRequest = request != null ? request : new AiProviderUpdateRequest();
+            if (weight != null) {
+                effectiveRequest.setWeight(weight);
+            }
+            if (enabled != null) {
+                effectiveRequest.setEnabled(enabled);
+            }
+            if (visionEnabled != null) {
+                effectiveRequest.setVisionEnabled(visionEnabled);
+            }
+            AiProvider updated = providerPool.updateProvider(name, effectiveRequest);
             if (updated == null) {
                 return Result.error("provider [" + name + "] 不存在");
             }
