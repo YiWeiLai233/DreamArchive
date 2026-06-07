@@ -15,6 +15,18 @@ public interface DreamContentMapper {
 
     List<DreamContent> selectByUserId(@Param("userId") Integer userId);
 
+    List<DreamContent> selectPageByUserId(@Param("userId") Integer userId,
+                                          @Param("keyword") String keyword,
+                                          @Param("emotion") String emotion,
+                                          @Param("draftsOnly") boolean draftsOnly,
+                                          @Param("limit") int limit,
+                                          @Param("offset") int offset);
+
+    long countByUserIdWithFilters(@Param("userId") Integer userId,
+                                  @Param("keyword") String keyword,
+                                  @Param("emotion") String emotion,
+                                  @Param("draftsOnly") boolean draftsOnly);
+
     void updateTitle(@Param("id") String id, @Param("title") String title);
 
     int updateEditableDream(@Param("id") String id,

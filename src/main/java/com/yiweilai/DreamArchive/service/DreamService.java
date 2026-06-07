@@ -1,6 +1,7 @@
 package com.yiweilai.DreamArchive.service;
 
 import com.yiweilai.DreamArchive.DTO.DreamContent;
+import com.yiweilai.DreamArchive.DTO.PagedDreamContentResponse;
 import com.yiweilai.DreamArchive.mapper.DreamContentMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,9 @@ import java.util.UUID;
 
 @Service
 public class DreamService {
+
+    private static final int DEFAULT_DREAM_PAGE_SIZE = 9;
+    private static final int MAX_DREAM_PAGE_SIZE = 30;
 
     @Autowired
     private DreamContentMapper dreamContentMapper;
@@ -150,6 +154,39 @@ public class DreamService {
         return dreamContentMapper.selectByUserId(userId);
     }
 
+    public PagedDreamContentResponse getDreamsPageByUserId(Integer userId, int page, int pageSize, String keyword, String filter) {
+        int normalizedPage = Math.max(page, 1);
+        int normalizedPageSize = pageSize <= 0
+                ? DEFAULT_DREAM_PAGE_SIZE
+                : Math.min(pageSize, MAX_DREAM_PAGE_SIZE);
+        String normalizedKeyword = normalizeSearchKeyword(keyword);
+        String normalizedFilter = filter == null ? "" : filter.trim();
+        boolean draftsOnly = "drafts".equalsIgnoreCase(normalizedFilter);
+        String emotion = normalizedFilter.isBlank()
+                || "all".equalsIgnoreCase(normalizedFilter)
+                || draftsOnly
+                ? null
+                : normalizedFilter;
+
+        long total = dreamContentMapper.countByUserIdWithFilters(userId, normalizedKeyword, emotion, draftsOnly);
+        int totalPages = Math.max(1, (int) Math.ceil(total / (double) normalizedPageSize));
+        int currentPage = Math.min(normalizedPage, totalPages);
+        if (total <= 0) {
+            return new PagedDreamContentResponse(List.of(), 0L, currentPage, normalizedPageSize, totalPages);
+        }
+
+        int offset = (currentPage - 1) * normalizedPageSize;
+        List<DreamContent> items = dreamContentMapper.selectPageByUserId(
+                userId,
+                normalizedKeyword,
+                emotion,
+                draftsOnly,
+                normalizedPageSize,
+                offset
+        );
+        return new PagedDreamContentResponse(items, total, currentPage, normalizedPageSize, totalPages);
+    }
+
     @Transactional
     public boolean deleteDream(String id) {
         DreamContent existingDream = dreamContentMapper.selectById(id);
@@ -178,5 +215,13 @@ public class DreamService {
             return "未命名梦境";
         }
         return compact.length() > 12 ? compact.substring(0, 12) : compact;
+    }
+
+    private String normalizeSearchKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String normalized = keyword.trim();
+        return normalized.isBlank() ? null : normalized;
     }
 }

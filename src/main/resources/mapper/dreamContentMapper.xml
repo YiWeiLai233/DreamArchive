@@ -22,6 +22,40 @@
         ORDER BY created_at DESC
     </select>
 
+    <sql id="DreamPageFilters">
+        WHERE user_id = #{userId}
+        <if test="keyword != null and keyword != ''">
+            AND (
+                title LIKE CONCAT('%', #{keyword}, '%')
+                OR content LIKE CONCAT('%', #{keyword}, '%')
+                OR place LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="emotion != null and emotion != ''">
+            AND emotion = #{emotion}
+        </if>
+        <if test="draftsOnly">
+            AND (
+                (analysis_status IS NOT NULL AND analysis_status != '' AND analysis_status NOT IN ('PENDING', 'SUCCESS'))
+                OR ((analysis_status IS NULL OR analysis_status = '') AND (interpretation IS NULL OR interpretation = ''))
+            )
+        </if>
+    </sql>
+
+    <select id="selectPageByUserId" resultType="com.yiweilai.DreamArchive.DTO.DreamContent">
+        SELECT id, user_id as userId, title, content, emotion, place, time, interpretation, analysis_status as analysisStatus, analysis_error as analysisError, image_url as imageUrl, created_at as createdAt
+        FROM dream_content
+        <include refid="DreamPageFilters" />
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByUserIdWithFilters" resultType="long">
+        SELECT COUNT(*)
+        FROM dream_content
+        <include refid="DreamPageFilters" />
+    </select>
+
     <update id="updateTitle">
         UPDATE dream_content
         SET title = #{title}

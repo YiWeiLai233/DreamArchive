@@ -1,6 +1,7 @@
 package com.yiweilai.DreamArchive.controller;
 
 import com.yiweilai.DreamArchive.DTO.DreamContent;
+import com.yiweilai.DreamArchive.DTO.PagedDreamContentResponse;
 import com.yiweilai.DreamArchive.DTO.User;
 import com.yiweilai.DreamArchive.service.DreamAiTaskService;
 import com.yiweilai.DreamArchive.service.AiService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -92,6 +94,26 @@ public class DreamController {
         } catch (Exception e) {
             log.error("查询梦境列表失败", e);
             return Result.error("查询失败，请稍后重试");
+        }
+    }
+
+    @GetMapping("/dreams/user/{userId}/page")
+    public Result<PagedDreamContentResponse> getUserDreamsPage(
+            @PathVariable Integer userId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "9") int pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "all") String filter) {
+        try {
+            if (!canAccessUser(userId)) {
+                return Result.error(403, "\u6743\u9650\u4e0d\u8db3");
+            }
+            PagedDreamContentResponse dreamsPage = dreamService.getDreamsPageByUserId(userId, page, pageSize, keyword, filter);
+            enrichImageUrls(dreamsPage.getItems());
+            return Result.success(dreamsPage);
+        } catch (Exception e) {
+            log.error("鏌ヨ姊﹀鍒嗛〉澶辫触", e);
+            return Result.error("鏌ヨ澶辫触锛岃绋嶅悗閲嶈瘯");
         }
     }
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { deleteDream, getUserDreams, triggerAnalyze, updateDream } from '@/api/dream'
+import { deleteDream, getUserDreamsPage, triggerAnalyze, updateDream } from '@/api/dream'
 import { getUserByEmail } from '@/api/user'
 import { useUserStore } from '@/stores'
 import { formatDreamInterpretation } from '@/utils/dreamInterpretation'
@@ -65,9 +65,14 @@ const emotionOptions = [
 ]
 
 const dreams = ref<Dream[]>([])
+const currentPage = ref(1)
+const totalDreams = ref(0)
+const backendTotalPages = ref(1)
 let pendingDreamsRefreshTimer: ReturnType<typeof window.setInterval> | null = null
+let dreamListReloadTimer: ReturnType<typeof window.setTimeout> | null = null
 
 const PENDING_DREAMS_REFRESH_INTERVAL_MS = 5000
+const DREAMS_PAGE_SIZE = 9
 
 async function getUserId(): Promise<string | number | null> {
   if (userStore.userId) return userStore.userId
@@ -160,7 +165,7 @@ function refreshPendingDreamsOnResume() {
   }
 }
 
-async function loadDreams(options: { silent?: boolean } = {}) {
+async function loadDreams(options: { silent?: boolean; page?: number } = {}) {
   const userId = await getUserId()
   if (!userId) {
     if (!options.silent) {
@@ -175,10 +180,19 @@ async function loadDreams(options: { silent?: boolean } = {}) {
       isLoading.value = true
       errorMsg.value = ''
     }
-    const res = await getUserDreams(Number(userId))
+    const res = await getUserDreamsPage(Number(userId), {
+      page: options.page ?? currentPage.value,
+      pageSize: DREAMS_PAGE_SIZE,
+      keyword: searchQuery.value.trim() || undefined,
+      filter: activeFilter.value
+    })
     if (res.data.code === 200) {
-      const nextDreams = (res.data.data || []).map(normalizeDream)
+      const pageData = res.data.data || { items: [], total: 0, page: 1, pageSize: DREAMS_PAGE_SIZE, totalPages: 1 }
+      const nextDreams = (pageData.items || []).map(normalizeDream)
       dreams.value = nextDreams
+      currentPage.value = pageData.page
+      totalDreams.value = pageData.total
+      backendTotalPages.value = Math.max(1, pageData.totalPages || 1)
       if (selectedDream.value) {
         const updatedSelectedDream = nextDreams.find(dream => dream.id === selectedDream.value?.id)
         if (updatedSelectedDream) {
@@ -213,26 +227,61 @@ onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', refreshPendingDreamsOnResume)
   window.removeEventListener('focus', refreshPendingDreamsOnResume)
   window.removeEventListener('pageshow', refreshPendingDreamsOnResume)
+  if (dreamListReloadTimer) {
+    window.clearTimeout(dreamListReloadTimer)
+    dreamListReloadTimer = null
+  }
   stopPendingDreamsRefresh()
 })
 
-const filteredDreams = computed(() => {
-  let result = dreams.value
-  if (activeFilter.value === 'drafts') {
-    result = result.filter(d => isEditableDream(d))
-  } else if (activeFilter.value !== 'all') {
-    result = result.filter(d => d.emotion === activeFilter.value)
+const filteredDreams = computed(() => dreams.value)
+const totalPages = computed(() => backendTotalPages.value)
+const pageStartIndex = computed(() => (currentPage.value - 1) * DREAMS_PAGE_SIZE)
+const paginatedDreams = computed(() => dreams.value)
+const paginationStart = computed(() => totalDreams.value === 0 ? 0 : pageStartIndex.value + 1)
+const paginationEnd = computed(() => Math.min(totalDreams.value, pageStartIndex.value + paginatedDreams.value.length))
+const visiblePageNumbers = computed<Array<number | string>>(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1)
   }
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase()
-    result = result.filter(d =>
-      d.title.toLowerCase().includes(q) ||
-      d.content.toLowerCase().includes(q) ||
-      d.place.toLowerCase().includes(q)
-    )
+
+  const pages: Array<number | string> = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+
+  if (start > 2) pages.push('...')
+  for (let page = start; page <= end; page++) {
+    pages.push(page)
   }
-  return result
+  if (end < total - 1) pages.push('...')
+  pages.push(total)
+
+  return pages
 })
+
+watch([searchQuery, activeFilter], () => {
+  currentPage.value = 1
+  scheduleDreamsReload()
+})
+
+function goToPage(page: number) {
+  const nextPage = Math.min(Math.max(page, 1), totalPages.value)
+  if (nextPage === currentPage.value) return
+  currentPage.value = nextPage
+  void loadDreams()
+}
+
+function scheduleDreamsReload() {
+  if (dreamListReloadTimer) {
+    window.clearTimeout(dreamListReloadTimer)
+  }
+  dreamListReloadTimer = window.setTimeout(() => {
+    dreamListReloadTimer = null
+    void loadDreams()
+  }, 300)
+}
 
 const selectedInterpretationBlocks = computed(() => formatDreamInterpretation(selectedDream.value?.interpretation))
 const isEditFormValid = computed(() => editForm.value.content.trim().length > 0 && editForm.value.emotion.length > 0)
@@ -245,6 +294,11 @@ function getEmotionIcon(emotion: string) {
 function getEmotionLabel(emotion: string) {
   const map: Record<string, string> = { happy: '开心', sad: '悲伤', scary: '恐惧', mysterious: '神秘', peaceful: '平静', excited: '兴奋', angry: '愤怒' }
   return map[emotion] || '未知'
+}
+
+function getInterpretationPreview(text: string): string {
+  const clean = text.replace(/[#*\-\n]+/g, ' ').trim()
+  return clean.length > 50 ? clean.slice(0, 50) + '...' : clean
 }
 
 function getEmotionColor(emotion: string): string {
@@ -455,9 +509,10 @@ function goBack() {
         <button class="empty-cta" @click="router.push('/record-dream')">✨ 开始记录</button>
       </div>
 
-      <div v-else class="dreams-grid">
-        <div
-          v-for="(dream, index) in filteredDreams"
+      <div v-else class="dreams-list">
+        <div class="dreams-grid">
+          <div
+            v-for="(dream, index) in paginatedDreams"
           :key="dream.id"
           class="dream-card glass card-enter"
           :style="{ animationDelay: Math.min(index * 0.06, 0.6) + 's' }"
@@ -473,8 +528,8 @@ function goBack() {
             <span class="dream-date">{{ dream.createdAt }}</span>
           </div>
           <h3 class="dream-title">{{ dream.title }}</h3>
-          <img v-if="dream.imageUrl" :src="dream.imageUrl" class="dream-card-image" />
-          <p v-else class="dream-preview">{{ dream.content }}</p>
+          <p class="dream-preview">{{ dream.content }}</p>
+          <p v-if="dream.interpretation && dream.interpretation !== '暂无解析'" class="interpretation-preview">🔮 {{ getInterpretationPreview(dream.interpretation) }}</p>
           <div class="card-bottom">
             <span class="dream-meta">📍 {{ dream.place }}</span>
             <span class="dream-meta">🕐 {{ dream.time }}</span>
@@ -496,6 +551,35 @@ function goBack() {
               class="card-action-btn delete"
               @click.stop="askDeleteDream(dream)"
             >🗑 删除</button>
+          </div>
+        </div>
+        </div>
+
+        <div v-if="totalPages > 1" class="pagination-bar">
+          <span class="pagination-info">{{ paginationStart }}-{{ paginationEnd }} / {{ totalDreams }}</span>
+          <div class="pagination-controls">
+            <button
+              class="pagination-btn"
+              type="button"
+              :disabled="currentPage <= 1"
+              @click="goToPage(currentPage - 1)"
+            >‹</button>
+            <template v-for="(page, pageIndex) in visiblePageNumbers" :key="`${page}-${pageIndex}`">
+              <span v-if="page === '...'" class="pagination-ellipsis">...</span>
+              <button
+                v-else
+                class="pagination-btn"
+                :class="{ active: page === currentPage }"
+                type="button"
+                @click="goToPage(page as number)"
+              >{{ page }}</button>
+            </template>
+            <button
+              class="pagination-btn"
+              type="button"
+              :disabled="currentPage >= totalPages"
+              @click="goToPage(currentPage + 1)"
+            >›</button>
           </div>
         </div>
       </div>
@@ -750,13 +834,89 @@ function goBack() {
 }
 
 /* 梦境网格 */
-.dreams-container { position: relative; z-index: 10; padding: 0 2rem; }
+.dreams-container {
+  position: relative; z-index: 10;
+  padding: 0 2rem;
+  padding-bottom: 5rem;
+}
+.dreams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 .dreams-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.25rem;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.pagination-bar {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  max-width: 700px;
+  width: calc(100% - 4rem);
+  padding: 0.6rem 1rem;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.2) inset;
+}
+.pagination-info {
+  color: var(--text-light);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.6rem;
+  border: 1.5px solid var(--glass-border);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.5);
+  color: var(--text-dark);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.pagination-btn.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 10px rgba(124,111,224,0.25);
+}
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pagination-ellipsis {
+  color: var(--text-light);
+  font-size: 0.82rem;
+  padding: 0 0.15rem;
 }
 .dream-card {
-  padding: 1.5rem; border-radius: 18px; cursor: pointer;
+  padding: 1.25rem; border-radius: 16px; cursor: pointer;
   transition: all 0.3s ease;
   display: flex; flex-direction: column;
   position: relative;
@@ -867,11 +1027,16 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
   background: rgba(229,57,53,0.1);
   border-color: rgba(229,57,53,0.35);
 }
-.dream-title { font-size: 1.15rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem; }
+.dream-title { font-size: 1.05rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.4rem; }
 .dream-preview {
-  font-size: 0.88rem; color: var(--text-light); line-height: 1.6; margin-bottom: 0.75rem;
+  font-size: 0.84rem; color: var(--text-light); line-height: 1.5; margin-bottom: 0.4rem;
   flex: 1; min-height: 0;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.interpretation-preview {
+  font-size: 0.76rem; color: #7C6FE0; line-height: 1.4; margin-bottom: 0.4rem;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  opacity: 0.85;
 }
 .card-bottom { display: flex; gap: 1rem; }
 .dream-meta { font-size: 0.8rem; color: var(--text-light); }
@@ -1308,8 +1473,15 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
   .page-nav { padding: 1rem; }
   .toolbar { padding: 0 1rem; flex-direction: column; align-items: stretch; }
   .search-box { max-width: 100%; }
-  .dreams-container { padding: 0 1rem; }
+  .dreams-container { padding: 0 1rem; padding-bottom: 6rem; }
   .dreams-grid { grid-template-columns: 1fr; }
+  .pagination-bar {
+    width: calc(100% - 2rem);
+    bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0.8rem;
+  }
   .card-top { gap: 0.35rem; margin-bottom: 0.5rem; }
   .card-badges { flex: 1; min-width: 0; }
   .card-footer-actions { gap: 0.4rem; }
@@ -1331,7 +1503,7 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
 @media (max-width: 480px) {
   .page-nav { padding: 0.75rem; }
   .toolbar { padding: 0 0.75rem; }
-  .dreams-container { padding: 0 0.75rem; }
+  .dreams-container { padding: 0 0.75rem; padding-bottom: 6rem; }
   .dream-card { padding: 1rem; }
   .dream-title { font-size: 1rem; }
   .dream-preview { font-size: 0.82rem; -webkit-line-clamp: 2; }
@@ -1354,11 +1526,11 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
   .page-nav { padding: 1.5rem 2rem; }
   .toolbar { padding: 0 2rem; }
   .search-box { max-width: 480px; }
-  .dreams-container { padding: 0 2rem; }
-  .dreams-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
-  .dream-card { padding: 1.75rem; }
-  .dream-title { font-size: 1.25rem; }
-  .dream-preview { font-size: 0.95rem; -webkit-line-clamp: 4; }
+  .dreams-container { padding: 0 2rem; padding-bottom: 5rem; }
+  .dreams-grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .dream-card { padding: 1.25rem; }
+  .dream-title { font-size: 1.05rem; }
+  .dream-preview { font-size: 0.84rem; -webkit-line-clamp: 3; }
   .modal-card { max-width: 1100px; padding: 3rem 4rem; }
   .modal-overlay { padding: 1.5rem; }
   .modal-close { top: 1.25rem; right: 1.25rem; width: 36px; height: 36px; font-size: 1.1rem; }
@@ -1381,8 +1553,8 @@ html.dark .analysis-badge.failed { background: rgba(255,107,107,0.15); color: #f
 
 /* 梦境图片 */
 .dream-card-image {
-  width: 100%; height: 140px; object-fit: cover;
-  border-radius: 8px; margin: 0.5rem 0;
+  width: 100%; height: 90px; object-fit: cover;
+  border-radius: 8px; margin: 0.4rem 0;
   border: 1px solid rgba(124,111,224,0.12);
   flex-shrink: 0;
 }
@@ -1442,6 +1614,28 @@ html.dark .dream-title { color: #F1EEFA; }
 html.dark .dream-date { color: #BFB8D5; }
 html.dark .dream-preview { color: #C6C0DA; }
 html.dark .dream-meta { color: #BFB8D5; }
+html.dark .interpretation-preview { color: #B8AEFF; }
+html.dark .pagination-bar {
+  background: rgba(28, 24, 45, 0.6);
+  border-color: rgba(184, 174, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(184, 174, 255, 0.08) inset;
+}
+html.dark .pagination-info,
+html.dark .pagination-ellipsis { color: #BFB8D5; }
+html.dark .pagination-btn {
+  background: rgba(24, 20, 39, 0.7);
+  border-color: rgba(184, 174, 255, 0.24);
+  color: #E8E4F0;
+}
+html.dark .pagination-btn:hover:not(:disabled) {
+  background: rgba(155, 143, 255, 0.14);
+  border-color: rgba(184, 174, 255, 0.42);
+  color: #B8AEFF;
+}
+html.dark .pagination-btn.active {
+  background: var(--primary);
+  color: white;
+}
 html.dark .emotion-badge { background: rgba(155, 143, 255, 0.12); }
 html.dark .analysis-badge { background: rgba(155, 143, 255, 0.15); color: #B8AEFF; }
 html.dark .draft-badge { background: rgba(255, 179, 71, 0.14); color: #FFB347; }

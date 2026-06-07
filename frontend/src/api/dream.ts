@@ -50,6 +50,21 @@ export interface DreamDetail {
   createdAt: string
 }
 
+export interface DreamPageParams {
+  page: number
+  pageSize: number
+  keyword?: string
+  filter?: string
+}
+
+export interface PagedDreamContentResponse {
+  items: DreamDetail[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
 export interface ApiResult<T> {
   code: number
   message: string
@@ -82,6 +97,10 @@ export function getDreamById(id: string) {
 
 export function getUserDreams(userId: number) {
   return api.get<ApiResult<DreamDetail[]>>(`/api/dreams/user/${userId}`)
+}
+
+export function getUserDreamsPage(userId: number, params: DreamPageParams) {
+  return api.get<ApiResult<PagedDreamContentResponse>>(`/api/dreams/user/${userId}/page`, { params })
 }
 
 export function deleteDream(id: string) {

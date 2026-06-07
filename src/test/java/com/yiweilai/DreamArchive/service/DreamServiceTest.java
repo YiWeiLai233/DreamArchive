@@ -1,12 +1,14 @@
 package com.yiweilai.DreamArchive.service;
 
 import com.yiweilai.DreamArchive.DTO.DreamContent;
+import com.yiweilai.DreamArchive.DTO.PagedDreamContentResponse;
 import com.yiweilai.DreamArchive.mapper.DreamContentMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -15,6 +17,43 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DreamServiceTest {
+
+    @Test
+    void getDreamsPageByUserIdDelegatesPaginationAndFiltersToMapper() {
+        DreamService service = new DreamService();
+        DreamContentMapper dreamContentMapper = mock(DreamContentMapper.class);
+        ReflectionTestUtils.setField(service, "dreamContentMapper", dreamContentMapper);
+
+        DreamContent dream = dream("dream-1", 7, "SUCCESS");
+        when(dreamContentMapper.countByUserIdWithFilters(7, "school", "happy", false)).thenReturn(23L);
+        when(dreamContentMapper.selectPageByUserId(7, "school", "happy", false, 9, 9)).thenReturn(List.of(dream));
+
+        PagedDreamContentResponse result = service.getDreamsPageByUserId(7, 2, 9, " school ", "happy");
+
+        assertThat(result.getItems()).containsExactly(dream);
+        assertThat(result.getTotal()).isEqualTo(23L);
+        assertThat(result.getPage()).isEqualTo(2);
+        assertThat(result.getPageSize()).isEqualTo(9);
+        assertThat(result.getTotalPages()).isEqualTo(3);
+    }
+
+    @Test
+    void getDreamsPageByUserIdClampsEmptyAndOversizedRequests() {
+        DreamService service = new DreamService();
+        DreamContentMapper dreamContentMapper = mock(DreamContentMapper.class);
+        ReflectionTestUtils.setField(service, "dreamContentMapper", dreamContentMapper);
+
+        when(dreamContentMapper.countByUserIdWithFilters(7, null, null, true)).thenReturn(0L);
+
+        PagedDreamContentResponse result = service.getDreamsPageByUserId(7, -4, 500, "", "drafts");
+
+        assertThat(result.getItems()).isEmpty();
+        assertThat(result.getTotal()).isZero();
+        assertThat(result.getPage()).isEqualTo(1);
+        assertThat(result.getPageSize()).isEqualTo(30);
+        assertThat(result.getTotalPages()).isEqualTo(1);
+        verify(dreamContentMapper, never()).selectPageByUserId(7, null, null, true, 30, 0);
+    }
 
     @Test
     void updateEditableDreamUpdatesUnanalyzedDreamAndRebuildsStats() {
