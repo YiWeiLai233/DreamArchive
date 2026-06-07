@@ -45,7 +45,9 @@ public class AdminService {
             return Result.error(authResult.getCode(), authResult.getMessage());
         }
 
-        return Result.success(buildOverview(request));
+        User currentUser = authResult.getData();
+        boolean isSuperAdmin = isSuperAdmin(currentUser);
+        return Result.success(buildOverview(request, isSuperAdmin));
     }
 
     @Transactional
@@ -71,7 +73,9 @@ public class AdminService {
         if (actionResult.getCode() != 200) {
             return Result.error(actionResult.getCode(), actionResult.getMessage());
         }
-        return Result.success("操作成功", buildOverview(null));
+        User currentUser = authResult.getData();
+        boolean isSuperAdmin = isSuperAdmin(currentUser);
+        return Result.success("操作成功", buildOverview(null, isSuperAdmin));
     }
 
     @Transactional
@@ -85,7 +89,9 @@ public class AdminService {
         if (deleteResult.getCode() != 200) {
             return Result.error(deleteResult.getCode(), deleteResult.getMessage());
         }
-        return Result.success("账号已删除", buildOverview(null));
+        User currentUser = authResult.getData();
+        boolean isSuperAdmin = isSuperAdmin(currentUser);
+        return Result.success("账号已删除", buildOverview(null, isSuperAdmin));
     }
 
     public Result<DreamContent> getDreamDetail(String authorizationHeader, AdminDreamDetailRequest request) {
@@ -135,13 +141,14 @@ public class AdminService {
         return user;
     }
 
-    private AdminOverview buildOverview(AdminOverviewRequest request) {
+    private AdminOverview buildOverview(AdminOverviewRequest request, boolean isSuperAdmin) {
         int userPageSize = normalizePageSize(request == null ? null : request.getUserPageSize(), DEFAULT_USER_PAGE_SIZE);
         int dreamPageSize = normalizePageSize(request == null ? null : request.getDreamPageSize(), DEFAULT_DREAM_PAGE_SIZE);
         String userKeyword = trim(request == null ? null : request.getUserKeyword());
         String dreamKeyword = trim(request == null ? null : request.getDreamKeyword());
+        boolean excludeSuperAdmin = !isSuperAdmin;
 
-        int userResultTotal = adminMapper.countUserSummaries(userKeyword);
+        int userResultTotal = adminMapper.countUserSummaries(userKeyword, excludeSuperAdmin);
         int dreamResultTotal = adminMapper.countRecentDreams(dreamKeyword);
         int userTotalPages = totalPages(userResultTotal, userPageSize);
         int dreamTotalPages = totalPages(dreamResultTotal, dreamPageSize);
@@ -153,7 +160,7 @@ public class AdminService {
         overview.setAdminUsers(adminMapper.countAdminUsers());
         overview.setTotalDreams(adminMapper.countDreams());
         overview.setTodayDreams(adminMapper.countTodayDreams());
-        overview.setUsers(adminMapper.selectUserSummaries(userKeyword, offset(userPage, userPageSize), userPageSize));
+        overview.setUsers(adminMapper.selectUserSummaries(userKeyword, offset(userPage, userPageSize), userPageSize, excludeSuperAdmin));
         overview.setRecentDreams(adminMapper.selectRecentDreams(dreamKeyword, offset(dreamPage, dreamPageSize), dreamPageSize));
         overview.setUserPage(userPage);
         overview.setUserPageSize(userPageSize);

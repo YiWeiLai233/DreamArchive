@@ -18,6 +18,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -56,13 +57,13 @@ class AdminServiceCookieAuthTest {
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
         ));
-        when(adminMapper.countUserSummaries(isNull())).thenReturn(0);
+        when(adminMapper.countUserSummaries(isNull(), anyBoolean())).thenReturn(0);
         when(adminMapper.countRecentDreams(isNull())).thenReturn(0);
         when(adminMapper.countUsers()).thenReturn(1);
         when(adminMapper.countAdminUsers()).thenReturn(1);
         when(adminMapper.countDreams()).thenReturn(0);
         when(adminMapper.countTodayDreams()).thenReturn(0);
-        when(adminMapper.selectUserSummaries(isNull(), anyInt(), anyInt())).thenReturn(List.of());
+        when(adminMapper.selectUserSummaries(isNull(), anyInt(), anyInt(), anyBoolean())).thenReturn(List.of());
         when(adminMapper.selectRecentDreams(isNull(), anyInt(), anyInt())).thenReturn(List.of());
 
         Result<AdminOverview> result = service.getOverview(null, new AdminOverviewRequest());

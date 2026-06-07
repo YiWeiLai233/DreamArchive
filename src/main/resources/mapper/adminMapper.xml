@@ -32,6 +32,9 @@
         SELECT COUNT(*)
         FROM user u
         WHERE u.deleted = 0
+        <if test="excludeSuperAdmin">
+          AND u.role != 'SUPER_ADMIN'
+        </if>
         <if test="keyword != null and keyword != ''">
           AND (
             LOWER(u.username) LIKE CONCAT('%', LOWER(#{keyword}), '%')
@@ -55,6 +58,9 @@
         FROM user u
         LEFT JOIN dream_content dc ON dc.user_id = u.id
         WHERE u.deleted = 0
+        <if test="excludeSuperAdmin">
+          AND u.role != 'SUPER_ADMIN'
+        </if>
         <if test="keyword != null and keyword != ''">
           AND (
             LOWER(u.username) LIKE CONCAT('%', LOWER(#{keyword}), '%')

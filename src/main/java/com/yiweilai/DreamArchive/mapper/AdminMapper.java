@@ -18,12 +18,13 @@ public interface AdminMapper {
 
     int countTodayDreams();
 
-    int countUserSummaries(@Param("keyword") String keyword);
+    int countUserSummaries(@Param("keyword") String keyword, @Param("excludeSuperAdmin") boolean excludeSuperAdmin);
 
     List<AdminUserSummary> selectUserSummaries(
             @Param("keyword") String keyword,
             @Param("offset") Integer offset,
-            @Param("limit") Integer limit);
+            @Param("limit") Integer limit,
+            @Param("excludeSuperAdmin") boolean excludeSuperAdmin);
 
     int countRecentDreams(@Param("keyword") String keyword);
 
