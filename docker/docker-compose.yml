@@ -100,7 +100,7 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       AUTH_SECRET: ${AUTH_SECRET}
-      AI_API_KEY: ${AI_API_KEY}
+      APP_ENCRYPTION_AES_KEY: ${APP_ENCRYPTION_AES_KEY}
     expose:
       - "8080"
     depends_on:
