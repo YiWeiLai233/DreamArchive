@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -20,6 +23,12 @@ public class MinioService {
     @Value("${minio.endpoint}")
     private String endpoint;
 
+    @Value("${minio.public-endpoint:${minio.endpoint}}")
+    private String publicEndpoint;
+
+    @Value("${minio.region:us-east-1}")
+    private String region;
+
     @Value("${minio.access-key}")
     private String accessKey;
 
@@ -30,13 +39,18 @@ public class MinioService {
     private String bucket;
 
     private MinioClient minioClient;
+    private MinioClient presignClient;
 
     @PostConstruct
     public void init() {
-        minioClient = MinioClient.builder()
-                .endpoint(endpoint)
-                .credentials(accessKey, secretKey)
-                .build();
+        endpoint = normalizeEndpoint(endpoint);
+        publicEndpoint = normalizeEndpoint(publicEndpoint);
+        if (publicEndpoint.isBlank()) {
+            publicEndpoint = endpoint;
+        }
+
+        minioClient = buildClient(endpoint);
+        presignClient = buildClient(publicEndpoint);
         try {
             boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
             if (!exists) {
@@ -46,6 +60,25 @@ public class MinioService {
         } catch (Exception e) {
             log.error("Failed to initialize MinIO bucket: {}", e.getMessage());
         }
+    }
+
+    private MinioClient buildClient(String clientEndpoint) {
+        return MinioClient.builder()
+                .endpoint(clientEndpoint)
+                .region(region)
+                .credentials(accessKey, secretKey)
+                .build();
+    }
+
+    private String normalizeEndpoint(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        while (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     public String uploadImage(MultipartFile file, String extension) {
@@ -79,6 +112,10 @@ public class MinioService {
         if (!urlOrObjectName.startsWith("http")) {
             return urlOrObjectName;
         }
+        String objectName = extractObjectNameFromBucketPath(urlOrObjectName);
+        if (objectName != null) {
+            return objectName;
+        }
         // URL 格式: endpoint/bucket/objectName?params
         String prefix = endpoint + "/" + bucket + "/";
         int idx = urlOrObjectName.indexOf(prefix);
@@ -90,9 +127,24 @@ public class MinioService {
         return urlOrObjectName;
     }
 
+    private String extractObjectNameFromBucketPath(String url) {
+        try {
+            String rawPath = URI.create(url).getRawPath();
+            String bucketPrefix = "/" + bucket + "/";
+            if (rawPath != null && rawPath.startsWith(bucketPrefix)) {
+                String rawObjectName = rawPath.substring(bucketPrefix.length());
+                return URLDecoder.decode(rawObjectName, StandardCharsets.UTF_8);
+            }
+        } catch (IllegalArgumentException e) {
+            log.warn("Failed to parse MinIO URL path: {}", e.getMessage());
+        }
+        return null;
+    }
+
     public String getPresignedUrl(String objectName) {
         try {
-            return minioClient.getPresignedObjectUrl(
+            MinioClient signer = presignClient != null ? presignClient : minioClient;
+            return signer.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucket)
