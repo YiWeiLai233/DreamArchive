@@ -13,7 +13,7 @@ WORKDIR /app
 COPY --from=builder /build/target/DreamArchive-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", \
-  "-Xms512m", "-Xmx1024m", \
+  "-Xms1024m", "-Xmx2048m", \
   "-XX:+UseG1GC", "-XX:MaxGCPauseMillis=200", \
   "-jar", "app.jar", \
   "--spring.profiles.active=docker"]
