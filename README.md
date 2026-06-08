@@ -8,6 +8,26 @@ DreamArchive 是一个面向个人梦境记录、AI 解读与长期情绪洞察�
 
 > 快速跳转：[Deployment / 部署文档](docs/DEPLOYMENT.md) · [Docker 一键部署](docker/)
 
+## 演示截图
+
+| 首页 | 记录梦境 |
+|:---:|:---:|
+| ![首页](docs/screenshots/home.png) | ![记录梦境](docs/screenshots/record-dream.png) |
+
+| 我的梦境 | 梦境统计 |
+|:---:|:---:|
+| ![我的梦境](docs/screenshots/dream-list.png) | ![梦境统计](docs/screenshots/dream-stats.png) |
+
+## 在线体验
+
+| 项目 | 说明 |
+|------|------|
+| 体验地址 | http://175.178.84.239/demo |
+| 账号 | `demo` |
+| 密码 | `Demo@135@$^` |
+
+> 提示：该演示账号已预置部分梦境数据，可直接体验 AI 解析、梦境列表、统计图表等功能。
+
 ## 项目亮点速览
 
 - 基于 Spring Boot + Vue 构建完整前后端分离项目，覆盖用户、梦境内容、统计图表、后台管理和部署文档。
