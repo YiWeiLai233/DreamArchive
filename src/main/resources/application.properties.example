@@ -83,10 +83,10 @@ spring.servlet.multipart.max-request-size=10MB
 
 # ==================== MinIO 对象存储 ====================
 minio.endpoint=http://你的MinIO地址:9000
+minio.public-endpoint=http://浏览器可访问的MinIO地址:9000
 minio.access-key=你的MinIO_ACCESS_KEY
 minio.secret-key=你的MinIO_SECRET_KEY
 minio.bucket=dream-archive
-
 # ==================== AI 资源池 ====================
 # AI 资源池启动心跳：true=启动后异步自检并测速；false=跳过自检，适合本地频繁重启时节省 token
 ai.pool.heartbeat.enabled=true

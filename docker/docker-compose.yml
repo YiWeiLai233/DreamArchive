@@ -54,7 +54,8 @@ services:
     expose:
       - "9000"
     ports:
-      - "127.0.0.1:9001:9001"
+      - "0.0.0.0:9001:9001"
+      - "0.0.0.0:9000:9000"
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
@@ -95,6 +96,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-}
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       AUTH_SECRET: ${AUTH_SECRET}
