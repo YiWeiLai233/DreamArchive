@@ -1,0 +1,102 @@
+:root {
+  --primary: #7C6FE0;
+  --primary-light: #9B8FFF;
+  --secondary: #FFB347;
+  --bg-start: #E8D5F5;
+  --bg-end: #B8E6FF;
+  --text-dark: #2D2B55;
+  --text-light: #6B6899;
+  --white: #FFFFFF;
+  --glass-bg: rgba(255, 255, 255, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.4);
+}
+
+:root.dark {
+  --primary: #9B8FFF;
+  --primary-light: #B8AEFF;
+  --secondary: #FFB347;
+  --bg-start: #070615;
+  --bg-end: #130C32;
+  --text-dark: #E8E4F0;
+  --text-light: #A9A3C0;
+  --white: #201C34;
+  --glass-bg: rgba(28, 24, 45, 0.86);
+  --glass-border: rgba(184, 174, 255, 0.42);
+  --glass-shadow: rgba(0, 0, 0, 0.42);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-start);
+  transition: background 0.3s ease;
+}
+
+/* PC 端适配：增大根字号，所有 rem 单位自动放大 12.5% */
+@media (min-width: 1024px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+/* 全局滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 111, 224, 0.25);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 111, 224, 0.45);
+}
+
+:root.dark ::-webkit-scrollbar-thumb {
+  background: rgba(155, 143, 255, 0.3);
+}
+:root.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(155, 143, 255, 0.5);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 111, 224, 0.25) transparent;
+}
+
+:root.dark * {
+  scrollbar-color: rgba(155, 143, 255, 0.3) transparent;
+}
+
+/* 入场动画 */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card-enter {
+  animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+::selection {
+  background: rgba(124, 111, 224, 0.3);
+  color: inherit;
+}
+:root.dark ::selection {
+  background: rgba(155, 143, 255, 0.4);
+  color: #E8E4F0;
+}

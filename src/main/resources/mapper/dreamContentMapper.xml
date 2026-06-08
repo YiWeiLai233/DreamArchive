@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yiweilai.DreamArchive.mapper.DreamContentMapper">
+
+    <insert id="insertDreamContent" parameterType="com.yiweilai.DreamArchive.DTO.DreamContent">
+        INSERT INTO dream_content (id, user_id, title, content, emotion, place, time, interpretation, analysis_status, analysis_error, image_url, created_at)
+        VALUES (#{id}, #{userId}, #{title}, #{content}, #{emotion}, #{place}, #{time}, #{interpretation}, #{analysisStatus}, #{analysisError}, #{imageUrl}, NOW())
+    </insert>
+
+    <select id="selectById" resultType="com.yiweilai.DreamArchive.DTO.DreamContent">
+        SELECT id, user_id as userId, title, content, emotion, place, time, interpretation, analysis_status as analysisStatus, analysis_error as analysisError, image_url as imageUrl, created_at as createdAt
+        FROM dream_content
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByUserId" resultType="com.yiweilai.DreamArchive.DTO.DreamContent">
+        SELECT id, user_id as userId, title, content, emotion, place, time, interpretation, analysis_status as analysisStatus, analysis_error as analysisError, image_url as imageUrl, created_at as createdAt
+        FROM dream_content
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+    <sql id="DreamPageFilters">
+        WHERE user_id = #{userId}
+        <if test="keyword != null and keyword != ''">
+            AND (
+                title LIKE CONCAT('%', #{keyword}, '%')
+                OR content LIKE CONCAT('%', #{keyword}, '%')
+                OR place LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="emotion != null and emotion != ''">
+            AND emotion = #{emotion}
+        </if>
+        <if test="draftsOnly">
+            AND (
+                (analysis_status IS NOT NULL AND analysis_status != '' AND analysis_status NOT IN ('PENDING', 'SUCCESS'))
+                OR ((analysis_status IS NULL OR analysis_status = '') AND (interpretation IS NULL OR interpretation = ''))
+            )
+        </if>
+    </sql>
+
+    <select id="selectPageByUserId" resultType="com.yiweilai.DreamArchive.DTO.DreamContent">
+        SELECT id, user_id as userId, title, content, emotion, place, time, interpretation, analysis_status as analysisStatus, analysis_error as analysisError, image_url as imageUrl, created_at as createdAt
+        FROM dream_content
+        <include refid="DreamPageFilters" />
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByUserIdWithFilters" resultType="long">
+        SELECT COUNT(*)
+        FROM dream_content
+        <include refid="DreamPageFilters" />
+    </select>
+
+    <update id="updateTitle">
+        UPDATE dream_content
+        SET title = #{title}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateEditableDream">
+        UPDATE dream_content
+        SET title = #{title},
+            content = #{content},
+            emotion = #{emotion},
+            place = #{place},
+            time = #{time},
+            interpretation = '',
+            analysis_status = 'NONE',
+            analysis_error = NULL
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateInterpretation">
+        UPDATE dream_content
+        SET interpretation = #{interpretation}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAnalysisStatus">
+        UPDATE dream_content
+        SET analysis_status = #{status}, analysis_error = #{error}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM dream_content
+        WHERE id = #{id}
+    </delete>
+
+</mapper>

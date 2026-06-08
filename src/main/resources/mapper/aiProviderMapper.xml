@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yiweilai.DreamArchive.mapper.AiProviderMapper">
+    <resultMap id="AiProviderResultMap" type="com.yiweilai.DreamArchive.DTO.AiProvider">
+        <id property="name" column="name"/>
+        <result property="url" column="url"/>
+        <result property="apiKey" column="api_key"/>
+        <result property="model" column="model"/>
+        <result property="weight" column="weight"/>
+        <result property="enabled" column="enabled"/>
+        <result property="visionEnabled" column="vision_enabled"/>
+    </resultMap>
+
+    <select id="selectAll" resultMap="AiProviderResultMap">
+        SELECT name, url, api_key, model, weight, enabled, vision_enabled
+        FROM ai_provider
+        ORDER BY name
+    </select>
+
+    <select id="selectByName" resultMap="AiProviderResultMap">
+        SELECT name, url, api_key, model, weight, enabled, vision_enabled
+        FROM ai_provider
+        WHERE name = #{name}
+    </select>
+
+    <insert id="insert" parameterType="com.yiweilai.DreamArchive.DTO.AiProvider">
+        INSERT INTO ai_provider(name, url, api_key, model, weight, enabled, vision_enabled, created_at, updated_at)
+        VALUES (#{name}, #{url}, #{apiKey}, #{model}, #{weight}, #{enabled}, #{visionEnabled}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.yiweilai.DreamArchive.DTO.AiProvider">
+        UPDATE ai_provider
+        SET url = #{url},
+            api_key = #{apiKey},
+            model = #{model},
+            weight = #{weight},
+            enabled = #{enabled},
+            vision_enabled = #{visionEnabled},
+            updated_at = NOW()
+        WHERE name = #{name}
+    </update>
+
+    <delete id="deleteByName">
+        DELETE FROM ai_provider
+        WHERE name = #{name}
+    </delete>
+
+    <update id="clearVisionEnabledExcept">
+        UPDATE ai_provider
+        SET vision_enabled = 0,
+            updated_at = NOW()
+        WHERE vision_enabled = 1
+          AND name != #{name}
+    </update>
+</mapper>

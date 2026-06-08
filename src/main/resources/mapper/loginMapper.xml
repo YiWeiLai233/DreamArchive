@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yiweilai.DreamArchive.mapper.LoginMapper">
+    <select id="login" resultType="com.yiweilai.DreamArchive.DTO.User">
+        SELECT id, username, password, email, role, status, deleted, avatar_url as avatarUrl, created_at as createdAt
+        FROM user
+        WHERE username = #{username} OR email = #{email}
+    </select>
+
+    <select id="selectById" resultType="com.yiweilai.DreamArchive.DTO.User">
+        SELECT id, username, password, email, role, status, deleted, avatar_url as avatarUrl, created_at as createdAt
+        FROM user
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByUsername" resultType="com.yiweilai.DreamArchive.DTO.User">
+        SELECT id, username, password, email, role, status, deleted, avatar_url as avatarUrl, created_at as createdAt
+        FROM user
+        WHERE username = #{username}
+    </select>
+
+    <select id="selectByEmail" resultType="com.yiweilai.DreamArchive.DTO.User">
+        SELECT id, username, password, email, role, status, deleted, avatar_url as avatarUrl, created_at as createdAt
+        FROM user
+        WHERE email = #{email}
+    </select>
+    <update id="updateAvatarUrl">
+        UPDATE user SET avatar_url = #{avatarUrl} WHERE id = #{id}
+    </update>
+</mapper>

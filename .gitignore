@@ -1,0 +1,59 @@
+HELP.md
+AGENTS.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Local assistant/config ###
+.claude/
+**/.claude/
+
+### Frontend generated files ###
+frontend/node_modules/
+frontend/dist/
+fount/
+
+### Local generated/cache directories ###
+.local-cache/
+
+### Local collected logs ###
+logs/
+
+### Local runtime logs ###
+*.log
+
+### Sensitive config ###
+src/main/resources/application.properties
+.env
+
+### Project docs (local only) ###
+*.md
